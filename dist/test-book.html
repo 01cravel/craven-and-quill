@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173f35">
+  <meta name="description" content="A finished personalised Craven & Quill test book.">
+  <title>Finished test book | Craven & Quill</title>
+  <link rel="icon" href="assets/favicon.png">
+  <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="test-book.css">
+</head>
+<body>
+  <a class="skip" href="#book">Skip to the book</a>
+  <header class="reader-header">
+    <a class="brand" href="personalised.html"><img src="assets/logo.webp" width="46" height="46" alt=""><span>CRAVEN <i>&amp;</i> QUILL</span></a>
+    <div class="page-status"><span id="page-label">Front cover</span><div class="page-progress"><i id="page-progress"></i></div></div>
+    <a class="exit" href="create.html">Back to maker</a>
+  </header>
+
+  <main id="book" class="reader">
+    <nav class="book-switcher" aria-label="Finished test books">
+      <span>Finished tests</span>
+      <a href="test-book.html?book=luke" data-book="luke">Age 9–11 · Funny · AI</a>
+      <a href="test-book.html?book=amara" data-book="amara">Age 6–8 · Adventure · AI</a>
+      <a href="test-book.html?book=noah" data-book="noah">Age 3–5 · Classic · Own idea</a>
+    </nav>
+
+    <section class="page-stage cover-stage" id="page-stage" aria-live="polite">
+      <article class="page-copy" id="page-copy">
+        <p class="chapter" id="chapter"></p>
+        <h1 id="page-title"></h1>
+        <p id="page-text"></p>
+        <span class="page-number" id="page-number"></span>
+      </article>
+      <div class="art-frame motion-in" id="art-frame">
+        <img id="page-art" src="" width="1536" height="1024" alt="">
+        <span class="story-glow" aria-hidden="true"></span>
+        <div class="cover-copy" id="cover-copy"><p>A PERSONALISED STORY FOR <span id="cover-name"></span></p><h1 id="cover-title"></h1><span id="cover-meta"></span></div>
+      </div>
+    </section>
+
+    <nav class="reader-controls" aria-label="Book controls">
+      <button type="button" id="previous" aria-label="Previous page">←</button>
+      <div class="dots" id="dots" aria-label="Choose a page"></div>
+      <button type="button" id="next">Open book <span>→</span></button>
+    </nav>
+
+    <section class="animation-bar" aria-label="Animated story controls">
+      <div><strong>Gentle animation</strong><span>Each illustrated spread pans slowly while the book reads on.</span></div>
+      <button type="button" id="play-book"><span id="play-icon">▶</span> Play from here</button>
+    </section>
+    <p class="test-note" id="test-note"></p>
+  </main>
+  <script src="test-book.js?v=4" defer></script>
+</body>
+</html>

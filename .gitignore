@@ -1,0 +1,6 @@
+.DS_Store
+.openai/
+dist/assets/books/
+dist/assets/books-cartoon/
+dist/assets/test-portraits/
+dist/assets/cake-book/

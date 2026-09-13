@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173f35">
+  <meta name="description" content="Create one free personalised story preview, then choose whether to unlock the full book.">
+  <title>Create a free preview | Craven &amp; Quill</title>
+  <link rel="icon" href="assets/favicon.png">
+  <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="create.css?v=4">
+</head>
+<body>
+  <a class="skip" href="#maker">Skip to story maker</a>
+
+  <header class="app-header">
+    <a class="brand" href="personalised.html"><img src="assets/logo.webp" width="46" height="46" alt=""><span>CRAVEN <i>&amp;</i> QUILL</span></a>
+    <nav class="journey" aria-label="Your progress">
+      <span class="journey-step active" data-progress="1"><b>1</b><em>About them</em></span>
+      <span class="journey-step" data-progress="2"><b>2</b><em>Story</em></span>
+      <span class="journey-step" data-progress="3"><b>3</b><em>Photo</em></span>
+      <span class="journey-step" data-progress="4"><b>4</b><em>Preview</em></span>
+      <span class="journey-step" data-progress="5"><b>5</b><em>Checkout</em></span>
+    </nav>
+    <a class="save-note" href="personalised.html">Exit</a>
+  </header>
+
+  <main id="maker" class="maker-shell">
+    <aside class="story-side" aria-live="polite">
+      <p class="side-label">YOUR BOOK SO FAR</p>
+      <div class="mini-cover" id="mini-cover">
+        <img id="mini-cover-art" src="assets/storybook.webp" width="900" height="1125" alt="Sample illustrated book cover">
+        <div class="mini-cover-shade"></div>
+        <div class="mini-cover-copy"><span>A STORY FOR</span><strong id="live-name">SOMEONE SPECIAL</strong><em id="live-title">The Map Beneath the Moon</em></div>
+      </div>
+      <div class="side-details"><span id="live-age">Age 6–8</span><span id="live-mood">Adventure</span></div>
+      <div class="side-promise"><b>Free preview first</b><span>Only one picture is created before you choose to buy.</span></div>
+    </aside>
+
+    <section class="step-panel">
+      <form id="story-maker" novalidate>
+        <section class="step active" data-step="1" aria-labelledby="step-1-title">
+          <p class="eyebrow">START WITH THE STAR</p>
+          <h1 id="step-1-title">Who is the book for?</h1>
+          <p class="intro">Just their first name and reading age for now.</p>
+
+          <label for="names">First name <span>Required</span></label>
+          <input id="names" name="names" maxlength="40" autocomplete="off" placeholder="For example, Leo" required>
+
+          <button class="add-person" id="add-person" type="button">+ Add another person <span>Optional</span></button>
+          <div id="second-person" hidden>
+            <label for="second-name">Second first name <span>Required</span></label>
+            <input id="second-name" name="second-name" maxlength="40" autocomplete="off" placeholder="For example, Maya">
+          </div>
+
+          <fieldset>
+            <legend>Choose their reading age <span>Required</span></legend>
+            <div class="choice-grid three age-grid">
+              <label class="choice"><input type="radio" name="age" value="3-5"><span><b>Age 3–5</b><small>Short and repeatable</small></span></label>
+              <label class="choice"><input type="radio" name="age" value="6-8" checked><span><b>Age 6–8</b><small>Clear, lively adventure</small></span></label>
+              <label class="choice"><input type="radio" name="age" value="9-11"><span><b>Age 9–11</b><small>Richer plot and language</small></span></label>
+            </div>
+          </fieldset>
+
+          <div class="error" id="step-1-error" role="alert"></div>
+          <button class="next" type="button" data-next="2">Choose their story <span>→</span></button>
+        </section>
+
+        <section class="step" data-step="2" aria-labelledby="step-2-title" hidden>
+          <p class="eyebrow">MAKE IT FEEL LIKE THEM</p>
+          <h1 id="step-2-title">What would they love?</h1>
+          <p class="intro">Pick a direction, then choose one of three ideas.</p>
+
+          <fieldset>
+            <legend>Story direction <span>Required</span></legend>
+            <div class="choice-grid four mood-grid">
+              <label class="choice mood funny"><input type="radio" name="mood" value="funny"><span><b>Funny</b><small>Silly trouble</small></span></label>
+              <label class="choice mood adventure"><input type="radio" name="mood" value="adventure" checked><span><b>Adventure</b><small>A brave quest</small></span></label>
+              <label class="choice mood classic"><input type="radio" name="mood" value="classic"><span><b>Classic</b><small>Gentle magic</small></span></label>
+              <label class="choice mood own"><input type="radio" name="mood" value="own"><span><b>My idea</b><small>You set the plot</small></span></label>
+            </div>
+          </fieldset>
+
+          <div id="ai-ideas">
+            <p class="field-label">Choose a story <span>Required</span></p>
+            <div class="idea-list" id="idea-list"></div>
+            <button class="shuffle" id="shuffle-ideas" type="button">Show different ideas</button>
+          </div>
+
+          <div id="own-options" hidden>
+            <label for="own-idea">What should happen? <span>Required</span></label>
+            <textarea id="own-idea" name="own-idea" rows="5" maxlength="500" placeholder="For example, Leo finds three friendly aliens above Dubai and helps them get home."></textarea>
+            <div class="suggestions" aria-label="Story starters">
+              <button type="button" data-prompt="A birthday surprise goes wonderfully wrong.">Birthday surprise</button>
+              <button type="button" data-prompt="They discover a secret world close to home.">Secret world</button>
+              <button type="button" data-prompt="A beloved pet leads them on a gentle adventure.">Pet adventure</button>
+            </div>
+          </div>
+
+          <div class="error" id="step-2-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" type="button" data-next="3">Add their photo <span>→</span></button></div>
+        </section>
+
+        <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
+          <p class="eyebrow">HELP US DRAW THEM</p>
+          <h1 id="step-3-title">Add one clear photo.</h1>
+          <p class="intro">A front-facing photo gives the closest cartoon likeness.</p>
+
+          <div class="upload-wrap">
+            <label class="upload" for="photos"><span class="upload-icon">+</span><strong>Add a photo</strong><small>Face forward, both eyes clear, no sunglasses. JPG, PNG or WebP.</small></label>
+            <input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple required aria-label="Add a clear photo">
+          </div>
+          <div class="photo-list" id="photo-list"></div>
+          <div class="photo-check" id="photo-check" hidden aria-live="polite"></div>
+
+          <div class="photo-rules" aria-label="Photo requirements"><span><b>✓</b> One face per photo</span><span><b>✓</b> At least 640px</span><span><b>✓</b> Bright and sharp</span></div>
+          <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>Every face is easy to recognise</b><small>The whole face and both eyes are visible.</small></span></label>
+          <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I have permission to use these photos</b><small>For a child, you must be their parent or guardian, or have permission from one.</small></span></label>
+
+          <aside class="privacy-note"><b>Your photo is private in this prototype.</b><span>It stays in this browser tab and is not uploaded. The live service must publish its deletion period before launch.</span></aside>
+
+          <div class="error" id="step-3-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next make" type="button" data-next="4">Create one free page <span>→</span></button></div>
+          <p class="under-button">No card needed. The other nine pages are not created yet.</p>
+        </section>
+
+        <section class="step preview-step" data-step="4" aria-labelledby="step-4-title" hidden>
+          <div id="making-state">
+            <div class="making-mark"><span>✦</span></div>
+            <p class="eyebrow">MAKING ONE FREE PAGE</p>
+            <h1 id="step-4-title">Drawing their first scene…</h1>
+            <ul><li class="done">Checking the story</li><li>Matching the character</li><li>Drawing one page</li></ul>
+          </div>
+
+          <div id="result-state" hidden>
+            <p class="eyebrow">YOUR FREE PREVIEW</p>
+            <div class="preview-heading"><h1><span id="result-names">Leo</span> stars in <em id="result-story-title">The Map Beneath the Moon</em></h1><p>Page 1 of 10</p></div>
+
+            <section class="book-preview" aria-label="Free personalised book preview">
+              <article class="preview-copy"><p class="chapter" id="preview-chapter">THE ADVENTURE BEGINS</p><p id="story-copy"></p></article>
+              <figure class="preview-art"><img id="preview-image" src="assets/storybook.webp" width="900" height="1125" alt="Sample personalised story illustration format"><span>FREE PREVIEW</span></figure>
+            </section>
+
+            <section class="likeness-check">
+              <div><strong id="likeness-title">Does this look like Leo?</strong><span>Check their hair, face shape, eyes and smile.</span></div>
+              <div class="likeness-actions"><button type="button" id="approve-face">Yes, that’s them</button><button type="button" id="adjust-face">Needs a change</button></div>
+            </section>
+
+            <div class="adjust-panel" id="adjust-panel" hidden>
+              <p>Choose the most important change. One preview adjustment is included.</p>
+              <div class="adjust-options"><label><input type="radio" name="adjustment" value="cartoon" checked><span>More cartoon</span></label><label><input type="radio" name="adjustment" value="likeness"><span>Closer likeness</span></label><label><input type="radio" name="adjustment" value="expression"><span>Different expression</span></label></div>
+              <button type="button" id="update-preview">Update my preview</button>
+            </div>
+
+            <section class="locked-pages" aria-label="Locked story pages"><strong>One page ready. Nine more unlock after payment.</strong><div id="locked-dots"></div></section>
+            <div class="error" id="step-4-error" role="alert"></div>
+            <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next" id="choose-book" type="button" data-next="5" disabled>Choose your book <span>→</span></button></div>
+          </div>
+        </section>
+
+        <section class="step checkout-step" data-step="5" aria-labelledby="step-5-title" hidden>
+          <p class="eyebrow">CHECKOUT</p>
+          <h1 id="step-5-title">Unlock the whole story.</h1>
+          <p class="intro">Checkout as a guest. No account needed.</p>
+
+          <fieldset>
+            <legend>Choose your book <span>Required</span></legend>
+            <div class="product-options">
+              <label class="product"><input type="radio" name="product" value="digital" data-price="19" checked><span><b>Digital book + animation</b><small>Read and watch on any device</small><strong>£19</strong></span></label>
+              <label class="product"><input type="radio" name="product" value="hardback" data-price="34"><span><b>Hardback + digital + animation</b><small>Printed book, plus instant digital access</small><strong>£34</strong></span></label>
+            </div>
+          </fieldset>
+
+          <details class="gift-extra">
+            <summary>Add a free gift message <span>Optional</span></summary>
+            <div class="gift-fields"><label for="gift-from">Gifted from <span>Required</span></label><input id="gift-from" maxlength="60" placeholder="For example, Mum and Dad"><label for="gift-message">Message <span>Optional</span></label><textarea id="gift-message" maxlength="180" rows="3" placeholder="A little story made especially for you."></textarea></div>
+          </details>
+
+          <div class="checkout-fields">
+            <label for="email">Email for your book <span>Required</span></label>
+            <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+            <div id="shipping-fields" hidden><label for="address">Delivery address <span>Required</span></label><textarea id="address" rows="3" autocomplete="street-address" placeholder="House number, street, town and postcode"></textarea></div>
+          </div>
+
+          <section class="test-gateway" aria-labelledby="gateway-title">
+            <div class="gateway-heading"><span>TEST PAYMENT</span><div><strong id="gateway-title">No money will be taken</strong><small>This shows where the secure payment form will go.</small></div></div>
+            <label for="card-name">Name on card <span>Required</span></label>
+            <input id="card-name" autocomplete="cc-name" value="Test Customer">
+            <label for="card-number">Card number <span>Test details</span></label>
+            <input id="card-number" inputmode="numeric" autocomplete="cc-number" value="4242 4242 4242 4242" aria-describedby="card-help">
+            <div class="gateway-row"><label for="card-expiry">Expiry<input id="card-expiry" inputmode="numeric" autocomplete="cc-exp" value="12/30"></label><label for="card-cvc">Security code<input id="card-cvc" inputmode="numeric" autocomplete="cc-csc" value="123"></label></div>
+            <p id="card-help">These are safe test details. This prototype cannot charge a card.</p>
+          </section>
+
+          <section class="order-total" aria-label="Order total"><div><span id="order-label">Digital book + animation</span><small>Full 10-page story, cover and ownership page</small></div><strong id="order-price">£19</strong></section>
+          <p class="price-note">This is the full price. No generation fee is added later.</p>
+
+          <div class="error" id="step-5-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next checkout-button" id="place-order" type="button">Complete test order · <span id="button-price">£19</span></button></div>
+          <p class="under-button">No charge will be made. Replace this panel with the live payment provider before taking orders.</p>
+        </section>
+      </form>
+    </section>
+  </main>
+
+  <footer><span>Prototype only. Photos stay in this browser tab.</span><a href="personalised.html">How it works</a></footer>
+  <script src="create.js?v=4" defer></script>
+</body>
+</html>
