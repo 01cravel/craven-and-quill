@@ -1,13 +1,7 @@
 (() => {
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => [...document.querySelectorAll(selector)];
-  const labels = { 1: 'Their name', 2: 'Reading level', 3: 'Story style', 4: 'Their photo', 5: 'Your email', 6: 'Review' };
-  const storyNames = { funny: 'Funny', adventure: 'Adventure', classic: 'Warm and classic' };
-  const storyCovers = {
-    funny: { art: 'assets/cake-book-portrait/page-01.jpg', title: 'and the Cake That Ran Away' },
-    adventure: { art: 'assets/books-cartoon/amara/cover.jpg', title: 'and the Map Beneath the Moon' },
-    classic: { art: 'assets/books-cartoon/noah/cover.jpg', title: 'and the Little Cloud' }
-  };
+  const labels = { 1: 'Their name', 2: 'Reading level', 3: 'Story style', 4: 'Their photo', 5: 'Your email' };
   let photoUrl = '';
 
   function track(event, details = {}) {
@@ -29,10 +23,10 @@
     });
 
     const numeric = Number(screen);
-    const progress = !Number.isNaN(numeric) ? numeric : 6;
-    const finished = ['reserved', 'declined', 'thanks'].includes(String(screen));
-    $('#progress-label').textContent = finished ? 'Complete' : `Question ${Math.min(progress, 6)} of 6`;
-    $('#progress-name').textContent = screen === 'making' ? 'Making the cover' : screen === 'result' ? 'Your cover' : screen === 'reserved' ? 'Reserved' : screen === 'declined' ? 'Your answer' : screen === 'thanks' ? 'Thank you' : labels[progress];
+    const progress = !Number.isNaN(numeric) ? numeric : 5;
+    const finished = String(screen) === 'queued';
+    $('#progress-label').textContent = finished ? 'Complete' : `Question ${Math.min(progress, 5)} of 5`;
+    $('#progress-name').textContent = finished ? 'Cover requested' : labels[progress];
     $$('.progress-steps span').forEach((bar, index) => bar.classList.toggle('active', index < progress));
     window.scrollTo({ top: 0, behavior: 'smooth' });
     track('screen_viewed', { screen: String(screen) });
@@ -94,77 +88,41 @@
     show(5);
   });
 
-  $('[data-next="6"]').addEventListener('click', () => {
+  function requestCover() {
     if (!$('#email').checkValidity()) {
       $('#email-error').textContent = 'Add a valid email address.';
       $('#email').focus();
-      return;
-    }
-    if (!$('#permission').checked) {
-      $('#email-error').textContent = 'Confirm you have permission to use the photo.';
-      $('#permission').focus();
-      return;
+      return false;
     }
     $('#email-error').textContent = '';
     const name = $('#person-name').value.trim();
-    $('#review-name').textContent = `${name}’s`;
-    $('#summary-name').textContent = name;
-    $('#summary-age').textContent = value('age') === 'Adult' ? 'An adult' : `Ages ${value('age')}`;
-    $('#summary-story').textContent = storyNames[value('story')];
-    track('email_completed');
-    show(6);
-  });
+    const email = $('#email').value.trim();
+    $('#queued-name').textContent = `${name}’s`;
+    $('#queued-email').textContent = email;
+    track('generation_requested', { age: value('age'), story: value('story') });
+    show('queued');
+    return true;
+  }
+
+  $('#request-cover').addEventListener('click', requestCover);
 
   $$('[data-back]').forEach((button) => button.addEventListener('click', () => show(button.dataset.back)));
   $('#start-again').addEventListener('click', () => location.reload());
-
-  $('#make-cover').addEventListener('click', () => {
-    const name = $('#person-name').value.trim();
-    $('#making-name').textContent = name;
-    track('preview_requested', { age: value('age'), story: value('story') });
-    show('making');
-    setTimeout(() => $('#drawing-status').classList.add('done'), 650);
-    setTimeout(() => $('#book-status').classList.add('done'), 1250);
-    setTimeout(() => {
-      const cover = storyCovers[value('story')];
-      $('#cover-art').src = cover.art;
-      $('#cover-name').textContent = name;
-      $('#cover-title').textContent = cover.title;
-      track('preview_revealed', { age: value('age'), story: value('story') });
-      show('result');
-    }, 1800);
-  });
-
-  $('#reserve').addEventListener('click', () => {
-    $('#reserved-email').textContent = $('#email').value.trim();
-    track('reservation_completed', { price: 199, currency: 'AED', age: value('age'), story: value('story') });
-    show('reserved');
-  });
-
-  $('#not-yet').addEventListener('click', () => {
-    track('reservation_declined', { price: 199, currency: 'AED' });
-    show('declined');
-  });
-
-  $$('.reason-list button').forEach((button) => button.addEventListener('click', () => {
-    track('decline_reason', { reason: button.dataset.reason });
-    show('thanks');
-  }));
 
   const modelContext = document.modelContext;
   if (modelContext?.registerTool) {
     const lifecycle = new AbortController();
     try {
       Promise.resolve(modelContext.registerTool({
-        name: 'reserve_personalised_book_interest',
-        title: 'Reserve personalised book interest',
-        description: 'Complete the visible no-payment reservation after the cover preview is ready.',
+        name: 'request_personalised_cover',
+        title: 'Request personalised cover',
+        description: 'Request a free personalised cover using the details already entered. The cover will be sent by email when ready.',
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
         annotations: { readOnlyHint: false, untrustedContentHint: false },
         execute() {
-          if (!$('.result-screen.active')) throw new Error('Complete all six questions and create the cover first.');
-          $('#reserve').click();
-          return { status: 'reserved', paymentTaken: false, price: 199, currency: 'AED' };
+          if (!$('[data-screen="5"].active')) throw new Error('Complete the first four questions before requesting the cover.');
+          if (!requestCover()) throw new Error($('#email-error').textContent);
+          return { status: 'requested', delivery: 'email', paymentTaken: false };
         }
       }, { signal: lifecycle.signal })).catch(() => {});
     } catch (_) {}

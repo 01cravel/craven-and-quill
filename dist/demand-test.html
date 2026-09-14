@@ -8,7 +8,7 @@
   <title>Make a free book cover | Craven &amp; Quill</title>
   <link rel="icon" href="assets/favicon.png">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="demand-test.css?v=4">
+  <link rel="stylesheet" href="demand-test.css?v=5">
 </head>
 <body>
   <a class="skip-link" href="#journey">Skip to the questions</a>
@@ -24,9 +24,9 @@
 
   <main class="app-main">
     <div class="progress" id="progress" aria-label="Your progress" hidden>
-      <div class="progress-copy"><span id="progress-label">Question 1 of 6</span><b id="progress-name">Their name</b></div>
+      <div class="progress-copy"><span id="progress-label">Question 1 of 5</span><b id="progress-name">Their name</b></div>
       <div class="progress-steps" aria-hidden="true">
-        <span class="active"></span><span></span><span></span><span></span><span></span><span></span>
+        <span class="active"></span><span></span><span></span><span></span><span></span>
       </div>
     </div>
 
@@ -100,91 +100,26 @@
       </section>
 
       <section class="question-screen" data-screen="5" aria-labelledby="email-title" hidden>
-        <p class="eyebrow">SEND THE PREVIEW</p>
+        <p class="eyebrow">YOUR FREE COVER</p>
         <h1 id="email-title">Where should we send their cover?</h1>
-        <p class="helper">We’ll only use this email for your preview and launch update.</p>
+        <p class="helper">Enter your email. We’ll create the cover and send it when it’s ready.</p>
         <label class="field-label" for="email">Your email</label>
         <input class="large-input" id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
-        <label class="check-row"><input id="permission" type="checkbox" required><span>I have permission to use this photo.</span></label>
-        <p class="privacy-note"><b>The photo stays private.</b> This prototype keeps it only in your open browser tab.</p>
         <p class="error" id="email-error" role="alert"></p>
-        <div class="action-row"><button class="back-button" type="button" data-back="4">← Back</button><button class="continue-button" type="button" data-next="6">Review my choices <span aria-hidden="true">→</span></button></div>
+        <div class="action-row"><button class="back-button" type="button" data-back="4">← Back</button><button class="continue-button" type="button" id="request-cover">Generate my free cover <span aria-hidden="true">→</span></button></div>
       </section>
 
-      <section class="question-screen" data-screen="6" aria-labelledby="review-title" hidden>
-        <p class="eyebrow">ONE LAST CHECK</p>
-        <h1 id="review-title">Ready to make <span id="review-name">their</span> free cover?</h1>
-        <p class="helper">We’ll create one cover. The other ten pages are made only if you choose to buy.</p>
-        <dl class="review-list">
-          <div><dt>Name</dt><dd id="summary-name"></dd></div>
-          <div><dt>Written for</dt><dd id="summary-age"></dd></div>
-          <div><dt>Story</dt><dd id="summary-story"></dd></div>
-          <div><dt>Today</dt><dd>Free, no card</dd></div>
-        </dl>
-        <button class="make-button" type="button" id="make-cover">Make the free cover <span aria-hidden="true">→</span></button>
-        <button class="back-button centred" type="button" data-back="5">← Change something</button>
-      </section>
-
-      <section class="question-screen making-screen" data-screen="making" aria-labelledby="making-title" hidden>
-        <div class="drawing-mark" aria-hidden="true"><span></span></div>
-        <p class="eyebrow">MAKING THE COVER</p>
-        <h1 id="making-title">Drawing <span id="making-name">their</span> character.</h1>
-        <p class="helper">Matching the face, hair and expression, then placing them inside the story.</p>
-        <ol class="making-list"><li class="done">Photo checked</li><li id="drawing-status">Character drawn</li><li id="book-status">Cover finished</li></ol>
-      </section>
-
-      <section class="question-screen result-screen" data-screen="result" aria-labelledby="result-title" hidden>
-        <div class="result-layout">
-          <div class="book-cover-wrap">
-            <span class="cover-label">PROTOTYPE COVER</span>
-            <article class="book-cover">
-              <img id="cover-art" src="assets/books-cartoon/noah/cover.jpg" width="1536" height="1024" alt="Cartoon storybook cover">
-              <div class="cover-shade"></div>
-              <div class="cover-words"><small>A PERSONALISED STORY FOR</small><strong id="cover-name">Leo</strong><em id="cover-title">and the Little Cloud</em></div>
-            </article>
-          </div>
-          <div class="result-question">
-            <p class="eyebrow">YOUR FREE COVER</p>
-            <h1 id="result-title">Would you buy the full book for AED 199?</h1>
-            <p class="helper">You’ll see all ten pages before printing. No payment is taken today.</p>
-            <ul class="book-includes"><li>10 illustrated story pages</li><li>Printed hardback</li><li>Digital copy included</li></ul>
-            <button class="reserve-button" type="button" id="reserve">Yes, reserve mine <span aria-hidden="true">→</span></button>
-            <button class="not-yet-button" type="button" id="not-yet">No, not yet</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="question-screen answer-screen" data-screen="reserved" aria-labelledby="reserved-title" hidden>
+      <section class="question-screen answer-screen" data-screen="queued" aria-labelledby="queued-title" hidden>
         <div class="answer-mark">✓</div>
-        <p class="eyebrow">NO PAYMENT TAKEN</p>
-        <h1 id="reserved-title">Your founding price is saved.</h1>
-        <p class="helper">We’ll email <b id="reserved-email"></b> when the full book is ready to order for AED 199.</p>
-        <a class="continue-button restart-link" href="demand-test.html">Make another preview <span aria-hidden="true">→</span></a>
-      </section>
-
-      <section class="question-screen answer-screen" data-screen="declined" aria-labelledby="declined-title" hidden>
-        <p class="eyebrow">ONE QUICK QUESTION</p>
-        <h1 id="declined-title">What stopped you?</h1>
-        <p class="helper">This helps us make the book better.</p>
-        <div class="reason-list">
-          <button type="button" data-reason="price">The price</button>
-          <button type="button" data-reason="character">The character didn’t look right</button>
-          <button type="button" data-reason="story">The story wasn’t for me</button>
-          <button type="button" data-reason="later">I’m just not ready yet</button>
-        </div>
-      </section>
-
-      <section class="question-screen answer-screen" data-screen="thanks" aria-labelledby="thanks-title" hidden>
-        <div class="answer-mark">✓</div>
-        <p class="eyebrow">THANK YOU</p>
-        <h1 id="thanks-title">That’s genuinely useful.</h1>
-        <p class="helper">No payment was taken and nothing was reserved.</p>
-        <a class="continue-button restart-link" href="demand-test.html">Start again <span aria-hidden="true">→</span></a>
+        <p class="eyebrow">REQUEST RECEIVED</p>
+        <h1 id="queued-title">We’ll make <span id="queued-name">their</span> cover.</h1>
+        <p class="helper">We’ll email it to <b id="queued-email"></b> when it’s ready. No payment has been taken.</p>
+        <a class="continue-button restart-link" href="demand-test.html">Make another cover <span aria-hidden="true">→</span></a>
       </section>
     </form>
 
   </main>
 
-  <script src="demand-test.js?v=4" defer></script>
+  <script src="demand-test.js?v=5" defer></script>
 </body>
 </html>
