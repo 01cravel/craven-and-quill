@@ -23,15 +23,31 @@
   </header>
 
   <main class="app-main">
-    <div class="progress" aria-label="Your progress">
+    <div class="progress" id="progress" aria-label="Your progress" hidden>
       <div class="progress-copy"><span id="progress-label">Question 1 of 6</span><b id="progress-name">Their name</b></div>
       <div class="progress-steps" aria-hidden="true">
         <span class="active"></span><span></span><span></span><span></span><span></span><span></span>
       </div>
     </div>
 
-    <form class="question-card" id="journey" novalidate>
-      <section class="question-screen active" data-screen="1" aria-labelledby="name-title">
+    <form class="question-card intro-card" id="journey" novalidate>
+      <section class="question-screen intro-screen active" data-screen="intro" aria-labelledby="intro-title">
+        <div class="intro-layout">
+          <div class="intro-copy">
+            <p class="eyebrow">ONE COVER IS FREE</p>
+            <h1 id="intro-title">Turn anyone into a storybook hero.</h1>
+            <p class="helper">Add one photo and answer a few easy questions. See their cartoon cover before deciding whether to buy the book.</p>
+            <button class="continue-button" type="button" id="start-preview">Start my free cover <span aria-hidden="true">→</span></button>
+            <p class="under-button">No card needed. Takes about two minutes.</p>
+          </div>
+          <div class="intro-visual" aria-label="A real photo used to create a personalised storybook">
+            <figure class="example-book"><img src="assets/storybook.webp" width="900" height="1125" alt="Finished personalised storybook example"></figure>
+            <figure class="example-photo"><img src="assets/hero-child-photo.jpg" width="720" height="900" alt="Original photograph used for the storybook character"><figcaption>Original photo</figcaption></figure>
+          </div>
+        </div>
+      </section>
+
+      <section class="question-screen" data-screen="1" aria-labelledby="name-title" hidden>
         <p class="eyebrow">LET’S MAKE THEIR COVER</p>
         <h1 id="name-title">What’s their first name?</h1>
         <p class="helper">This will appear on the front of the book.</p>

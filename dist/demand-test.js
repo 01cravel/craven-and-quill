@@ -4,7 +4,7 @@
   const labels = { 1: 'Their name', 2: 'Reading level', 3: 'Story style', 4: 'Their photo', 5: 'Your email', 6: 'Review' };
   const storyNames = { funny: 'Funny', adventure: 'Adventure', classic: 'Warm and classic' };
   const storyCovers = {
-    funny: { art: 'assets/books-cartoon/luke/cover.jpg', title: 'and the Cake That Ran Away' },
+    funny: { art: 'assets/cake-book-portrait/page-01.jpg', title: 'and the Cake That Ran Away' },
     adventure: { art: 'assets/books-cartoon/amara/cover.jpg', title: 'and the Map Beneath the Moon' },
     classic: { art: 'assets/books-cartoon/noah/cover.jpg', title: 'and the Little Cloud' }
   };
@@ -44,6 +44,13 @@
       setTimeout(() => show(next), 150);
     }));
   }
+
+  $('#start-preview').addEventListener('click', () => {
+    $('#progress').hidden = false;
+    track('journey_started');
+    show(1);
+    setTimeout(() => $('#person-name').focus(), 320);
+  });
 
   $('[data-next="2"]').addEventListener('click', () => {
     const name = $('#person-name').value.trim();
