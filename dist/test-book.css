@@ -33,3 +33,12 @@ body[data-audience=adult] .page-copy>p:nth-of-type(2){font-size:.96rem;line-heig
   .page-stage[data-kind=cover] .art-frame img{position:absolute;z-index:1;inset:0;height:100%;width:auto;aspect-ratio:4/5;margin:auto;object-fit:cover;box-shadow:0 0 0 1px #fff4,0 26px 65px #081a16aa}
   .page-stage[data-kind=cover] .cover-copy{inset:0 auto 0 50%;width:auto;height:100%;aspect-ratio:4/5;transform:translateX(-50%)}
 }
+
+/* Wide cover artwork fills the fixed reader frame edge to edge. */
+@media(min-width:901px){
+  .page-stage[data-kind=cover] .art-frame{background:none}
+  .page-stage[data-kind=cover] .art-frame:before{display:none}
+  .page-stage[data-kind=cover] .art-frame img{inset:0;width:100%;height:100%;aspect-ratio:auto;margin:0;object-fit:cover;box-shadow:none}
+  body[data-audience=adult] .page-stage[data-kind=cover] .art-frame img{object-position:center top}
+  .page-stage[data-kind=cover] .cover-copy{inset:0;width:100%;height:100%;aspect-ratio:auto;transform:none;padding:7% 9%}
+}
