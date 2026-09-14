@@ -1,4 +1,4 @@
-const state={step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',ideas:[],selected:0,photos:[],photoChecks:[],previewApproved:false,previewAdjusted:false,product:'digital',price:19};
+const state={step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],previewApproved:false,previewAdjusted:false,product:'digital',price:19};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const track=(event,data={})=>{window.dataLayer=window.dataLayer||[];window.dataLayer.push({event,...data});};
@@ -148,51 +148,71 @@ function previewText(idea){
   return`${who} noticed a curious light where no light should be. ${idea[1]} With one brave step, the adventure began.`;
 }
 
-function characterProofFor(name){
-  if(/^luke$/i.test(name.trim()))return'assets/private-character-proofs/luke-full-body-caricature.png';
-  return'';
+function createProofCard(name,index){
+  const item=document.createElement('article');
+  const reference=document.createElement('figure');
+  const referenceImage=document.createElement('img');
+  const referenceLabel=document.createElement('figcaption');
+  referenceImage.src=photoUrls[index];referenceImage.alt=`Uploaded reference for ${name}`;referenceLabel.textContent='Your photo';reference.append(referenceImage,referenceLabel);
+  const character=document.createElement('figure');character.className='cartoon-proof generator-needed';character.innerHTML='<div><span aria-hidden="true">✦</span><strong>Drawing the character…</strong><small>This normally takes less than a minute.</small></div>';
+  item.append(reference,character);$('#character-proof-list').append(item);return character;
 }
 
-async function renderCharacterProof(){
-  const list=$('#character-proof-list');list.replaceChildren();let generatorMissing=false;
-  state.photos.forEach((file,index)=>{
-    const name=index===0?state.names:state.secondName;
-    const item=document.createElement('article');
-    const reference=document.createElement('figure');
-    const referenceImage=document.createElement('img');
-    const referenceLabel=document.createElement('figcaption');
-    referenceImage.src=photoUrls[index];referenceImage.alt=`Uploaded reference for ${name}`;referenceLabel.textContent='Your photo';reference.append(referenceImage,referenceLabel);
-    const character=document.createElement('figure');character.className='cartoon-proof';
-    const generatedPath=characterProofFor(name);
-    if(generatedPath){
-      const characterImage=document.createElement('img');characterImage.className='full-body-character';characterImage.src=generatedPath;characterImage.alt=`Full-body illustrated character proof for ${name}`;
-      const characterLabel=document.createElement('figcaption');characterLabel.textContent='Full-body character';character.append(characterImage,characterLabel);
-    }else{
-      generatorMissing=true;
-      character.classList.add('generator-needed');character.innerHTML='<div><span aria-hidden="true">✦</span><strong>Ready to draw</strong><small>The secure character generator must be connected for this person.</small></div>';
+function showCharacter(figure,name,image){
+  figure.classList.remove('generator-needed');figure.replaceChildren();
+  const characterImage=document.createElement('img');characterImage.className='full-body-character';characterImage.src=image;characterImage.alt=`Full-body illustrated character for ${name}`;
+  const label=document.createElement('figcaption');label.textContent='Their cartoon character';figure.append(characterImage,label);
+}
+
+async function requestCharacter(file,name,adjustment=''){
+  const idea=selectedStory();const form=new FormData();
+  form.append('photo',file,file.name||'photo.jpg');form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',idea?.[1]||'');
+  if(adjustment)form.append('adjustment',adjustment);
+  const response=await fetch('/api/generate-character',{method:'POST',body:form,headers:{'X-Craven-Preview':'character'}});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||!data.image)throw new Error(data.error||'The character could not be drawn. Please try again.');
+  return data.image;
+}
+
+async function renderCharacterProof(adjustment=''){
+  const list=$('#character-proof-list');list.replaceChildren();$('#approve-face').disabled=true;let firstError=null;
+  for(let index=0;index<state.photos.length;index+=1){
+    const file=state.photos[index];const name=index===0?state.names:state.secondName;const character=createProofCard(name,index);
+    try{
+      const image=!adjustment&&state.characterImages[index]?state.characterImages[index]:await requestCharacter(file,name,adjustment);
+      state.characterImages[index]=image;showCharacter(character,name,image);
+    }catch(error){
+      firstError=firstError||error;character.innerHTML='<div><span aria-hidden="true">!</span><strong>Not drawn yet</strong><small>Try again in a moment.</small></div>';
     }
-    item.append(reference,character);list.append(item);
-  });
-  $('#proof-note').innerHTML=generatorMissing?'<strong>Generator needed:</strong> the old photo filter has been removed. Connect the secure illustration service before accepting real orders.':'<strong>Full-body character:</strong> newly illustrated from the reference photo, not a filter. Check the face before it is used throughout the book.';
-  $('#approve-face').disabled=generatorMissing;
+  }
+  if(firstError)throw firstError;
+  $('#proof-note').innerHTML='<strong>Full-body character:</strong> newly illustrated from the reference photo, not a filter. Check the face before it is used throughout the book.';
+  $('#approve-face').disabled=false;
+  if(state.characterImages[0]){$('#preview-image').src=state.characterImages[0];$('#preview-image').alt=`Generated cartoon character for ${state.names}`;}
 }
 
-function preparePreview(){
-  const idea=selectedStory();const slug=getBookSlug();
+async function preparePreview(){
+  const idea=selectedStory();
   state.previewApproved=false;$('#choose-book').disabled=true;$('#approve-face').classList.remove('selected');$('#adjust-panel').hidden=true;
   $('#result-names').textContent=fullNames();$('#result-story-title').textContent=idea[0];$('#live-title').textContent=idea[0];
   $('#story-copy').textContent=previewText(idea);$('#preview-image').src='assets/storybook.webp';$('#preview-image').alt=`Sample opening illustration format for ${idea[0]}`;
-  $('#likeness-title').textContent=`Does this character look like ${fullNames()}?`;renderCharacterProof();
+  $('#likeness-title').textContent=`Does this character look like ${fullNames()}?`;
   $('#making-state').hidden=false;$('#result-state').hidden=true;
-  $$('#making-state li').forEach((item,index)=>item.classList.toggle('done',index===0));
-  setTimeout(()=>{$$('#making-state li').forEach((item,index)=>setTimeout(()=>item.classList.add('done'),index*220));setTimeout(()=>{$('#making-state').hidden=true;$('#result-state').hidden=false;track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});},900);},80);
+  $('#generation-error').hidden=true;$$('#making-state li').forEach((item,index)=>item.classList.toggle('done',index===0));
+  try{
+    $$('#making-state li')[1].classList.add('done');await renderCharacterProof();$$('#making-state li')[2].classList.add('done');
+    $('#making-state').hidden=true;$('#result-state').hidden=false;track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});
+  }catch(error){
+    $('#generation-error-copy').textContent=error.message||'The character could not be drawn. Please try again.';$('#generation-error').hidden=false;track('free_preview_failed');
+  }
 }
 
 for(let index=0;index<10;index+=1){const marker=document.createElement('span');marker.setAttribute('aria-hidden','true');$('#locked-dots').append(marker);}
 
 $('#approve-face').addEventListener('click',()=>{state.previewApproved=true;$('#approve-face').classList.add('selected');$('#adjust-face').classList.remove('selected');$('#adjust-panel').hidden=true;$('#choose-book').disabled=false;$('#step-4-error').textContent='';track('preview_likeness_approved',{adjusted:state.previewAdjusted});});
 $('#adjust-face').addEventListener('click',()=>{state.previewApproved=false;$('#choose-book').disabled=true;$('#approve-face').classList.remove('selected');$('#adjust-face').classList.add('selected');$('#adjust-panel').hidden=false;});
-$('#update-preview').addEventListener('click',()=>{const button=$('#update-preview');state.previewAdjusted=true;button.disabled=true;button.textContent='Updating the character…';setTimeout(()=>{button.disabled=false;button.textContent='Character updated. Check it again';$('#adjust-panel').hidden=true;$('#adjust-face').classList.remove('selected');track('free_preview_adjusted',{adjustment:$('input[name="adjustment"]:checked').value});},700);});
+$('#retry-generation').addEventListener('click',()=>{void preparePreview();});
+$('#update-preview').addEventListener('click',async()=>{const button=$('#update-preview');const adjustment=$('input[name="adjustment"]:checked').value;button.disabled=true;button.textContent='Updating the character…';$('#step-4-error').textContent='';try{await renderCharacterProof(adjustment);state.previewAdjusted=true;button.textContent='Character updated. Check it again';$('#adjust-panel').hidden=true;$('#adjust-face').classList.remove('selected');track('free_preview_adjusted',{adjustment});}catch(error){button.textContent='Try the update again';$('#step-4-error').textContent=error.message||'The character could not be updated.';}finally{button.disabled=false;}});
 
 $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   const next=Number(button.dataset.next);
@@ -215,7 +235,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(state.photoChecks.some(item=>!item.pass)){$('#step-3-error').textContent='Use a photo that passes every check.';return;}
     if(!$('#face-confirm').checked){$('#step-3-error').textContent='Confirm that every face is clearly recognisable.';$('#face-confirm').focus();return;}
     if(!$('#photo-permission').checked){$('#step-3-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
-    $('#step-3-error').textContent='';preparePreview();
+    $('#step-3-error').textContent='';void preparePreview();
   }
   if(state.step===4&&!state.previewApproved){$('#step-4-error').textContent='Confirm the character looks right before choosing your book.';return;}
   showStep(next);

@@ -118,7 +118,7 @@
           <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>Every face is easy to recognise</b><small>The whole face and both eyes are visible.</small></span></label>
           <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I have permission to use these photos</b><small>For a child, you must be their parent or guardian, or have permission from one.</small></span></label>
 
-          <aside class="privacy-note"><b>Your photo is private in this prototype.</b><span>It stays in this browser tab and is not uploaded. The live service must publish its deletion period before launch.</span></aside>
+          <aside class="privacy-note"><b>Your photo is used only to draw the preview.</b><span>It is securely sent to our illustration service and is not saved by this website.</span></aside>
 
           <div class="error" id="step-3-error" role="alert"></div>
           <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next make" type="button" data-next="4">Create free preview <span>→</span></button></div>
@@ -131,6 +131,7 @@
             <p class="eyebrow">MAKING YOUR FREE PREVIEW</p>
             <h1 id="step-4-title">Creating their character…</h1>
             <ul><li class="done">Checking the story</li><li>Finding the face</li><li>Drawing the character</li></ul>
+            <div class="generation-error" id="generation-error" hidden><p id="generation-error-copy">We could not draw the character this time.</p><button type="button" id="retry-generation">Try again</button></div>
           </div>
 
           <div id="result-state" hidden>
@@ -212,7 +213,7 @@
     </section>
   </main>
 
-  <footer><span>Prototype only. Photos stay in this browser tab.</span><a href="index.html#how">How it works</a></footer>
-  <script src="create.js?v=7" defer></script>
+  <footer><span>Photos are used only to create your preview.</span><a href="index.html#how">How it works</a></footer>
+  <script src="create.js?v=8" defer></script>
 </body>
 </html>

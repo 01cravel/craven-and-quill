@@ -1,7 +1,13 @@
 .DS_Store
+.env.local
 .openai/
 dist/assets/books/
 dist/assets/books-cartoon/
 dist/assets/private-character-proofs/
 dist/assets/test-portraits/
 dist/assets/cake-book/
+dist/client/assets/books/
+dist/client/assets/books-cartoon/
+dist/client/assets/private-character-proofs/
+dist/client/assets/test-portraits/
+dist/client/assets/cake-book/

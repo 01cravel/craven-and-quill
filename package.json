@@ -1,0 +1,8 @@
+{
+  "name": "craven-and-quill",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check dist/server/index.js && node --check dist/client/create.js && node --test tests/worker.test.mjs"
+  }
+}
