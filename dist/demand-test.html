@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#142521">
+  <meta name="description" content="Create one free personalised storybook cover and reserve the full book without paying today.">
+  <title>Free personalised cover preview | Craven &amp; Quill</title>
+  <link rel="icon" href="assets/favicon.png">
+  <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="demand-test.css?v=1">
+</head>
+<body>
+  <a class="skip-link" href="#preview-form">Skip to the preview form</a>
+
+  <header class="test-header">
+    <a class="brand" href="index.html" aria-label="Craven and Quill home">
+      <img src="assets/logo-mark-on-white.png" width="420" height="401" alt="">
+      <span>CRAVEN <i>&amp;</i> QUILL<small>PERSONALISED BOOKS</small></span>
+    </a>
+    <span class="test-label">FOUNDING PREVIEW</span>
+  </header>
+
+  <main class="preview-shell">
+    <section class="book-side" aria-labelledby="page-title">
+      <div class="book-intro">
+        <p class="eyebrow">ONE COVER IS FREE</p>
+        <h1 id="page-title">See them as a <em>storybook hero.</em></h1>
+        <p>Upload one clear photo. We’ll create one cartoon cover so you can decide if the full book is worth it.</p>
+      </div>
+
+      <div class="cover-stage" aria-live="polite">
+        <div class="cover-status" id="cover-status">EXAMPLE COVER</div>
+        <article class="cover-card" id="cover-card">
+          <img id="cover-art" src="assets/books-cartoon/noah/cover.jpg" width="1536" height="1024" alt="Cartoon storybook cover example">
+          <div class="cover-shade"></div>
+          <div class="cover-copy">
+            <span>A PERSONALISED STORY FOR</span>
+            <strong id="cover-name">Oliver</strong>
+            <em id="cover-title">and the Little Cloud</em>
+          </div>
+        </article>
+
+        <figure class="photo-receipt">
+          <img id="receipt-photo" src="assets/hero-child-photo.jpg" width="720" height="900" alt="Photo used to create the example character">
+          <figcaption><b>THEIR PHOTO</b><span>Used to draw the character</span></figcaption>
+        </figure>
+      </div>
+
+      <ul class="what-you-get" aria-label="What the full book includes">
+        <li><b>10</b><span>story pages</span></li>
+        <li><b>1</b><span>printed hardback</span></li>
+        <li><b>✓</b><span>digital copy</span></li>
+      </ul>
+    </section>
+
+    <section class="form-side" id="preview-form">
+      <div class="price-strip">
+        <span><b>Free today</b> One cover preview</span>
+        <span><b>AED 199</b> Only if you want the full book</span>
+      </div>
+
+      <div class="progress-wrap" aria-label="Preview progress">
+        <div class="progress-copy"><span id="step-count">Step 1 of 3</span><strong id="step-name">About them</strong></div>
+        <div class="progress-track"><span id="progress-bar"></span></div>
+      </div>
+
+      <form id="journey" novalidate>
+        <section class="journey-step active" data-step="1" aria-labelledby="step-one-title">
+          <p class="eyebrow">ABOUT THE HERO</p>
+          <h2 id="step-one-title">Who is the book for?</h2>
+          <p class="step-intro">A name and reading level are enough to shape the cover.</p>
+
+          <label for="person-name">Their first name</label>
+          <input id="person-name" name="name" type="text" maxlength="24" autocomplete="off" placeholder="For example, Leo" required>
+
+          <fieldset>
+            <legend>Who will read it?</legend>
+            <div class="pill-grid age-grid">
+              <label><input type="radio" name="age" value="3–5" checked><span>Ages 3–5</span></label>
+              <label><input type="radio" name="age" value="6–8"><span>Ages 6–8</span></label>
+              <label><input type="radio" name="age" value="9–12"><span>Ages 9–12</span></label>
+              <label><input type="radio" name="age" value="Adult"><span>Adult</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>What kind of story?</legend>
+            <div class="story-grid">
+              <label class="story-choice"><input type="radio" name="story" value="funny" checked><span><b>Funny</b><small>Big mix-ups and silly surprises</small></span></label>
+              <label class="story-choice"><input type="radio" name="story" value="adventure"><span><b>Adventure</b><small>A brave journey somewhere new</small></span></label>
+              <label class="story-choice"><input type="radio" name="story" value="classic"><span><b>Classic</b><small>A warm story made to keep</small></span></label>
+            </div>
+          </fieldset>
+
+          <p class="form-error" id="step-one-error" role="alert"></p>
+          <button class="primary-button" type="button" data-next="2">Add their photo <span aria-hidden="true">→</span></button>
+          <p class="button-note">No payment. Takes about two minutes.</p>
+        </section>
+
+        <section class="journey-step" data-step="2" aria-labelledby="step-two-title" hidden>
+          <p class="eyebrow">CREATE THEIR CHARACTER</p>
+          <h2 id="step-two-title">Add one clear photo.</h2>
+          <p class="step-intro">Use a front-facing photo with one person and no sunglasses.</p>
+
+          <div class="upload-box" id="upload-box">
+            <input id="person-photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" required>
+            <div class="upload-icon" aria-hidden="true">＋</div>
+            <div><b id="upload-title">Choose a photo</b><span id="upload-detail">JPG, PNG or WEBP, up to 8 MB</span></div>
+            <img id="upload-thumb" alt="" hidden>
+          </div>
+
+          <label for="email">Where should we send the preview?</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+
+          <label class="permission-check">
+            <input id="permission" type="checkbox" required>
+            <span>I have permission to use this photo.</span>
+          </label>
+
+          <div class="privacy-line"><b>Private by design.</b> This mockup keeps the photo in this browser tab.</div>
+          <p class="form-error" id="step-two-error" role="alert"></p>
+          <div class="button-row">
+            <button class="text-button" type="button" data-back="1">Back</button>
+            <button class="primary-button" type="button" id="make-preview">Create my free cover <span aria-hidden="true">→</span></button>
+          </div>
+          <p class="button-note">One free cover. No card needed.</p>
+        </section>
+
+        <section class="journey-step making-step" data-step="making" aria-labelledby="making-title" hidden>
+          <div class="making-seal" aria-hidden="true"><span></span></div>
+          <p class="eyebrow">MAKING ONE COVER</p>
+          <h2 id="making-title">Drawing the character.</h2>
+          <p class="step-intro">We’re matching the face, hair and expression, then placing them inside the story.</p>
+          <ol class="making-list">
+            <li class="done">Photo checked</li>
+            <li id="draw-status">Drawing the cartoon character</li>
+            <li id="cover-build-status">Building the cover</li>
+          </ol>
+        </section>
+
+        <section class="journey-step" data-step="3" aria-labelledby="step-three-title" hidden>
+          <p class="eyebrow">YOUR FREE COVER</p>
+          <h2 id="step-three-title"><span id="result-name">Their</span> cover is ready.</h2>
+          <p class="step-intro">Like the idea? Reserve the complete book at the founding price. Nothing is charged today.</p>
+
+          <div class="offer-card">
+            <div><span>COMPLETE PERSONALISED BOOK</span><b>10 story pages, hardback and digital copy</b><small>Written for <span id="result-age">ages 3–5</span></small></div>
+            <strong>AED 199</strong>
+          </div>
+
+          <ul class="reservation-points">
+            <li>Keep this founding price</li>
+            <li>See every page before printing</li>
+            <li>Pay only when ordering opens</li>
+          </ul>
+
+          <button class="reserve-button" type="button" id="reserve-button">Reserve my book for AED 199 <span aria-hidden="true">→</span></button>
+          <button class="text-button edit-button" type="button" data-back="1">Change the details</button>
+          <p class="button-note">No card. No obligation. We’ll email you when ordering opens.</p>
+        </section>
+
+        <section class="journey-step success-step" data-step="success" aria-labelledby="success-title" hidden>
+          <div class="success-mark" aria-hidden="true">✓</div>
+          <p class="eyebrow">RESERVED, NO PAYMENT TAKEN</p>
+          <h2 id="success-title">You’re on the first-edition list.</h2>
+          <p>We’ll email <b id="success-email"></b> when the full book is ready to order at AED 199.</p>
+          <div class="success-summary">
+            <span>Free cover preview</span>
+            <span>Founding price held</span>
+            <span>Cancel by doing nothing</span>
+          </div>
+          <a class="primary-button restart-link" href="demand-test.html">Make another preview <span aria-hidden="true">→</span></a>
+        </section>
+      </form>
+
+      <p class="prototype-note"><b>Prototype:</b> this version demonstrates the journey and stores test activity only on this device. It does not send email or take payment.</p>
+    </section>
+  </main>
+
+  <script src="demand-test.js?v=1" defer></script>
+</body>
+</html>
