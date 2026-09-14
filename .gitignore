@@ -2,5 +2,6 @@
 .openai/
 dist/assets/books/
 dist/assets/books-cartoon/
+dist/assets/private-character-proofs/
 dist/assets/test-portraits/
 dist/assets/cake-book/

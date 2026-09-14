@@ -147,18 +147,33 @@ function previewText(idea){
   return`${who} noticed a curious light where no light should be. ${idea[1]} With one brave step, the adventure began.`;
 }
 
-async function drawCartoonPortrait(file,canvas){
-  const bitmap=await createImageBitmap(file);const size=360;canvas.width=size;canvas.height=size;
-  const crop=Math.min(bitmap.width,bitmap.height);const sx=(bitmap.width-crop)/2;const sy=Math.max(0,(bitmap.height-crop)*.16);
-  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.filter='saturate(1.28) contrast(1.12)';ctx.drawImage(bitmap,sx,Math.min(sy,bitmap.height-crop),crop,crop,0,0,size,size);bitmap.close();ctx.filter='none';
-  const frame=ctx.getImageData(0,0,size,size);const source=new Uint8ClampedArray(frame.data);const step=32;
-  for(let y=0;y<size;y+=1){for(let x=0;x<size;x+=1){const i=(y*size+x)*4;frame.data[i]=Math.min(255,Math.round(frame.data[i]/step)*step);frame.data[i+1]=Math.min(255,Math.round(frame.data[i+1]/step)*step);frame.data[i+2]=Math.min(255,Math.round(frame.data[i+2]/step)*step);if(x<size-1&&y<size-1){const r=i+4,d=i+size*4;const edge=Math.abs(source[i]-source[r])+Math.abs(source[i+1]-source[r+1])+Math.abs(source[i+2]-source[r+2])+Math.abs(source[i]-source[d])+Math.abs(source[i+1]-source[d+1])+Math.abs(source[i+2]-source[d+2]);if(edge>150){frame.data[i]*=.42;frame.data[i+1]*=.42;frame.data[i+2]*=.42;}}}}
-  ctx.putImageData(frame,0,0);
+function characterProofFor(name){
+  if(/^luke$/i.test(name.trim()))return'assets/private-character-proofs/luke-full-body-caricature.png';
+  return'';
 }
 
 async function renderCharacterProof(){
-  const list=$('#character-proof-list');list.replaceChildren();
-  await Promise.all(state.photos.map(async(file,index)=>{const item=document.createElement('article');const reference=document.createElement('figure');const referenceImage=document.createElement('img');const referenceLabel=document.createElement('figcaption');referenceImage.src=photoUrls[index];referenceImage.alt=`Uploaded reference for ${index===0?state.names:state.secondName}`;referenceLabel.textContent='Your photo';reference.append(referenceImage,referenceLabel);const character=document.createElement('figure');character.className='cartoon-proof';const canvas=document.createElement('canvas');canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`Cartoon character proof for ${index===0?state.names:state.secondName}`);const characterLabel=document.createElement('figcaption');characterLabel.textContent='Character proof';character.append(canvas,characterLabel);item.append(reference,character);list.append(item);try{await drawCartoonPortrait(file,canvas);}catch{const ctx=canvas.getContext('2d');canvas.width=360;canvas.height=360;ctx.fillStyle='#dce7db';ctx.fillRect(0,0,360,360);}}));
+  const list=$('#character-proof-list');list.replaceChildren();let generatorMissing=false;
+  state.photos.forEach((file,index)=>{
+    const name=index===0?state.names:state.secondName;
+    const item=document.createElement('article');
+    const reference=document.createElement('figure');
+    const referenceImage=document.createElement('img');
+    const referenceLabel=document.createElement('figcaption');
+    referenceImage.src=photoUrls[index];referenceImage.alt=`Uploaded reference for ${name}`;referenceLabel.textContent='Your photo';reference.append(referenceImage,referenceLabel);
+    const character=document.createElement('figure');character.className='cartoon-proof';
+    const generatedPath=characterProofFor(name);
+    if(generatedPath){
+      const characterImage=document.createElement('img');characterImage.className='full-body-character';characterImage.src=generatedPath;characterImage.alt=`Full-body illustrated character proof for ${name}`;
+      const characterLabel=document.createElement('figcaption');characterLabel.textContent='Full-body character';character.append(characterImage,characterLabel);
+    }else{
+      generatorMissing=true;
+      character.classList.add('generator-needed');character.innerHTML='<div><span aria-hidden="true">✦</span><strong>Ready to draw</strong><small>The secure character generator must be connected for this person.</small></div>';
+    }
+    item.append(reference,character);list.append(item);
+  });
+  $('#proof-note').innerHTML=generatorMissing?'<strong>Generator needed:</strong> the old photo filter has been removed. Connect the secure illustration service before accepting real orders.':'<strong>Full-body character:</strong> newly illustrated from the reference photo, not a filter. Check the face before it is used throughout the book.';
+  $('#approve-face').disabled=generatorMissing;
 }
 
 function preparePreview(){
@@ -234,3 +249,9 @@ const context=document.modelContext;
 if(context?.registerTool){const lifecycle=new AbortController();try{void Promise.resolve(context.registerTool({name:'read_story_maker_state',title:'Read story maker',description:'Read the visible step and non-photo choices. Uploaded images are never exposed.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute:()=>({step:state.step,names:fullNames(),age:state.age,mood:state.mood,selectedIdea:selectedStory()?.[0]||null,previewApproved:state.previewApproved,product:state.product})},{signal:lifecycle.signal})).catch(()=>{});}catch{}}
 
 buildIdeas();updateLive();updateProduct();
+
+const characterTest=new URLSearchParams(window.location.search).get('character-test');
+if(characterTest&&['127.0.0.1','localhost'].includes(window.location.hostname)){
+  state.names=characterTest==='luke'?'Luke':'Jamie';state.photos=[{name:'character-test.png'}];photoUrls=['assets/private-character-proofs/test-upload.png'];
+  $('#names').value=state.names;updateLive();preparePreview();showStep(4);
+}
