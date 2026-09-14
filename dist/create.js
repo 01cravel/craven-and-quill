@@ -39,7 +39,8 @@ function updateLive(){
   state.age=($('input[name="age"]:checked')||{}).value||'6-8';
   state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';
   $('#live-name').textContent=(fullNames()||'Someone special').toUpperCase();
-  $('#live-age').textContent=`Age ${state.age.replace('-', '–')}`;
+  const ageLabels={'3-5':'Age 3–5','6-8':'Age 6–8','9-11':'Age 9–11','9-12':'Age 9–12','teen-adult':'Teen or adult'};
+  $('#live-age').textContent=ageLabels[state.age]||'Reading level set';
   $('#live-mood').textContent=state.mood==='own'?'Their own idea':state.mood[0].toUpperCase()+state.mood.slice(1);
   const chosen=state.ideas[state.selected];
   $('#live-title').textContent=state.mood==='own'?'Their own adventure':chosen?.[0]||ideaBanks[state.mood]?.[0]?.[0]||'Their own story';
@@ -139,11 +140,11 @@ function previewText(idea){
   const who=fullNames()||'Our hero';
   if(state.mood==='own'){
     if(state.age==='3-5')return`${who} took one brave step. ${idea[1]} And that was where the adventure began.`;
-    if(state.age==='9-11')return`${who} had always thought ordinary days announced themselves clearly. Then ${idea[1].charAt(0).toLowerCase()+idea[1].slice(1)} One choice was about to change everything.`;
+    if(['9-11','9-12','teen-adult'].includes(state.age))return`${who} had always thought ordinary days announced themselves clearly. Then ${idea[1].charAt(0).toLowerCase()+idea[1].slice(1)} One choice was about to change everything.`;
     return`${who} noticed something impossible. ${idea[1]} With one brave step, the ordinary world slipped away.`;
   }
   if(state.age==='3-5')return`${who} found something surprising. It wiggled. It sparkled. “Let’s help,” said ${state.names||'our hero'}. And off they went.`;
-  if(state.age==='9-11')return`${who} knew the day had gone wonderfully wrong when the first clue appeared. ${idea[1]} There was no sensible reason to follow it, which made following it irresistible.`;
+  if(['9-11','9-12','teen-adult'].includes(state.age))return`${who} knew the day had gone wonderfully wrong when the first clue appeared. ${idea[1]} There was no sensible reason to follow it, which made following it irresistible.`;
   return`${who} noticed a curious light where no light should be. ${idea[1]} With one brave step, the adventure began.`;
 }
 

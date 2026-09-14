@@ -1,5 +1,5 @@
 const books={
-  luke:{name:'Luke',title:'The Great Cake Mix-Up',age:'9–11',type:'Funny · AI-generated',gift:true,giftFrom:'Someone who knows you love a good story',giftMessage:'For Luke, with a large slice of adventure.',identity:'Real uploaded photo used as the character reference. Final likeness still needs human approval.',pages:[
+  luke:{name:'Luke',title:'The Great Cake Mix-Up',age:'Adult',type:'Funny · AI-generated',gift:true,giftFrom:'Someone who knows you love a good story',giftMessage:'For Luke, with a large slice of adventure.',identity:'Real uploaded photo used as the character reference. Final likeness still needs human approval.',pages:[
     ['THE CAKE THAT COULDN’T WAIT','A perfect cake. Almost.','On the morning of his birthday, Luke made the tallest strawberry cake the village had ever seen. Pip the fox inspected every swirl of pink icing with suspicious concentration. “One last star,” said Luke. The cake shivered. Luke blamed the open window. Pip, who knew perfectly well that windows did not make cakes nervous, edged closer.'],
     ['A VERY QUICK DESSERT','Then the cake ran away.','Two icing-covered feet popped from beneath the sponge. The cake sprang from its stand, flew through the open door and pattered down the garden path. Luke stared after it. “I spent three hours making that.” Pip was already three bounds ahead. With a sigh that turned into a laugh, Luke joined the chase.'],
     ['FLOUR IN THE AIR','Trouble at the bakery.','The cake barged into the village bakery and zigzagged between the tables. Flour became sugar, sugar became salt, and one heroic ribbon of dough sailed over Luke’s head. Pip skidded through a white cloud and emerged looking like a snow fox. The bakers pointed towards the back door. “Your pudding went that way!”'],
@@ -41,7 +41,8 @@ const slug=new URLSearchParams(location.search).get('book')||'luke';
 const baseBook=books[slug]||books.luke;
 let saved={};try{saved=JSON.parse(localStorage.getItem('craven-quill-story-idea')||'{}');}catch{}
 const useSaved=saved.book===slug&&saved.paymentStatus==='test-paid';
-const book=useSaved?{...baseBook,name:saved.names||baseBook.name,title:saved.title||baseBook.title,age:(saved.age||baseBook.age).replace('-', '–'),type:saved.mode==='own'?'Written from your idea':'AI story choice',identity:'Test order completed. The ten spreads below show the finished-book format; live illustration generation is not connected in this prototype.'}:baseBook;
+const savedAge=saved.age==='teen-adult'?'Adult':(saved.age||baseBook.age).replace('-', '–');
+const book=useSaved?{...baseBook,name:saved.names||baseBook.name,title:saved.title||baseBook.title,age:savedAge,type:saved.mode==='own'?'Written from your idea':'AI story choice',identity:'Test order completed. The ten spreads below show the finished-book format; live illustration generation is not connected in this prototype.'}:baseBook;
 const gift=useSaved?Boolean(saved.gift):book.gift;
 const giftFrom=useSaved&&saved.giftFrom?saved.giftFrom:book.giftFrom;
 const giftMessage=useSaved&&saved.giftMessage?saved.giftMessage:book.giftMessage;
@@ -55,7 +56,8 @@ const screens=[
 let current=0,playing=false,timer=null;
 const art=document.querySelector('#page-art'),frame=document.querySelector('#art-frame'),stage=document.querySelector('#page-stage'),copy=document.querySelector('#page-copy'),progress=document.querySelector('#page-progress'),label=document.querySelector('#page-label'),number=document.querySelector('#page-number'),chapter=document.querySelector('#chapter'),title=document.querySelector('#page-title'),text=document.querySelector('#page-text'),dots=document.querySelector('#dots'),reader=document.querySelector('.reader'),playButton=document.querySelector('#play-book'),playIcon=document.querySelector('#play-icon'),cover=document.querySelector('#cover-copy');
 document.title=`${book.title} | Finished test book`;
-document.querySelector('#cover-name').textContent=book.name.toUpperCase();document.querySelector('#cover-title').textContent=book.title;document.querySelector('#cover-meta').textContent=`Written for age ${book.age}`;document.querySelector('#test-note').textContent=`${book.type}. ${book.identity}`;
+const ageLabel=book.age==='Adult'||book.age==='teen-adult'?'an adult':`age ${book.age}`;
+document.querySelector('#cover-name').textContent=book.name.toUpperCase();document.querySelector('#cover-title').textContent=book.title;document.querySelector('#cover-meta').textContent=`Written for ${ageLabel}`;document.querySelector('#test-note').textContent=`${book.type}. ${book.identity}`;
 document.querySelectorAll('[data-book]').forEach(link=>link.setAttribute('aria-current',String(link.dataset.book===slug)));
 screens.forEach((screen,index)=>{const button=document.createElement('button');button.type='button';button.textContent=screen.kind==='story'?String(screen.number):screen.kind==='cover'?'C':screen.kind.includes('gift')?'G':'★';button.setAttribute('aria-label',`Go to ${screen.label}`);button.addEventListener('click',()=>{stop();show(index);});dots.append(button);});
 
