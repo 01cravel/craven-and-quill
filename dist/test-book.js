@@ -37,7 +37,19 @@ const books={
   ]}
 };
 
-books.oliver={...books.luke,name:'Oliver',title:'Oliver & the Birthday Star',age:'6–8',type:'Funny · example book',gift:false,giftFrom:'',giftMessage:'',identity:'Complete example book.',pages:books.luke.pages.map(page=>page.map(line=>line.replaceAll('Luke','Oliver')))};
+const oliverPages=[
+  ['ONE LAST STRAWBERRY','Hic!','Oliver set the last strawberry on top of the cake. “Perfect,” he said. Pip sat beside the table, pretending not to stare at the cream. Then the cake went, “Hic!” The strawberry bounced. Oliver blinked. Pip’s ears shot up. Cakes were not meant to hiccup.'],
+  ['TWO PINK BOOTS','The cake made a run for it.','Before Oliver could catch the strawberry, two pink boots popped out from beneath the sponge. The cake leapt down and ran for the door. “Hey! Come back!” Pip tore after it. Oliver grabbed his coat. Birthday or no birthday, nobody was eating that cake without him.'],
+  ['FLOUR EVERYWHERE','Poomf!','The cake shot through the bakery next door. It ducked under a tray. Oliver did not. Poomf! A cloud of flour covered him from curls to shoes. Pip skidded past looking like a white fox. Mrs Bell pointed with a wooden spoon. “Your pudding went that way.”'],
+  ['HIDE-AND-SEEK','Not the atlases.','In the bookshop, the cake squeezed behind a stack of atlases. Pink icing smeared across a map. “Aha,” said Oliver. He reached in. The atlas snapped shut on his sleeve. The cake wriggled free, knocked three storybooks into the air and fled through the back door. Pip sneezed on Travel.'],
+  ['THE MARKET','Don’t clap!','By the time Oliver reached the market, everyone was pointing. The cake bounced between baskets, caught three falling oranges on its top tier, then stopped to take a bow. The crowd clapped. “Don’t encourage it!” Oliver cried, though he was laughing too.'],
+  ['THE BRIDGE','Nobody breathe.','At the old bridge, the cake balanced on the stone wall. Below, six ducks waited with open beaks. “Easy,” Oliver whispered. He took one step. The cake wobbled. Pip covered his eyes with both paws. Then the cake sprang safely across and dashed on. The ducks quacked in disgust.'],
+  ['THE PICNIC','A very odd parade.','The cake raced through a woodland picnic. Rabbits dropped their sandwiches. Mice rolled away with napkins. A hedgehog joined the chase without asking why. Soon Oliver had a whole parade behind him. “Nearly got you!” he called. The cake looked back and wiggled its cherries.'],
+  ['THE SQUARE','Now Oliver understood.','At sunset, the cake reached the village square and stopped. Oliver skidded to a halt. So did Pip, Mrs Bell, the bookseller, the market crowd, six ducks and one breathless hedgehog. Lanterns flickered on. Oliver looked at the cake. Then at everyone. “You weren’t running away,” he said. “You were inviting people.”'],
+  ['TEAMWORK','A cake needs fixing.','The cake gave a proud little wobble. It had lost most of its icing, all three oranges and one pink boot. “We’d better fix you,” said Oliver. Mrs Bell brought cream. The market traders brought berries. The mice found the missing boot. Pip wore a paper hat and called himself Head Taster.'],
+  ['ONE LAST HICCUP','The best sort of birthday.','Under the lanterns, Oliver cut the first slice. There was cake for the bakers, booksellers, ducks, rabbits, mice and one very pleased hedgehog. Pip licked cream from his nose. The cake gave one last tiny “Hic!” Everyone laughed. Oliver had wanted a perfect birthday. This was much better.']
+];
+books.oliver={...books.luke,name:'Oliver',title:'Oliver & the Birthday Star',age:'6–8',type:'Funny · example book',gift:false,giftFrom:'',giftMessage:'',identity:'Complete example book.',pages:oliverPages};
 
 const query=new URLSearchParams(location.search);
 const slug=query.get('book')||'luke';
