@@ -24,3 +24,12 @@
 body[data-audience=adult] .page-copy>p:nth-of-type(2){font-size:.96rem;line-height:1.55}body[data-audience=adult] .page-copy h1{font-size:clamp(2.1rem,3vw,3.5rem)}body[data-audience="9-12"] .page-copy>p:nth-of-type(2){font-size:1rem;line-height:1.58}body[data-audience="9-12"] .page-stage[data-kind=cover] .cover-copy h1{font-size:clamp(2.15rem,3.6vw,3.25rem);line-height:.94}
 @media(max-width:900px){.reader{padding:16px}.page-stage,.page-stage[data-kind=cover]{width:100%;height:auto;min-height:0;border-width:6px}.art-frame{aspect-ratio:4/5}.page-stage[data-kind=cover] .art-frame{height:auto;aspect-ratio:4/5}.page-copy{padding:35px 25px 55px}.book-arrow{width:48px;height:48px}.book-arrow-previous{left:10px}.book-arrow-next{right:10px}.turn-sheet{display:none}.book-switcher{justify-content:flex-start}.book-switcher span{position:absolute;left:-9999px}}
 .sample-mode .test-note{display:none}.sample-mode .page-stage{margin-top:4px}
+
+/* Keep the closed cover inside the same reader frame as every open spread. */
+@media(min-width:901px){
+  .page-stage[data-kind=cover]{width:min(1420px,100%);height:clamp(560px,calc(100vh - 175px),850px);aspect-ratio:auto;border-width:9px;box-shadow:0 38px 75px #102f2847,0 8px 0 #aab7b0}
+  .page-stage[data-kind=cover] .art-frame{height:100%;background-image:linear-gradient(#0d241fc7,#0d241fc7),var(--page-art);background-position:center;background-size:cover}
+  .page-stage[data-kind=cover] .art-frame:before{content:"";position:absolute;inset:-24px;z-index:0;background:inherit;filter:blur(18px);opacity:.82}
+  .page-stage[data-kind=cover] .art-frame img{position:absolute;z-index:1;inset:0;height:100%;width:auto;aspect-ratio:4/5;margin:auto;object-fit:cover;box-shadow:0 0 0 1px #fff4,0 26px 65px #081a16aa}
+  .page-stage[data-kind=cover] .cover-copy{inset:0 auto 0 50%;width:auto;height:100%;aspect-ratio:4/5;transform:translateX(-50%)}
+}

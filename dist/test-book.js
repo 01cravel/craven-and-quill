@@ -82,7 +82,7 @@ screens.forEach((screen,index)=>{const button=document.createElement('button');b
 
 function show(index){
   current=Math.max(0,Math.min(screens.length-1,index));const screen=screens[current];stage.dataset.kind=screen.kind;stage.classList.toggle('cover-stage',screen.kind==='cover');frame.className=`art-frame ${screen.motion||'motion-in'}`;
-  if(screen.image){art.src=screen.image;art.alt=screen.kind==='cover'?`Cover of ${book.title}`:`Illustration for story spread ${screen.number}`;}
+  if(screen.image){art.src=screen.image;art.alt=screen.kind==='cover'?`Cover of ${book.title}`:`Illustration for story spread ${screen.number}`;frame.style.setProperty('--page-art',`url("${screen.image}")`);}
   const nextButton=document.querySelector('#next');cover.hidden=screen.kind!=='cover';chapter.textContent=screen.chapter||'';title.textContent=screen.title||'';text.textContent=screen.text||'';number.textContent=screen.number||'';label.textContent=screen.label;progress.style.width=`${((current+1)/screens.length)*100}%`;document.querySelector('#previous').disabled=current===0;nextButton.innerHTML=current===screens.length-1?'<span aria-hidden="true">↻</span>':'<span aria-hidden="true">→</span>';nextButton.setAttribute('aria-label',current===screens.length-1?'Back to cover':current===0?'Open book':'Next page');[...dots.children].forEach((button,i)=>button.setAttribute('aria-current',String(i===current)));copy.style.animation='none';void copy.offsetWidth;copy.style.animation='';
 }
 function navigate(index,direction='forward'){
