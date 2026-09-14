@@ -8,7 +8,7 @@
   <title>Create a free preview | Craven &amp; Quill</title>
   <link rel="icon" href="assets/favicon.png">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=4">
+  <link rel="stylesheet" href="create.css?v=5">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -127,30 +127,38 @@
         <section class="step preview-step" data-step="4" aria-labelledby="step-4-title" hidden>
           <div id="making-state">
             <div class="making-mark"><span>✦</span></div>
-            <p class="eyebrow">MAKING ONE FREE PAGE</p>
-            <h1 id="step-4-title">Drawing their first scene…</h1>
-            <ul><li class="done">Checking the story</li><li>Matching the character</li><li>Drawing one page</li></ul>
+            <p class="eyebrow">MAKING YOUR FREE PREVIEW</p>
+            <h1 id="step-4-title">Creating their character…</h1>
+            <ul><li class="done">Checking the story</li><li>Finding the face</li><li>Drawing the character</li></ul>
           </div>
 
           <div id="result-state" hidden>
-            <p class="eyebrow">YOUR FREE PREVIEW</p>
-            <div class="preview-heading"><h1><span id="result-names">Leo</span> stars in <em id="result-story-title">The Map Beneath the Moon</em></h1><p>Page 1 of 10</p></div>
+            <p class="eyebrow">YOUR CHARACTER &amp; PAGE PREVIEW</p>
+            <div class="preview-heading"><h1>Check the character first.</h1><p>Before the story pages</p></div>
+
+            <section class="character-proof" aria-labelledby="character-proof-title">
+              <div class="proof-copy"><p class="chapter">CHARACTER CHECK</p><h2 id="character-proof-title"><span id="result-names">Leo</span> should look like themselves.</h2><p>Compare the face, hair, skin tone and expression without the rest of the story getting in the way.</p></div>
+              <div class="character-proof-list" id="character-proof-list"></div>
+              <p class="proof-note"><strong>Prototype:</strong> this is a simple cartoon treatment made on your device. The live illustration model still needs to replace it.</p>
+            </section>
+
+            <section class="likeness-check">
+              <div><strong id="likeness-title">Does this character look like Leo?</strong><span>Approve the character, not the page layout.</span></div>
+              <div class="likeness-actions"><button type="button" id="approve-face">Yes, the character is right</button><button type="button" id="adjust-face">Change the character</button></div>
+            </section>
+
+            <div class="adjust-panel" id="adjust-panel" hidden>
+              <p>Choose the most important change. One character adjustment is included.</p>
+              <div class="adjust-options"><label><input type="radio" name="adjustment" value="cartoon" checked><span>More cartoon</span></label><label><input type="radio" name="adjustment" value="likeness"><span>Closer likeness</span></label><label><input type="radio" name="adjustment" value="expression"><span>Different expression</span></label></div>
+              <button type="button" id="update-preview">Update the character</button>
+            </div>
+
+            <div class="page-preview-heading"><div><p class="chapter">STORY LAYOUT</p><h2><span id="result-story-title">The Map Beneath the Moon</span></h2></div><p>Page 1 of 10</p></div>
 
             <section class="book-preview" aria-label="Free personalised book preview">
               <article class="preview-copy"><p class="chapter" id="preview-chapter">THE ADVENTURE BEGINS</p><p id="story-copy"></p></article>
               <figure class="preview-art"><img id="preview-image" src="assets/storybook.webp" width="900" height="1125" alt="Sample personalised story illustration format"><span>FREE PREVIEW</span></figure>
             </section>
-
-            <section class="likeness-check">
-              <div><strong id="likeness-title">Does this look like Leo?</strong><span>Check their hair, face shape, eyes and smile.</span></div>
-              <div class="likeness-actions"><button type="button" id="approve-face">Yes, that’s them</button><button type="button" id="adjust-face">Needs a change</button></div>
-            </section>
-
-            <div class="adjust-panel" id="adjust-panel" hidden>
-              <p>Choose the most important change. One preview adjustment is included.</p>
-              <div class="adjust-options"><label><input type="radio" name="adjustment" value="cartoon" checked><span>More cartoon</span></label><label><input type="radio" name="adjustment" value="likeness"><span>Closer likeness</span></label><label><input type="radio" name="adjustment" value="expression"><span>Different expression</span></label></div>
-              <button type="button" id="update-preview">Update my preview</button>
-            </div>
 
             <section class="locked-pages" aria-label="Locked story pages"><strong>One page ready. Nine more unlock after payment.</strong><div id="locked-dots"></div></section>
             <div class="error" id="step-4-error" role="alert"></div>
@@ -204,6 +212,6 @@
   </main>
 
   <footer><span>Prototype only. Photos stay in this browser tab.</span><a href="personalised.html">How it works</a></footer>
-  <script src="create.js?v=4" defer></script>
+  <script src="create.js?v=5" defer></script>
 </body>
 </html>

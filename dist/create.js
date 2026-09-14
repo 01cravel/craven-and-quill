@@ -147,12 +147,26 @@ function previewText(idea){
   return`${who} noticed a curious light where no light should be. ${idea[1]} With one brave step, the adventure began.`;
 }
 
+async function drawCartoonPortrait(file,canvas){
+  const bitmap=await createImageBitmap(file);const size=360;canvas.width=size;canvas.height=size;
+  const crop=Math.min(bitmap.width,bitmap.height);const sx=(bitmap.width-crop)/2;const sy=Math.max(0,(bitmap.height-crop)*.16);
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.filter='saturate(1.28) contrast(1.12)';ctx.drawImage(bitmap,sx,Math.min(sy,bitmap.height-crop),crop,crop,0,0,size,size);bitmap.close();ctx.filter='none';
+  const frame=ctx.getImageData(0,0,size,size);const source=new Uint8ClampedArray(frame.data);const step=32;
+  for(let y=0;y<size;y+=1){for(let x=0;x<size;x+=1){const i=(y*size+x)*4;frame.data[i]=Math.min(255,Math.round(frame.data[i]/step)*step);frame.data[i+1]=Math.min(255,Math.round(frame.data[i+1]/step)*step);frame.data[i+2]=Math.min(255,Math.round(frame.data[i+2]/step)*step);if(x<size-1&&y<size-1){const r=i+4,d=i+size*4;const edge=Math.abs(source[i]-source[r])+Math.abs(source[i+1]-source[r+1])+Math.abs(source[i+2]-source[r+2])+Math.abs(source[i]-source[d])+Math.abs(source[i+1]-source[d+1])+Math.abs(source[i+2]-source[d+2]);if(edge>150){frame.data[i]*=.42;frame.data[i+1]*=.42;frame.data[i+2]*=.42;}}}}
+  ctx.putImageData(frame,0,0);
+}
+
+async function renderCharacterProof(){
+  const list=$('#character-proof-list');list.replaceChildren();
+  await Promise.all(state.photos.map(async(file,index)=>{const item=document.createElement('article');const reference=document.createElement('figure');const referenceImage=document.createElement('img');const referenceLabel=document.createElement('figcaption');referenceImage.src=photoUrls[index];referenceImage.alt=`Uploaded reference for ${index===0?state.names:state.secondName}`;referenceLabel.textContent='Your photo';reference.append(referenceImage,referenceLabel);const character=document.createElement('figure');character.className='cartoon-proof';const canvas=document.createElement('canvas');canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`Cartoon character proof for ${index===0?state.names:state.secondName}`);const characterLabel=document.createElement('figcaption');characterLabel.textContent='Character proof';character.append(canvas,characterLabel);item.append(reference,character);list.append(item);try{await drawCartoonPortrait(file,canvas);}catch{const ctx=canvas.getContext('2d');canvas.width=360;canvas.height=360;ctx.fillStyle='#dce7db';ctx.fillRect(0,0,360,360);}}));
+}
+
 function preparePreview(){
   const idea=selectedStory();const slug=getBookSlug();
   state.previewApproved=false;$('#choose-book').disabled=true;$('#approve-face').classList.remove('selected');$('#adjust-panel').hidden=true;
   $('#result-names').textContent=fullNames();$('#result-story-title').textContent=idea[0];$('#live-title').textContent=idea[0];
   $('#story-copy').textContent=previewText(idea);$('#preview-image').src='assets/storybook.webp';$('#preview-image').alt=`Sample opening illustration format for ${idea[0]}`;
-  $('#likeness-title').textContent=`Does this look like ${fullNames()}?`;
+  $('#likeness-title').textContent=`Does this character look like ${fullNames()}?`;renderCharacterProof();
   $('#making-state').hidden=false;$('#result-state').hidden=true;
   $$('#making-state li').forEach((item,index)=>item.classList.toggle('done',index===0));
   setTimeout(()=>{$$('#making-state li').forEach((item,index)=>setTimeout(()=>item.classList.add('done'),index*220));setTimeout(()=>{$('#making-state').hidden=true;$('#result-state').hidden=false;track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});},900);},80);
@@ -162,7 +176,7 @@ for(let index=0;index<10;index+=1){const marker=document.createElement('span');m
 
 $('#approve-face').addEventListener('click',()=>{state.previewApproved=true;$('#approve-face').classList.add('selected');$('#adjust-face').classList.remove('selected');$('#adjust-panel').hidden=true;$('#choose-book').disabled=false;$('#step-4-error').textContent='';track('preview_likeness_approved',{adjusted:state.previewAdjusted});});
 $('#adjust-face').addEventListener('click',()=>{state.previewApproved=false;$('#choose-book').disabled=true;$('#approve-face').classList.remove('selected');$('#adjust-face').classList.add('selected');$('#adjust-panel').hidden=false;});
-$('#update-preview').addEventListener('click',()=>{const button=$('#update-preview');state.previewAdjusted=true;button.disabled=true;button.textContent='Updating one free page…';setTimeout(()=>{button.disabled=false;button.textContent='Preview updated. Check it again';$('#adjust-panel').hidden=true;$('#adjust-face').classList.remove('selected');track('free_preview_adjusted',{adjustment:$('input[name="adjustment"]:checked').value});},700);});
+$('#update-preview').addEventListener('click',()=>{const button=$('#update-preview');state.previewAdjusted=true;button.disabled=true;button.textContent='Updating the character…';setTimeout(()=>{button.disabled=false;button.textContent='Character updated. Check it again';$('#adjust-panel').hidden=true;$('#adjust-face').classList.remove('selected');track('free_preview_adjusted',{adjustment:$('input[name="adjustment"]:checked').value});},700);});
 
 $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   const next=Number(button.dataset.next);
