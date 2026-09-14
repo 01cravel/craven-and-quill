@@ -20,3 +20,4 @@ footer{display:grid;grid-template-columns:150px 1fr auto;align-items:center;gap:
 @media(max-width:1050px){.hero{grid-template-columns:1fr}}
 @media(max-width:650px){.brand-mark img{width:42px}.hero h1{font-size:3.75rem}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.button,.header-cta{transition:none}}
+.button,.header-cta,.menu-button{border-radius:999px}

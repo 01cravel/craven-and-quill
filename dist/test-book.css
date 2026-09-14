@@ -14,3 +14,4 @@
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.story-glow{display:none}}
 
 :root{--ink:#142521;--paper:#f7f8f4;--line:#c8d1cc;--sun:#dff467;--coral:#536cf4}.brand img{object-fit:contain}.reader{background:#e7ece7}.animation-bar{background:var(--sun)}
+.reader-controls button,.animation-bar button,.book-switcher a{border-radius:999px}
