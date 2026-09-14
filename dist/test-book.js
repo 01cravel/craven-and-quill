@@ -37,6 +37,8 @@ const books={
   ]}
 };
 
+books.oliver={...books.luke,name:'Oliver',title:'Oliver & the Birthday Star',age:'6–8',type:'Funny · example book',gift:false,giftFrom:'',giftMessage:'',identity:'Complete example book.',pages:books.luke.pages.map(page=>page.map(line=>line.replaceAll('Luke','Oliver')))};
+
 const slug=new URLSearchParams(location.search).get('book')||'luke';
 const baseBook=books[slug]||books.luke;
 let saved={};try{saved=JSON.parse(localStorage.getItem('craven-quill-story-idea')||'{}');}catch{}
@@ -47,30 +49,34 @@ const gift=useSaved?Boolean(saved.gift):book.gift;
 const giftFrom=useSaved&&saved.giftFrom?saved.giftFrom:book.giftFrom;
 const giftMessage=useSaved&&saved.giftMessage?saved.giftMessage:book.giftMessage;
 const screens=[
-  {kind:'cover',label:'Front cover',image:'cover.jpg'},
+  {kind:'cover',label:'Front cover',image:'assets/storybook.webp'},
   {kind:'special',label:'Ownership page',chapter:'THIS BOOK BELONGS TO',title:book.name,text:'A one-of-a-kind story made especially for you.'},
   ...(gift?[{kind:'special gift',label:'Gift page',chapter:'A GIFT FROM',title:giftFrom,text:giftMessage||'A little story made especially for you.'}]:[]),
-  ...book.pages.map((page,index)=>({kind:'story',label:`Story ${index+1} of 10`,chapter:page[0],title:page[1],text:page[2],image:`page-${String(index+1).padStart(2,'0')}.jpg`,number:index+1,motion:['motion-in','motion-right','motion-left','motion-out'][index%4]}))
+  ...book.pages.map((page,index)=>({kind:'story',label:`Story ${index+1} of 10`,chapter:page[0],title:page[1],text:page[2],image:(slug==='oliver'||slug==='luke')?`assets/cake-book/page-${String(index+1).padStart(2,'0')}.jpg`:'assets/storybook.webp',number:index+1,motion:['motion-in','motion-right','motion-left','motion-out'][index%4]}))
 ];
 
-let current=0,playing=false,timer=null;
+let current=0,playing=false,timer=null,turning=false;
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches||matchMedia('(max-width: 900px)').matches;
 const art=document.querySelector('#page-art'),frame=document.querySelector('#art-frame'),stage=document.querySelector('#page-stage'),copy=document.querySelector('#page-copy'),progress=document.querySelector('#page-progress'),label=document.querySelector('#page-label'),number=document.querySelector('#page-number'),chapter=document.querySelector('#chapter'),title=document.querySelector('#page-title'),text=document.querySelector('#page-text'),dots=document.querySelector('#dots'),reader=document.querySelector('.reader'),playButton=document.querySelector('#play-book'),playIcon=document.querySelector('#play-icon'),cover=document.querySelector('#cover-copy');
 document.title=`${book.title} | Finished test book`;
 const ageLabel=book.age==='Adult'||book.age==='teen-adult'?'an adult':`age ${book.age}`;
 document.querySelector('#cover-name').textContent=book.name.toUpperCase();document.querySelector('#cover-title').textContent=book.title;document.querySelector('#cover-meta').textContent=`Written for ${ageLabel}`;document.querySelector('#test-note').textContent=`${book.type}. ${book.identity}`;
 document.querySelectorAll('[data-book]').forEach(link=>link.setAttribute('aria-current',String(link.dataset.book===slug)));
-screens.forEach((screen,index)=>{const button=document.createElement('button');button.type='button';button.textContent=screen.kind==='story'?String(screen.number):screen.kind==='cover'?'C':screen.kind.includes('gift')?'G':'★';button.setAttribute('aria-label',`Go to ${screen.label}`);button.addEventListener('click',()=>{stop();show(index);});dots.append(button);});
+screens.forEach((screen,index)=>{const button=document.createElement('button');button.type='button';button.textContent=screen.kind==='story'?String(screen.number):screen.kind==='cover'?'C':screen.kind.includes('gift')?'G':'★';button.setAttribute('aria-label',`Go to ${screen.label}`);button.addEventListener('click',()=>{stop();navigate(index,index<current?'back':'forward');});dots.append(button);});
 
 function show(index){
-  current=Math.max(0,Math.min(screens.length-1,index));const screen=screens[current];stage.dataset.kind=screen.kind;stage.className=`page-stage ${screen.kind==='cover'?'cover-stage':''}`;frame.className=`art-frame ${screen.motion||'motion-in'}`;
-  if(screen.image){art.src='assets/storybook.webp';art.alt=screen.kind==='cover'?`Example cover format for ${book.title}`:`Example illustration format for story spread ${screen.number}`;}
-  cover.hidden=screen.kind!=='cover';chapter.textContent=screen.chapter||'';title.textContent=screen.title||'';text.textContent=screen.text||'';number.textContent=screen.number||'';label.textContent=screen.label;progress.style.width=`${((current+1)/screens.length)*100}%`;document.querySelector('#previous').disabled=current===0;document.querySelector('#next').innerHTML=current===screens.length-1?'Back to cover <span>↻</span>':current===0?'Open book <span>→</span>':'Next <span>→</span>';if(!playing)playButton.childNodes[1].textContent=' Play from here';[...dots.children].forEach((button,i)=>button.setAttribute('aria-current',String(i===current)));copy.style.animation='none';void copy.offsetWidth;copy.style.animation='';
+  current=Math.max(0,Math.min(screens.length-1,index));const screen=screens[current];stage.dataset.kind=screen.kind;stage.classList.toggle('cover-stage',screen.kind==='cover');frame.className=`art-frame ${screen.motion||'motion-in'}`;
+  if(screen.image){art.src=screen.image;art.alt=screen.kind==='cover'?`Cover of ${book.title}`:`Illustration for story spread ${screen.number}`;}
+  const nextButton=document.querySelector('#next');cover.hidden=screen.kind!=='cover';chapter.textContent=screen.chapter||'';title.textContent=screen.title||'';text.textContent=screen.text||'';number.textContent=screen.number||'';label.textContent=screen.label;progress.style.width=`${((current+1)/screens.length)*100}%`;document.querySelector('#previous').disabled=current===0;nextButton.innerHTML=current===screens.length-1?'<span aria-hidden="true">↻</span>':'<span aria-hidden="true">→</span>';nextButton.setAttribute('aria-label',current===screens.length-1?'Back to cover':current===0?'Open book':'Next page');if(!playing)playButton.childNodes[1].textContent=' Play from here';[...dots.children].forEach((button,i)=>button.setAttribute('aria-current',String(i===current)));copy.style.animation='none';void copy.offsetWidth;copy.style.animation='';
 }
-function start(){playing=true;reader.classList.add('playing');playIcon.textContent='Ⅱ';playButton.childNodes[1].textContent=' Pause';timer=setInterval(()=>{if(current===screens.length-1){stop();return;}show(current+1);},6500);}
+function navigate(index,direction='forward'){
+  const target=Math.max(0,Math.min(screens.length-1,index));if(turning||target===current)return;if(reduceMotion){show(target);return;}turning=true;const turnClass=direction==='back'?'turn-back':'turn-forward';stage.classList.add(turnClass);setTimeout(()=>show(target),260);setTimeout(()=>{stage.classList.remove(turnClass);turning=false;},620);
+}
+function start(){playing=true;reader.classList.add('playing');playIcon.textContent='Ⅱ';playButton.childNodes[1].textContent=' Pause';timer=setInterval(()=>{if(current===screens.length-1){stop();return;}navigate(current+1,'forward');},6500);}
 function stop(){playing=false;reader.classList.remove('playing');playIcon.textContent='▶';playButton.childNodes[1].textContent=' Play from here';clearInterval(timer);timer=null;}
-document.querySelector('#previous').addEventListener('click',()=>{stop();show(current-1);});
-document.querySelector('#next').addEventListener('click',()=>{stop();show(current===screens.length-1?0:current+1);});
+document.querySelector('#previous').addEventListener('click',()=>{stop();navigate(current-1,'back');});
+document.querySelector('#next').addEventListener('click',()=>{stop();navigate(current===screens.length-1?0:current+1,'forward');});
 playButton.addEventListener('click',()=>playing?stop():start());
-document.addEventListener('keydown',event=>{if(event.key==='ArrowRight'){stop();show(current===screens.length-1?0:current+1);}if(event.key==='ArrowLeft'){stop();show(current-1);}if(event.key===' '&&event.target===document.body){event.preventDefault();playing?stop():start();}});
+document.addEventListener('keydown',event=>{if(event.key==='ArrowRight'){stop();navigate(current===screens.length-1?0:current+1,'forward');}if(event.key==='ArrowLeft'){stop();navigate(current-1,'back');}if(event.key===' '&&event.target===document.body){event.preventDefault();playing?stop():start();}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing)stop();});
 show(0);
