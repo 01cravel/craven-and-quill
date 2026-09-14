@@ -8,13 +8,13 @@
   <title>Create a free preview | Craven &amp; Quill</title>
   <link rel="icon" href="assets/favicon.png">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=6">
+  <link rel="stylesheet" href="create.css?v=9">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
 
   <header class="app-header">
-    <a class="brand" href="personalised.html"><img src="assets/logo.webp" width="46" height="46" alt=""><span>CRAVEN <i>&amp;</i> QUILL</span></a>
+    <a class="brand" href="index.html"><img src="assets/logo-mark-on-white.png" width="420" height="401" alt=""><span>CRAVEN <i>&amp;</i> QUILL</span></a>
     <nav class="journey" aria-label="Your progress">
       <span class="journey-step active" data-progress="1"><b>1</b><em>About them</em></span>
       <span class="journey-step" data-progress="2"><b>2</b><em>Story</em></span>
@@ -22,7 +22,7 @@
       <span class="journey-step" data-progress="4"><b>4</b><em>Preview</em></span>
       <span class="journey-step" data-progress="5"><b>5</b><em>Checkout</em></span>
     </nav>
-    <a class="save-note" href="personalised.html">Exit</a>
+    <a class="save-note" href="index.html">Exit</a>
   </header>
 
   <main id="maker" class="maker-shell">
@@ -42,7 +42,7 @@
         <section class="step active" data-step="1" aria-labelledby="step-1-title">
           <p class="eyebrow">START WITH THE STAR</p>
           <h1 id="step-1-title">Who is the book for?</h1>
-          <p class="intro">Just their first name and reading age for now.</p>
+          <p class="intro">Add their first name and choose how the story should be written.</p>
 
           <label for="names">First name <span>Required</span></label>
           <input id="names" name="names" maxlength="40" autocomplete="off" placeholder="For example, Leo" required>
@@ -54,11 +54,12 @@
           </div>
 
           <fieldset>
-            <legend>Choose their reading age <span>Required</span></legend>
-            <div class="choice-grid three age-grid">
-              <label class="choice"><input type="radio" name="age" value="3-5"><span><b>Age 3–5</b><small>Short and repeatable</small></span></label>
-              <label class="choice"><input type="radio" name="age" value="6-8" checked><span><b>Age 6–8</b><small>Clear, lively adventure</small></span></label>
-              <label class="choice"><input type="radio" name="age" value="9-11"><span><b>Age 9–11</b><small>Richer plot and language</small></span></label>
+            <legend>Choose the reading level <span>Required</span></legend>
+            <div class="choice-grid four age-grid">
+              <label class="choice"><input type="radio" name="age" value="3-5"><span><b>Age 3–5</b><small>Short, simple sentences</small></span></label>
+              <label class="choice"><input type="radio" name="age" value="6-8" checked><span><b>Age 6–8</b><small>Clear, lively story</small></span></label>
+              <label class="choice"><input type="radio" name="age" value="9-12"><span><b>Age 9–12</b><small>Richer plot and language</small></span></label>
+              <label class="choice"><input type="radio" name="age" value="teen-adult"><span><b>Teen or adult</b><small>More detail and depth</small></span></label>
             </div>
           </fieldset>
 
@@ -67,9 +68,9 @@
         </section>
 
         <section class="step" data-step="2" aria-labelledby="step-2-title" hidden>
-          <p class="eyebrow">MAKE IT FEEL LIKE THEM</p>
-          <h1 id="step-2-title">What would they love?</h1>
-          <p class="intro">Pick a direction, then choose one of three ideas.</p>
+          <p class="eyebrow">CHOOSE THE STORY</p>
+          <h1 id="step-2-title">What kind of story will they love?</h1>
+          <p class="intro">Choose an idea below, or tell us your own.</p>
 
           <fieldset>
             <legend>Story direction <span>Required</span></legend>
@@ -102,9 +103,9 @@
         </section>
 
         <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
-          <p class="eyebrow">HELP US DRAW THEM</p>
-          <h1 id="step-3-title">Add one clear photo.</h1>
-          <p class="intro">A front-facing photo gives the closest cartoon likeness.</p>
+          <p class="eyebrow">CREATE THEIR CHARACTER</p>
+          <h1 id="step-3-title">Add a clear photo.</h1>
+          <p class="intro">We use it to draw their full-body cartoon character. A front-facing photo works best.</p>
 
           <div class="upload-wrap">
             <label class="upload" for="photos"><span class="upload-icon">+</span><strong>Add a photo</strong><small>Face forward, both eyes clear, no sunglasses. JPG, PNG or WebP.</small></label>
@@ -120,7 +121,7 @@
           <aside class="privacy-note"><b>Your photo is private in this prototype.</b><span>It stays in this browser tab and is not uploaded. The live service must publish its deletion period before launch.</span></aside>
 
           <div class="error" id="step-3-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next make" type="button" data-next="4">Create one free page <span>→</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next make" type="button" data-next="4">Create free preview <span>→</span></button></div>
           <p class="under-button">No card needed. The other nine pages are not created yet.</p>
         </section>
 
@@ -134,7 +135,7 @@
 
           <div id="result-state" hidden>
             <p class="eyebrow">YOUR CHARACTER &amp; PAGE PREVIEW</p>
-            <div class="preview-heading"><h1>Check the character first.</h1><p>Before the story pages</p></div>
+            <div class="preview-heading"><h1>Does their character look right?</h1><p>Check before you buy</p></div>
 
             <section class="character-proof" aria-labelledby="character-proof-title">
               <div class="proof-copy"><p class="chapter">CHARACTER CHECK</p><h2 id="character-proof-title"><span id="result-names">Leo</span> should look like themselves.</h2><p>Compare the face, hair, skin tone and expression without the rest of the story getting in the way.</p></div>
@@ -168,8 +169,8 @@
 
         <section class="step checkout-step" data-step="5" aria-labelledby="step-5-title" hidden>
           <p class="eyebrow">CHECKOUT</p>
-          <h1 id="step-5-title">Unlock the whole story.</h1>
-          <p class="intro">Checkout as a guest. No account needed.</p>
+          <h1 id="step-5-title">Choose your book.</h1>
+          <p class="intro">Your character is approved. Choose digital or hardback, then checkout as a guest.</p>
 
           <fieldset>
             <legend>Choose your book <span>Required</span></legend>
@@ -211,7 +212,7 @@
     </section>
   </main>
 
-  <footer><span>Prototype only. Photos stay in this browser tab.</span><a href="personalised.html">How it works</a></footer>
-  <script src="create.js?v=6" defer></script>
+  <footer><span>Prototype only. Photos stay in this browser tab.</span><a href="index.html#how">How it works</a></footer>
+  <script src="create.js?v=7" defer></script>
 </body>
 </html>
