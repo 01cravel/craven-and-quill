@@ -66,7 +66,7 @@ const screens=[
   {kind:'cover',label:'Front cover',image:'assets/storybook.webp'},
   {kind:'special',label:'Ownership page',chapter:'THIS BOOK BELONGS TO',title:book.name,text:'A one-of-a-kind story made especially for you.'},
   ...(gift?[{kind:'special gift',label:'Gift page',chapter:'A GIFT FROM',title:giftFrom,text:giftMessage||'A little story made especially for you.'}]:[]),
-  ...book.pages.map((page,index)=>({kind:'story',label:`Story ${index+1} of 10`,chapter:page[0],title:page[1],text:page[2],image:(slug==='oliver'||slug==='luke')?`assets/cake-book/page-${String(index+1).padStart(2,'0')}.jpg`:'assets/storybook.webp',number:index+1,motion:['motion-in','motion-right','motion-left','motion-out'][index%4]}))
+  ...book.pages.map((page,index)=>({kind:'story',label:`Story ${index+1} of 10`,chapter:page[0],title:page[1],text:page[2],image:(slug==='oliver'||slug==='luke')?`assets/cake-book-portrait/page-${String(index+1).padStart(2,'0')}.jpg`:'assets/storybook.webp',number:index+1,motion:['motion-in','motion-right','motion-left','motion-out'][index%4]}))
 ];
 
 let current=0,turning=false;
