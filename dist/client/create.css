@@ -14,7 +14,7 @@ a{color:inherit}
 .app-header{height:82px;padding:10px clamp(16px,4vw,52px);display:grid;grid-template-columns:1fr minmax(420px,620px) 1fr;align-items:center;gap:28px;border-bottom:1px solid var(--line);background:#fff;position:relative;z-index:10}
 .brand{display:flex;align-items:center;gap:9px;text-decoration:none;font:1rem Story,Georgia,serif;letter-spacing:.11em}.brand img{width:46px;height:46px}
 .save-note{justify-self:end;text-underline-offset:4px}
-.journey{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative}
+.journey{display:grid;grid-template-columns:repeat(6,1fr);gap:0;position:relative}
 .journey:before{content:'';position:absolute;left:10%;right:10%;top:13px;border-top:1px solid var(--line)}
 .journey-step{position:relative;display:grid;justify-items:center;gap:4px;color:#819089;font-size:.68rem;line-height:1.1}
 .journey-step b{width:27px;height:27px;display:grid;place-items:center;background:#fff;border:1px solid var(--line);border-radius:50%;font-size:.72rem;z-index:1}

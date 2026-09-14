@@ -58,6 +58,8 @@ function showStep(number){
 function buildIdeas(){
   state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';
   const own=state.mood==='own';
+  $('#step-3-title').textContent=own?'Tell us your story.':'Choose their story.';
+  $('#story-choice-intro').textContent=own?'Describe what should happen. One or two sentences is enough.':'Pick one idea, or ask us for different ones.';
   $('#ai-ideas').hidden=own;
   $('#own-options').hidden=!own;
   if(own){state.ideas=[];state.selected=0;updateLive();return;}
@@ -117,7 +119,7 @@ $('#photos').addEventListener('change',async event=>{
   const countProblem=files.length!==requiredCount;
   check.classList.add(failed||countProblem?'fail':'pass');
   check.innerHTML=countProblem?`<strong>Add ${requiredCount===2?'two photos':'one photo'}</strong><span>Use one separate photo for each person.</span>`:failed?`<strong>Use another photo</strong><span>${failed.message}</span>`:`<strong>${requiredCount===2?'Both photos passed':'Photo passed'} the automatic checks</strong><span>${state.photoChecks.map(item=>item.message).join(' ')}</span>`;
-  $('#face-confirm-wrap').hidden=Boolean(failed||countProblem);$('#step-3-error').textContent='';
+  $('#face-confirm-wrap').hidden=Boolean(failed||countProblem);$('#step-4-error').textContent='';
   track('photos_checked',{count:files.length,passed:!failed&&!countProblem});
 });
 
@@ -209,10 +211,10 @@ async function preparePreview(){
 
 for(let index=0;index<10;index+=1){const marker=document.createElement('span');marker.setAttribute('aria-hidden','true');$('#locked-dots').append(marker);}
 
-$('#approve-face').addEventListener('click',()=>{state.previewApproved=true;$('#approve-face').classList.add('selected');$('#adjust-face').classList.remove('selected');$('#adjust-panel').hidden=true;$('#choose-book').disabled=false;$('#step-4-error').textContent='';track('preview_likeness_approved',{adjusted:state.previewAdjusted});});
+$('#approve-face').addEventListener('click',()=>{state.previewApproved=true;$('#approve-face').classList.add('selected');$('#adjust-face').classList.remove('selected');$('#adjust-panel').hidden=true;$('#choose-book').disabled=false;$('#step-5-error').textContent='';track('preview_likeness_approved',{adjusted:state.previewAdjusted});});
 $('#adjust-face').addEventListener('click',()=>{state.previewApproved=false;$('#choose-book').disabled=true;$('#approve-face').classList.remove('selected');$('#adjust-face').classList.add('selected');$('#adjust-panel').hidden=false;});
 $('#retry-generation').addEventListener('click',()=>{void preparePreview();});
-$('#update-preview').addEventListener('click',async()=>{const button=$('#update-preview');const adjustment=$('input[name="adjustment"]:checked').value;button.disabled=true;button.textContent='Updating the character…';$('#step-4-error').textContent='';try{await renderCharacterProof(adjustment);state.previewAdjusted=true;button.textContent='Character updated. Check it again';$('#adjust-panel').hidden=true;$('#adjust-face').classList.remove('selected');track('free_preview_adjusted',{adjustment});}catch(error){button.textContent='Try the update again';$('#step-4-error').textContent=error.message||'The character could not be updated.';}finally{button.disabled=false;}});
+$('#update-preview').addEventListener('click',async()=>{const button=$('#update-preview');const adjustment=$('input[name="adjustment"]:checked').value;button.disabled=true;button.textContent='Updating the character…';$('#step-5-error').textContent='';try{await renderCharacterProof(adjustment);state.previewAdjusted=true;button.textContent='Character updated. Check it again';$('#adjust-panel').hidden=true;$('#adjust-face').classList.remove('selected');track('free_preview_adjusted',{adjustment});}catch(error){button.textContent='Try the update again';$('#step-5-error').textContent=error.message||'The character could not be updated.';}finally{button.disabled=false;}});
 
 $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   const next=Number(button.dataset.next);
@@ -220,24 +222,27 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     updateLive();
     if(!state.names){$('#step-1-error').textContent='Add their first name to continue.';$('#names').focus();return;}
     if(!$('#second-person').hidden&&!state.secondName){$('#step-1-error').textContent='Add the second person’s first name or remove that option.';$('#second-name').focus();return;}
-    $('#step-1-error').textContent='';buildIdeas();
+    $('#step-1-error').textContent='';
   }
   if(state.step===2){
-    state.mood=$('input[name="mood"]:checked').value;state.ownIdea=$('#own-idea').value.trim();
-    if(state.mood==='own'&&!state.ownIdea){$('#step-2-error').textContent='Tell us what should happen, even in one sentence.';$('#own-idea').focus();return;}
-    if(state.mood!=='own'&&!$('input[name="story-idea"]:checked')){$('#step-2-error').textContent='Choose one story idea.';return;}
-    $('#step-2-error').textContent='';updateLive();
+    state.mood=$('input[name="mood"]:checked').value;$('#step-2-error').textContent='';ideaOffset=0;buildIdeas();updateLive();
   }
   if(state.step===3){
-    const requiredCount=$('#second-person').hidden?1:2;
-    if(state.photos.length!==requiredCount){$('#step-3-error').textContent=`Add ${requiredCount===2?'one clear photo for each person':'one clear photo'} to continue.`;return;}
-    if(state.photoChecks.length!==state.photos.length){$('#step-3-error').textContent='Wait for the photo check to finish.';return;}
-    if(state.photoChecks.some(item=>!item.pass)){$('#step-3-error').textContent='Use a photo that passes every check.';return;}
-    if(!$('#face-confirm').checked){$('#step-3-error').textContent='Confirm that every face is clearly recognisable.';$('#face-confirm').focus();return;}
-    if(!$('#photo-permission').checked){$('#step-3-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
-    $('#step-3-error').textContent='';void preparePreview();
+    state.ownIdea=$('#own-idea').value.trim();
+    if(state.mood==='own'&&!state.ownIdea){$('#step-3-error').textContent='Tell us what should happen, even in one sentence.';$('#own-idea').focus();return;}
+    if(state.mood!=='own'&&!$('input[name="story-idea"]:checked')){$('#step-3-error').textContent='Choose one story idea.';return;}
+    $('#step-3-error').textContent='';updateLive();
   }
-  if(state.step===4&&!state.previewApproved){$('#step-4-error').textContent='Confirm the character looks right before choosing your book.';return;}
+  if(state.step===4){
+    const requiredCount=$('#second-person').hidden?1:2;
+    if(state.photos.length!==requiredCount){$('#step-4-error').textContent=`Add ${requiredCount===2?'one clear photo for each person':'one clear photo'} to continue.`;return;}
+    if(state.photoChecks.length!==state.photos.length){$('#step-4-error').textContent='Wait for the photo check to finish.';return;}
+    if(state.photoChecks.some(item=>!item.pass)){$('#step-4-error').textContent='Use a photo that passes every check.';return;}
+    if(!$('#face-confirm').checked){$('#step-4-error').textContent='Confirm that every face is clearly recognisable.';$('#face-confirm').focus();return;}
+    if(!$('#photo-permission').checked){$('#step-4-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
+    $('#step-4-error').textContent='';void preparePreview();
+  }
+  if(state.step===5&&!state.previewApproved){$('#step-5-error').textContent='Confirm the character looks right before choosing your book.';return;}
   showStep(next);
 }));
 
@@ -253,11 +258,11 @@ $$('input[name="product"]').forEach(input=>input.addEventListener('change',updat
 
 $('#place-order').addEventListener('click',()=>{
   updateProduct();const email=$('#email').value.trim();const giftOpen=$('.gift-extra').open;
-  if(!email||!$('#email').validity.valid){$('#step-5-error').textContent='Enter a valid email address for the book.';$('#email').focus();return;}
-  if(state.product==='hardback'&&!$('#address').value.trim()){$('#step-5-error').textContent='Add the delivery address for the hardback.';$('#address').focus();return;}
-  if(giftOpen&&!$('#gift-from').value.trim()){$('#step-5-error').textContent='Add who the gift message is from, or close the gift message.';$('#gift-from').focus();return;}
-  if(!$('#card-name').value.trim()||$('#card-number').value.replace(/\D/g,'').length!==16||!/^\d{2}\/\d{2}$/.test($('#card-expiry').value.trim())||!/^\d{3,4}$/.test($('#card-cvc').value.trim())){$('#step-5-error').textContent='Check the test payment details to continue.';$('#card-name').focus();return;}
-  $('#step-5-error').textContent='';
+  if(!email||!$('#email').validity.valid){$('#step-6-error').textContent='Enter a valid email address for the book.';$('#email').focus();return;}
+  if(state.product==='hardback'&&!$('#address').value.trim()){$('#step-6-error').textContent='Add the delivery address for the hardback.';$('#address').focus();return;}
+  if(giftOpen&&!$('#gift-from').value.trim()){$('#step-6-error').textContent='Add who the gift message is from, or close the gift message.';$('#gift-from').focus();return;}
+  if(!$('#card-name').value.trim()||$('#card-number').value.replace(/\D/g,'').length!==16||!/^\d{2}\/\d{2}$/.test($('#card-expiry').value.trim())||!/^\d{3,4}$/.test($('#card-cvc').value.trim())){$('#step-6-error').textContent='Check the test payment details to continue.';$('#card-name').focus();return;}
+  $('#step-6-error').textContent='';
   const idea=selectedStory();const slug=getBookSlug();
   const payload={book:slug,names:fullNames(),age:state.age,mode:state.mood==='own'?'own':'ai',mood:state.mood,title:idea[0],storySummary:idea[1],format:'both',gift:giftOpen,giftFrom:$('#gift-from').value.trim(),giftMessage:$('#gift-message').value.trim(),product:state.product,price:state.price,paymentStatus:'test-paid'};
   localStorage.setItem('craven-quill-story-idea',JSON.stringify(payload));
@@ -274,5 +279,5 @@ buildIdeas();updateLive();updateProduct();
 const characterTest=new URLSearchParams(window.location.search).get('character-test');
 if(characterTest&&['127.0.0.1','localhost'].includes(window.location.hostname)){
   state.names=characterTest==='luke'?'Luke':'Jamie';state.photos=[{name:'character-test.png'}];photoUrls=['assets/private-character-proofs/test-upload.png'];
-  $('#names').value=state.names;updateLive();preparePreview();showStep(4);
+  $('#names').value=state.names;updateLive();preparePreview();showStep(5);
 }
