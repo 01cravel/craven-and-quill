@@ -17,10 +17,11 @@
     <a class="brand" href="index.html"><img src="assets/logo-mark-on-white.png" width="420" height="401" alt=""><span>CRAVEN <i>&amp;</i> QUILL</span></a>
     <nav class="journey" aria-label="Your progress">
       <span class="journey-step active" data-progress="1"><b>1</b><em>About them</em></span>
-      <span class="journey-step" data-progress="2"><b>2</b><em>Story</em></span>
-      <span class="journey-step" data-progress="3"><b>3</b><em>Photo</em></span>
-      <span class="journey-step" data-progress="4"><b>4</b><em>Preview</em></span>
-      <span class="journey-step" data-progress="5"><b>5</b><em>Checkout</em></span>
+      <span class="journey-step" data-progress="2"><b>2</b><em>Direction</em></span>
+      <span class="journey-step" data-progress="3"><b>3</b><em>Story</em></span>
+      <span class="journey-step" data-progress="4"><b>4</b><em>Photo</em></span>
+      <span class="journey-step" data-progress="5"><b>5</b><em>Preview</em></span>
+      <span class="journey-step" data-progress="6"><b>6</b><em>Checkout</em></span>
     </nav>
     <a class="save-note" href="index.html">Exit</a>
   </header>
@@ -64,13 +65,13 @@
           </fieldset>
 
           <div class="error" id="step-1-error" role="alert"></div>
-          <button class="next" type="button" data-next="2">Choose their story <span>→</span></button>
+          <button class="next" type="button" data-next="2">Choose story type <span>→</span></button>
         </section>
 
         <section class="step" data-step="2" aria-labelledby="step-2-title" hidden>
-          <p class="eyebrow">CHOOSE THE STORY</p>
+          <p class="eyebrow">STORY DIRECTION</p>
           <h1 id="step-2-title">What kind of story will they love?</h1>
-          <p class="intro">Choose an idea below, or tell us your own.</p>
+          <p class="intro">Choose the style. We’ll show you matching story ideas next.</p>
 
           <fieldset>
             <legend>Story direction <span>Required</span></legend>
@@ -81,6 +82,15 @@
               <label class="choice mood own"><input type="radio" name="mood" value="own"><span><b>My idea</b><small>You set the plot</small></span></label>
             </div>
           </fieldset>
+
+          <div class="error" id="step-2-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" type="button" data-next="3">Choose a story <span>→</span></button></div>
+        </section>
+
+        <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
+          <p class="eyebrow">CHOOSE THE STORY</p>
+          <h1 id="step-3-title">Choose their story.</h1>
+          <p class="intro" id="story-choice-intro">Pick one idea, or ask us for different ones.</p>
 
           <div id="ai-ideas">
             <p class="field-label">Choose a story <span>Required</span></p>
@@ -98,13 +108,13 @@
             </div>
           </div>
 
-          <div class="error" id="step-2-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" type="button" data-next="3">Add their photo <span>→</span></button></div>
+          <div class="error" id="step-3-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" type="button" data-next="4">Add their photo <span>→</span></button></div>
         </section>
 
-        <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
+        <section class="step" data-step="4" aria-labelledby="step-4-title" hidden>
           <p class="eyebrow">CREATE THEIR CHARACTER</p>
-          <h1 id="step-3-title">Add a clear photo.</h1>
+          <h1 id="step-4-title">Add a clear photo.</h1>
           <p class="intro">We use it to draw their full-body cartoon character. A front-facing photo works best.</p>
 
           <div class="upload-wrap">
@@ -118,19 +128,20 @@
           <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>Every face is easy to recognise</b><small>The whole face and both eyes are visible.</small></span></label>
           <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I have permission to use these photos</b><small>For a child, you must be their parent or guardian, or have permission from one.</small></span></label>
 
-          <aside class="privacy-note"><b>Your photo is private in this prototype.</b><span>It stays in this browser tab and is not uploaded. The live service must publish its deletion period before launch.</span></aside>
+          <aside class="privacy-note"><b>Your photo is used only to draw the preview.</b><span>It is securely sent to our illustration service and is not saved by this website.</span></aside>
 
-          <div class="error" id="step-3-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next make" type="button" data-next="4">Create free preview <span>→</span></button></div>
+          <div class="error" id="step-4-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next make" type="button" data-next="5">Create free preview <span>→</span></button></div>
           <p class="under-button">No card needed. The other nine pages are not created yet.</p>
         </section>
 
-        <section class="step preview-step" data-step="4" aria-labelledby="step-4-title" hidden>
+        <section class="step preview-step" data-step="5" aria-labelledby="step-5-title" hidden>
           <div id="making-state">
             <div class="making-mark"><span>✦</span></div>
             <p class="eyebrow">MAKING YOUR FREE PREVIEW</p>
-            <h1 id="step-4-title">Creating their character…</h1>
+            <h1 id="step-5-title">Creating their character…</h1>
             <ul><li class="done">Checking the story</li><li>Finding the face</li><li>Drawing the character</li></ul>
+            <div class="generation-error" id="generation-error" hidden><p id="generation-error-copy">We could not draw the character this time.</p><button type="button" id="retry-generation">Try again</button></div>
           </div>
 
           <div id="result-state" hidden>
@@ -162,21 +173,21 @@
             </section>
 
             <section class="locked-pages" aria-label="Locked story pages"><strong>One page ready. Nine more unlock after payment.</strong><div id="locked-dots"></div></section>
-            <div class="error" id="step-4-error" role="alert"></div>
-            <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next" id="choose-book" type="button" data-next="5" disabled>Choose your book <span>→</span></button></div>
+            <div class="error" id="step-5-error" role="alert"></div>
+            <div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next" id="choose-book" type="button" data-next="6" disabled>Choose your book <span>→</span></button></div>
           </div>
         </section>
 
-        <section class="step checkout-step" data-step="5" aria-labelledby="step-5-title" hidden>
+        <section class="step checkout-step" data-step="6" aria-labelledby="step-6-title" hidden>
           <p class="eyebrow">CHECKOUT</p>
-          <h1 id="step-5-title">Choose your book.</h1>
+          <h1 id="step-6-title">Choose your book.</h1>
           <p class="intro">Your character is approved. Choose digital or hardback, then checkout as a guest.</p>
 
           <fieldset>
             <legend>Choose your book <span>Required</span></legend>
             <div class="product-options">
               <label class="product"><input type="radio" name="product" value="digital" data-price="19" checked><span><b>Digital book + animation</b><small>Read and watch on any device</small><strong>£19</strong></span></label>
-              <label class="product"><input type="radio" name="product" value="hardback" data-price="34"><span><b>Hardback + digital + animation</b><small>Printed book, plus instant digital access</small><strong>£34</strong></span></label>
+              <label class="product"><input type="radio" name="product" value="hardback" data-price="39.99"><span><b>Hardback + digital + animation</b><small>Printed book, plus instant digital access</small><strong>£39.99</strong></span></label>
             </div>
           </fieldset>
 
@@ -204,15 +215,15 @@
           <section class="order-total" aria-label="Order total"><div><span id="order-label">Digital book + animation</span><small>Full 10-page story, cover and ownership page</small></div><strong id="order-price">£19</strong></section>
           <p class="price-note">This is the full price. No generation fee is added later.</p>
 
-          <div class="error" id="step-5-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next checkout-button" id="place-order" type="button">Complete test order · <span id="button-price">£19</span></button></div>
+          <div class="error" id="step-6-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next checkout-button" id="place-order" type="button">Complete test order · <span id="button-price">£19</span></button></div>
           <p class="under-button">No charge will be made. Replace this panel with the live payment provider before taking orders.</p>
         </section>
       </form>
     </section>
   </main>
 
-  <footer><span>Prototype only. Photos stay in this browser tab.</span><a href="index.html#how">How it works</a></footer>
-  <script src="create.js?v=7" defer></script>
+  <footer><span>Photos are used only to create your preview.</span><a href="index.html#how">How it works</a></footer>
+  <script src="create.js?v=9" defer></script>
 </body>
 </html>

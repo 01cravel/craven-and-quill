@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2f4f1">
+  <meta name="description" content="Create a free personalised storybook cover, one easy question at a time.">
+  <title>Make a free book cover | Craven &amp; Quill</title>
+  <link rel="icon" href="assets/favicon.png">
+  <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="demand-test.css?v=5">
+</head>
+<body>
+  <a class="skip-link" href="#journey">Skip to the questions</a>
+
+  <header class="app-header">
+    <a class="brand" href="index.html" aria-label="Craven and Quill home">
+      <img src="assets/logo-mark-on-white.png" width="420" height="401" alt="">
+      <span>CRAVEN <i>&amp;</i> QUILL<small>PERSONALISED BOOKS</small></span>
+    </a>
+    <div class="price-promise"><b>Free cover preview</b><span>Full book £39.99</span></div>
+    <button class="exit-button" type="button" id="start-again">Start again</button>
+  </header>
+
+  <main class="app-main">
+    <div class="progress" id="progress" aria-label="Your progress" hidden>
+      <div class="progress-copy"><span id="progress-label">Question 1 of 5</span><b id="progress-name">Their name</b></div>
+      <div class="progress-steps" aria-hidden="true">
+        <span class="active"></span><span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <form class="question-card intro-card" id="journey" novalidate>
+      <section class="question-screen intro-screen active" data-screen="intro" aria-labelledby="intro-title">
+        <div class="intro-layout">
+          <div class="intro-copy">
+            <p class="eyebrow">ONE COVER IS FREE</p>
+            <h1 id="intro-title">Turn anyone into a storybook hero.</h1>
+            <p class="helper">Add one photo and answer a few easy questions. See their cartoon cover before deciding whether to buy the book.</p>
+            <button class="continue-button" type="button" id="start-preview">Start</button>
+          </div>
+          <div class="intro-visual" aria-label="A real photo used to create a personalised storybook">
+            <figure class="example-book"><img src="assets/storybook.webp" width="900" height="1125" alt="Finished personalised storybook example"></figure>
+            <figure class="example-photo"><img src="assets/hero-child-photo.jpg" width="720" height="900" alt="Original photograph used for the storybook character"><figcaption>Original photo</figcaption></figure>
+          </div>
+        </div>
+      </section>
+
+      <section class="question-screen" data-screen="1" aria-labelledby="name-title" hidden>
+        <p class="eyebrow">LET’S MAKE THEIR COVER</p>
+        <h1 id="name-title">What’s their first name?</h1>
+        <p class="helper">This will appear on the front of the book.</p>
+        <label class="field-label" for="person-name">First name</label>
+        <input class="large-input" id="person-name" name="name" type="text" maxlength="24" autocomplete="off" placeholder="For example, Leo" required autofocus>
+        <p class="error" id="name-error" role="alert"></p>
+        <button class="continue-button" type="button" data-next="2">Continue <span aria-hidden="true">→</span></button>
+        <p class="under-button">No card needed. Your first cover is free.</p>
+      </section>
+
+      <section class="question-screen" data-screen="2" aria-labelledby="age-title" hidden>
+        <p class="eyebrow">READING LEVEL</p>
+        <h1 id="age-title">Who will read the book?</h1>
+        <p class="helper">We’ll match the words and story to them.</p>
+        <fieldset class="answer-list">
+          <legend class="sr-only">Choose a reading age</legend>
+          <label><input type="radio" name="age" value="3–5"><span><b>Ages 3–5</b><small>Short, gentle read-aloud sentences</small><em>→</em></span></label>
+          <label><input type="radio" name="age" value="6–8"><span><b>Ages 6–8</b><small>A simple adventure they can follow</small><em>→</em></span></label>
+          <label><input type="radio" name="age" value="9–12"><span><b>Ages 9–12</b><small>A fuller plot with more detail</small><em>→</em></span></label>
+          <label><input type="radio" name="age" value="Adult"><span><b>Adult</b><small>Written naturally for a grown-up</small><em>→</em></span></label>
+        </fieldset>
+        <button class="back-button" type="button" data-back="1">← Back</button>
+      </section>
+
+      <section class="question-screen" data-screen="3" aria-labelledby="story-title" hidden>
+        <p class="eyebrow">THE STORY</p>
+        <h1 id="story-title">What kind of story would suit them?</h1>
+        <p class="helper">Pick the feeling. We’ll make up the story.</p>
+        <fieldset class="answer-list story-answers">
+          <legend class="sr-only">Choose a story style</legend>
+          <label><input type="radio" name="story" value="funny"><span><b>Funny</b><small>Mix-ups, mischief and a happy ending</small><em>→</em></span></label>
+          <label><input type="radio" name="story" value="adventure"><span><b>Adventure</b><small>A brave journey somewhere unexpected</small><em>→</em></span></label>
+          <label><input type="radio" name="story" value="classic"><span><b>Warm and classic</b><small>A meaningful story made to keep</small><em>→</em></span></label>
+        </fieldset>
+        <button class="back-button" type="button" data-back="2">← Back</button>
+      </section>
+
+      <section class="question-screen" data-screen="4" aria-labelledby="photo-title" hidden>
+        <p class="eyebrow">THEIR CHARACTER</p>
+        <h1 id="photo-title">Which photo should we use?</h1>
+        <p class="helper">Choose one clear, front-facing photo with just them in it.</p>
+        <label class="photo-upload" id="photo-upload" for="person-photo">
+          <input id="person-photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" required>
+          <span class="upload-empty" id="upload-empty"><b>＋</b><strong>Choose a photo</strong><small>JPG, PNG or WEBP, up to 8 MB</small></span>
+          <span class="photo-preview" id="photo-preview" hidden><img id="photo-image" alt="Your selected photo"><strong>Use a different photo</strong></span>
+        </label>
+        <ul class="photo-tips"><li>Face looking towards the camera</li><li>Good light</li><li>No sunglasses</li></ul>
+        <p class="error" id="photo-error" role="alert"></p>
+        <div class="action-row"><button class="back-button" type="button" data-back="3">← Back</button><button class="continue-button" type="button" data-next="5">Use this photo <span aria-hidden="true">→</span></button></div>
+      </section>
+
+      <section class="question-screen" data-screen="5" aria-labelledby="email-title" hidden>
+        <p class="eyebrow">YOUR FREE COVER</p>
+        <h1 id="email-title">Where should we send their cover?</h1>
+        <p class="helper">Enter your email. We’ll create the cover and send it when it’s ready.</p>
+        <label class="field-label" for="email">Your email</label>
+        <input class="large-input" id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+        <p class="error" id="email-error" role="alert"></p>
+        <div class="action-row"><button class="back-button" type="button" data-back="4">← Back</button><button class="continue-button" type="button" id="request-cover">Generate my free cover <span aria-hidden="true">→</span></button></div>
+      </section>
+
+      <section class="question-screen answer-screen" data-screen="queued" aria-labelledby="queued-title" hidden>
+        <div class="answer-mark">✓</div>
+        <p class="eyebrow">REQUEST RECEIVED</p>
+        <h1 id="queued-title">We’ll make <span id="queued-name">their</span> cover.</h1>
+        <p class="helper">We’ll email it to <b id="queued-email"></b> when it’s ready. No payment has been taken.</p>
+        <a class="continue-button restart-link" href="demand-test.html">Make another cover <span aria-hidden="true">→</span></a>
+      </section>
+    </form>
+
+  </main>
+
+  <script src="demand-test.js?v=5" defer></script>
+</body>
+</html>
