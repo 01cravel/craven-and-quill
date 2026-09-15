@@ -18,13 +18,10 @@ const BOOKS = {
 // date moves — everything with .js-launch-countdown re-reads it on load.
 const LAUNCH_DATE = "2026-09-29";
 
-// Where the email signup forms actually submit to. Leave null and every form
-// on the site just shows a local "you're on the list" message without saving
-// the address anywhere — fine for a click-through demo, useless for a real
-// demand test. Paste your Formspree endpoint here (formspree.io/f/xxxxxxxx)
-// once you've created one and every form on every page starts submitting to
-// it, no other changes needed.
-const NEWSLETTER_ENDPOINT = null;
+// Where the email signup forms submit. "/api/subscribe" is the site's own
+// server (dist/server/index.js), which stores the email plus what they asked
+// for in the site database. Set to null for a local-only demo message.
+const NEWSLETTER_ENDPOINT = "/api/subscribe";
 
 document.addEventListener("DOMContentLoaded", () => {
   upgradeBuyButtons();
@@ -171,20 +168,32 @@ function initNewsletterForms() {
         return;
       }
 
+      const interest = document.querySelector('meta[name="cq-interest"]')?.content || "general";
       fetch(NEWSLETTER_ENDPOINT, {
         method: "POST",
-        headers: { Accept: "application/json" },
-        body: new FormData(form),
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          email: form.elements.email.value,
+          interest,
+          page: location.pathname,
+          website: form.elements.website ? form.elements.website.value : "",
+        }),
       })
-        .then((res) => {
-          if (res.ok) revealSuccess(form, success);
-          else if (error) error.classList.add("is-visible");
+        .then(async (res) => {
+          if (res.ok) return revealSuccess(form, success);
+          const data = await res.json().catch(() => ({}));
+          showError(error, data.error);
         })
-        .catch(() => {
-          if (error) error.classList.add("is-visible");
-        });
+        .catch(() => showError(error));
     });
   });
+}
+
+function showError(error, message) {
+  if (!error) return;
+  const span = error.querySelector("span");
+  if (span) span.textContent = message || "Something went wrong — please try again in a moment.";
+  error.classList.add("is-visible");
 }
 
 function revealSuccess(form, success) {

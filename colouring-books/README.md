@@ -35,19 +35,24 @@ when it's live. That's deliberate.
 
 All three switches are at the top of `assets/js/main.js`:
 
-1. **`NEWSLETTER_ENDPOINT`** — where signups go. **Until this is set, no emails are
-   captured anywhere**; the success message is real UI but the address goes nowhere.
-   Plan: Formspree (free, no card). Sign up, create a form, paste its endpoint here:
-   ```js
-   const NEWSLETTER_ENDPOINT = "https://formspree.io/f/xxxxxxxx";
-   ```
-   Every form on every page starts posting there. Nothing else to edit.
+1. **`NEWSLETTER_ENDPOINT`** — set to `/api/subscribe`, the site's own server
+   (`dist/server/index.js`). Each signup stores the email, what they asked for
+   (`ghosts`, `animals`, `mandalas` or `general`) and the page, in the site's own
+   database. Duplicates just update. Nothing leaves your own hosting.
+   Pull the list any time as a spreadsheet:
+   `https://cravenandquill.com/api/signups.csv?token=YOUR_TOKEN`
 2. **`LAUNCH_DATE`** — drives every "Launching in 2 weeks / X days" string. Move it
    as the real date moves.
 3. **`BOOKS`** — paste each title's Amazon URL once it has an ASIN. Every buy button
    and badge flips to "Buy on Amazon" / "Available on Amazon" automatically.
 
 ## Still to do
+
+- **Turn the database on where you deploy from.** `.openai/hosting.json` (and the
+  copy in `dist/.openai/`) now say `"d1": "DB"`. Those files are local deploy
+  settings, not in git — make sure the machine that deploys has that value.
+- **Set the export secret.** Add `SIGNUPS_EXPORT_TOKEN` (any long random string)
+  to the site's secrets, next to `OPENAI_API_KEY`. Without it the CSV link is off.
 
 - **Contact address.** None yet (the Shipping & Returns page says so). Add a business
   inbox when there is one — never a personal address.
