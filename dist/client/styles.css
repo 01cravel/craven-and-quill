@@ -213,7 +213,7 @@ footer small{flex-basis:100%;font-size:.84rem}
   .closing .button{width:100%}
   footer{flex-direction:column;align-items:flex-start}
 }
-@media (max-width:420px){
+@media (max-width:560px){
   .header-cta{display:none}
 }
 
