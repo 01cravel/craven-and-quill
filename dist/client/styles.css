@@ -169,7 +169,8 @@ footer small{flex-basis:100%;font-size:.84rem}
   #site-nav.open{display:grid;position:absolute;top:calc(100% + 8px);left:0;right:0;padding:8px;border-radius:var(--r-l);background:var(--white);box-shadow:0 24px 48px -20px rgba(23,51,44,.35)}
   #site-nav.open a{padding:14px 16px;font-size:1rem;border-radius:var(--r-m);color:var(--pine)}
   .hero{grid-template-columns:minmax(0,1fr)}
-  .hero-copy{max-width:640px}
+  .hero-copy{max-width:none}
+  .hero h1,.hero-lede{max-width:none}
   .hero-stage{max-width:640px;width:100%}
   .section-intro,.inside,.privacy,.faq{grid-template-columns:1fr}
   .spread{max-width:640px}
