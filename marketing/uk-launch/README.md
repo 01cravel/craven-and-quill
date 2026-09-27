@@ -47,8 +47,8 @@ The two variants test overall concepts, not a single isolated wording change. Me
 
 ## Account and campaign setup
 
-- New account: Craven & Quill, GBP, Europe/London, own business, within Luke Craven's Business. Prepared in Meta, not created yet. The confirmation screen requires Luke's agreement to Meta Commercial Terms and Advertising Policies for the portfolio. Accounts cannot be removed from the portfolio once added.
-- A Craven & Quill Facebook Page / Instagram identity still needs selecting or creating. Do not use an unrelated existing brand.
+- Created account: Craven & Quill (1788200192428375), GBP, within Luke Craven's Business (359043274851885). Payment method saved, email verified and phone verified. Europe/London was selected during preparation. No campaigns active and £0 spent at verification on 27 September 2026.
+- Created Facebook Page: Craven & Quill (61595085862185), category Publisher. Select this Page in the campaign. A separate Instagram identity is not yet connected; do not use an unrelated existing brand.
 - Proposed test cap: **£200 media spend over 7 days**, no automatic extension. Use a campaign lifetime budget with explicit end date. Verify taxes/payment fees before any final spending approval; £200 is not an all-cost project budget.
 - Preview drawing API costs are separate. Production code limits accepted drawing requests to 50/day by default (durable DB counter), with the existing per-IP limit as an additional best-effort guard. Retries count. Confirm provider costs and set an appropriate project budget before paid traffic. A requests cap is not a monetary cap.
 - UK location, adults 25–60, all genders. Parent/gift-buyer language; no narrow audience stacking in a small test.
@@ -78,7 +78,7 @@ Count signups by exact campaign code and GB country supplied by Cloudflare. VPNs
 - Implemented: price-first email collection, explicit permission, server-side saved-lead source of truth, email deduplication, private CSV/report, unsubscribe endpoint and page, optional first-party visit events, generated SQL migrations, durable daily drawing limit.
 - Local automated checks: 17 tests passing, including SQLite migration, server-controlled prices, duplicate email handling, expired/failed previews, failed storage, permission, origin checks, report auth, unsubscribe/reactivation and daily cap.
 - Local browser QA: simulated drawing result, real local SQLite save; missing permission blocked; first save deliberately failed and showed no success; retry succeeded; report showed one UK Meta lead attributed to reveal and £3.00 at £3 simulated media spend. Phone product view at 390×844 showed £49.99 and no horizontal overflow. No real image API or production signup was used for these checks.
-- Pending: Luke's chosen public contact email in privacy.html (marked LAUNCH_CONTACT_REQUIRED), notice review for the actual operating setup, publish/deploy and migration confirmation, Meta terms approval/account creation, Page/Instagram identity, billing, campaign draft/placement checks and launch. Do not publish the draft privacy page.
+- Public customer/privacy contact approved: cravenluke@gmail.com. Pending: publish/deploy and migration confirmation, notice review for the actual operating setup, Instagram identity, campaign draft/placement checks and launch.
 - Email addresses are saved but not verified. No confirmation email or launch email is sent automatically. Export includes an unsubscribe URL for each active subscriber; include it in any future launch email. Never send a bulk launch email without the intended message/send being authorised.
 - Live orders still require production payment, complete book generation, print provider, shipping costs/times and support/refund operations. A good signup test is a reason to validate that next stage, not evidence those systems work.
 
