@@ -328,6 +328,15 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 @media(max-width:780px){.pay-step h1,.checkout-step h1{margin-bottom:12px}}
 .order-total small b{display:block;word-break:normal;overflow-wrap:anywhere}
 .order-total>div{min-width:0}
+
+/* Keep the free preview focused on the illustrated story page. */
+.first-page{margin-top:0}
+.preview-art img[hidden]{display:none}
+.preview-art.two-people{display:grid;grid-template-columns:1fr 1fr;height:340px}
+.preview-art.two-people img{min-width:0;width:100%;height:100%;aspect-ratio:auto;object-fit:contain;object-position:center bottom}
+.product b{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.recommended{display:inline-block;font:600 .72rem/1.2 Figtree,ui-sans-serif,sans-serif;font-style:normal;padding:5px 9px;border-radius:999px;background:var(--sun);color:var(--ink)}
+@media(max-width:580px){.preview-art.two-people{height:300px}}
 @media(max-width:780px){
   .step-actions .back{position:relative;line-height:0}
   .step-actions .back::before{content:"";position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);background:var(--ink);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 12H5M11 6l-6 6 6 6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 12H5M11 6l-6 6 6 6'/%3E%3C/svg%3E") center/contain no-repeat}
