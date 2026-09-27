@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=16">
+  <link rel="stylesheet" href="create.css?v=17">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -25,7 +25,7 @@
       <span class="journey-step" data-progress="4"><b>4</b><em>Photo</em></span>
       <span class="journey-step" data-progress="5"><b>5</b><em>Preview</em></span>
       <span class="journey-step" data-progress="6"><b>6</b><em>Your book</em></span>
-      <span class="journey-step" data-progress="7"><b>7</b><em>Payment</em></span>
+      <span class="journey-step" data-progress="7"><b>7</b><em>Launch list</em></span>
     </nav>
     <div class="progress-mini" aria-hidden="true"><span class="progress-label">Step <b id="progress-num">1</b> of 7<em id="progress-name">About them</em></span><span class="progress-bar"><i id="progress-fill"></i></span></div>
     <a class="save-note" href="index.html">Exit</a>
@@ -40,7 +40,7 @@
         <div class="mini-cover-copy"><span>A STORY FOR</span><strong id="live-name">SOMEONE SPECIAL</strong><em id="live-title">The Map Beneath the Moon</em></div>
       </div>
       <div class="side-details"><span id="live-age">Age 6–8</span><span id="live-mood">Adventure</span></div>
-      <div class="side-promise"><b>Free preview first</b><span>Only one picture is created before you choose to buy.</span></div>
+      <div class="side-promise"><b>Free preview first</b><span>See their first page before choosing a format.</span></div>
     </aside>
 
     <section class="step-panel">
@@ -132,10 +132,7 @@
           <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>The face is clear</b><small>Whole face and both eyes visible.</small></span></label>
           <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I’m allowed to use this photo</b><small>For a child, you’re their parent or guardian, or have their permission.</small></span></label>
 
-          <label for="email">Your email <span>We’ll send their preview here</span></label>
-          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required>
-
-          <p class="privacy-line">Your photo is only used to draw the preview. We never share your email.</p>
+          <p class="privacy-line">Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
 
           <div class="error" id="step-4-error" role="alert"></div>
           <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next make" type="button" data-next="5">Create free preview <span>→</span></button></div>
@@ -158,7 +155,7 @@
                 <figure class="preview-art" id="preview-art"><img id="preview-image" src="assets/storybook.webp" width="900" height="1125" alt="Sample personalised story illustration format"><img id="preview-image-second" width="900" height="1125" alt="" hidden><span>Free preview</span></figure>
                 <article class="preview-copy"><p class="chapter" id="preview-chapter">The adventure begins</p><p id="story-copy"></p></article>
               </div>
-              <div class="locked-pages" aria-label="Locked story pages"><strong>Nine more pages once you order.</strong><div id="locked-dots"></div></div>
+              <div class="locked-pages" aria-label="Locked story pages"><strong>Their story continues.</strong><div id="locked-dots"></div></div>
             </section>
             <div class="error" id="step-5-error" role="alert"></div>
             <div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next" id="choose-book" type="button" data-next="6" disabled>Choose your book <span>→</span></button></div>
@@ -167,54 +164,43 @@
 
         <section class="step checkout-step" data-step="6" aria-labelledby="step-6-title" hidden>
           <h1 id="step-6-title">Choose their book.</h1>
-          <p class="intro">Choose how to enjoy their full 10-page story.</p>
+          <p class="intro">Choose your preferred format.</p>
 
           <fieldset>
             <legend class="visually-hidden">Book format</legend>
             <div class="product-options">
-              <label class="product"><input type="radio" name="product" value="bundle" data-price="39.99" checked><span><b>Digital &amp; Hardback <em class="recommended">Recommended</em></b><small>Read it now, then keep the printed book</small><strong>£39.99</strong></span></label>
+              <label class="product"><input type="radio" name="product" value="bundle" data-price="49.99" checked><span><b>Digital &amp; Hardback <em class="recommended">Recommended</em></b><small>Digital story plus a printed keepsake</small><strong>£49.99</strong></span></label>
               <label class="product"><input type="radio" name="product" value="hardback" data-price="35"><span><b>Hardback</b><small>A printed book posted to you</small><strong>£35</strong></span></label>
               <label class="product"><input type="radio" name="product" value="digital" data-price="19"><span><b>Digital</b><small>Read and watch on any device</small><strong>£19</strong></span></label>
             </div>
           </fieldset>
 
-          <details class="gift-extra">
-            <summary>Add a gift message <span>Free</span></summary>
-            <div class="gift-fields"><label for="gift-from">From</label><input id="gift-from" maxlength="60" placeholder="For example, Mum and Dad"><label for="gift-message">Message <span>Optional</span></label><textarea id="gift-message" maxlength="180" rows="3" placeholder="A little story made especially for you."></textarea></div>
-          </details>
-
           <div class="error" id="step-6-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" type="button" data-next="7">Continue to payment <span>→</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" type="button" data-next="7">Join the launch list <span>→</span></button></div>
         </section>
 
         <section class="step pay-step" data-step="7" aria-labelledby="step-7-title" hidden>
-          <h1 id="step-7-title">Pay and we’ll make their book.</h1>
-
-          <section class="order-total" aria-label="Order summary"><div><span id="order-label">Digital &amp; Hardback</span><small id="order-delivery">Digital copy by email and printed book by post</small></div><strong id="order-price">£39.99</strong></section>
-
-          <div class="checkout-fields" id="shipping-fields" hidden>
-            <label for="address">Delivery address</label>
-            <textarea id="address" rows="3" autocomplete="street-address" placeholder="House number, street, town and postcode"></textarea>
+          <h1 id="step-7-title">Be first to hear.</h1>
+          <p class="intro">We’re testing interest in these books. Join the list to hear when you can order. This is not an order and no payment is taken.</p>
+          <section class="order-total" aria-label="Your preferred book"><div><span id="order-label">Digital &amp; Hardback</span><small>Your selected price. No payment today.</small></div><strong id="order-price">£49.99</strong></section>
+          <div id="launch-form">
+            <label class="field-label" for="email">Your email</label>
+            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com">
+            <div class="signup-honeypot" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
+            <label class="launch-consent"><input id="launch-consent" type="checkbox"><span>Email me when Craven &amp; Quill storybooks are ready to order. I can unsubscribe at any time.</span></label>
+            <p class="privacy-line">We save your email, chosen format and which ad brought you here. <a href="privacy.html" target="_blank" rel="noopener">Privacy details</a></p>
+            <div class="error" id="step-7-error" role="alert"></div>
+            <div class="step-actions"><button class="back" type="button" data-back="6">Back</button><button class="next checkout-button" id="join-launch" type="button">Join the launch list</button></div>
+            <p class="under-button">No card. No reservation. No commitment.</p>
           </div>
-
-          <section class="test-gateway" aria-labelledby="gateway-title">
-            <div class="gateway-heading"><span>Test</span><div><strong id="gateway-title">No money will be taken</strong><small>The real payment form goes here.</small></div></div>
-            <label for="card-name">Name on card</label>
-            <input id="card-name" autocomplete="cc-name" value="Test Customer">
-            <label for="card-number">Card number</label>
-            <input id="card-number" inputmode="numeric" autocomplete="cc-number" value="4242 4242 4242 4242" aria-describedby="card-help">
-            <div class="gateway-row"><label for="card-expiry">Expiry<input id="card-expiry" inputmode="numeric" autocomplete="cc-exp" value="12/30"></label><label for="card-cvc">Security code<input id="card-cvc" inputmode="numeric" autocomplete="cc-csc" value="123"></label></div>
-            <p id="card-help">Safe test details. This can’t charge a card.</p>
-          </section>
-
-          <div class="error" id="step-7-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="6">Back</button><button class="next checkout-button" id="place-order" type="button">Pay <span id="button-price">£39.99</span></button></div>
+          <section id="launch-success" class="launch-success" role="status" hidden><h2>You’re on the list.</h2><p>We’ll email you when books are ready to order. You haven’t placed an order or paid anything.</p><a class="next" href="index.html">Back to Craven &amp; Quill</a></section>
         </section>
       </form>
     </section>
   </main>
 
-  <footer><span>Photos are used only to create your preview.</span><a href="index.html#how">How it works</a></footer>
-  <script src="create.js?v=17" defer></script>
+  <footer><span>Photos are used only to create your preview.</span><a href="privacy.html">Privacy</a><button type="button" class="measurement-settings">Measurement settings</button></footer>
+  <script src="campaign.js?v=1" defer></script>
+  <script src="create.js?v=18" defer></script>
 </body>
 </html>

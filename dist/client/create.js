@@ -1,7 +1,7 @@
-const state={step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'bundle',price:39.99};
+const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'bundle',price:49.99};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
-const track=(event,data={})=>{window.dataLayer=window.dataLayer||[];window.dataLayer.push({event,...data});};
+const track=(event,data={})=>{const names={free_preview_created:'preview_success',free_preview_failed:'preview_error'};if(names[event])window.cqMeasurement?.record(names[event]);};
 track('story_maker_open',{offer:'one_page_free'});
 
 const ideaBanks={
@@ -49,6 +49,7 @@ function updateLive(){
 
 function showStep(number){
   state.step=number;
+  if(number===6)window.cqMeasurement?.record('price_view');
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
   const current=document.querySelector(`.journey-step[data-progress="${number}"] em`);$('#progress-num').textContent=number;$('#progress-name').textContent=current?current.textContent:'';$('#progress-fill').style.width=`${number/7*100}%`;
@@ -156,6 +157,7 @@ async function requestCharacter(file,name){
   const response=await fetch('/api/generate-character',{method:'POST',body:form,headers:{'X-Craven-Preview':'character'}});
   const data=await response.json().catch(()=>({}));
   if(!response.ok||!data.image)throw Object.assign(new Error(data.error||'The character could not be drawn. Please try again.'),{code:data.code});
+  state.previewId=data.previewId||null;
   return data.image;
 }
 
@@ -172,6 +174,7 @@ async function renderStoryArt(){
 
 async function preparePreview(){
   const idea=selectedStory();
+  window.cqMeasurement?.record('preview_start');
   $('#choose-book').disabled=true;
   $('#result-story-title').textContent=idea[0];$('#live-title').textContent=idea[0];
   $('#story-copy').textContent=previewText(idea);$('#preview-image').src='assets/storybook.webp';$('#preview-image').alt=`Sample opening illustration format for ${idea[0]}`;
@@ -218,17 +221,10 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(state.photoChecks.some(item=>!item.pass)){$('#step-4-error').textContent='Use a photo that passes every check.';return;}
     if(!$('#face-confirm').checked){$('#step-4-error').textContent='Confirm that every face is clearly recognisable.';$('#face-confirm').focus();return;}
     if(!$('#photo-permission').checked){$('#step-4-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
-    const email=$('#email').value.trim().toLowerCase();
-    if(!/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)){$('#step-4-error').textContent='Add your email so we can send their preview.';$('#email').focus();return;}
-    state.email=email;fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,interest:'storybook',page:'/create'})}).catch(()=>{});track('email_captured',{step:4});
     $('#step-4-error').textContent='';void preparePreview();
   }
   if(state.step===5&&!state.characterImages[0]){$('#step-5-error').textContent='Wait for the first page to finish before choosing your book.';return;}
-  if(state.step===6){
-    updateProduct();
-    if($('.gift-extra').open&&!$('#gift-from').value.trim()&&$('#gift-message').value.trim()){$('#step-6-error').textContent='Add who the gift is from, or remove the message.';$('#gift-from').focus();return;}
-    $('#step-6-error').textContent='';
-  }
+  if(state.step===6)updateProduct();
   showStep(next);
 }));
 
@@ -236,25 +232,24 @@ $$('[data-back]').forEach(button=>button.addEventListener('click',()=>showStep(N
 
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
-  const printed=state.product!=='digital';$('#shipping-fields').hidden=!printed;
   const labels={bundle:'Digital & Hardback',hardback:'Hardback',digital:'Digital'};
-  const delivery={bundle:`Digital copy to ${state.email||'your email'} and printed book by post`,hardback:'Printed book delivered by post',digital:`Digital copy to ${state.email||'your email'}`};
-  const price=`£${Number.isInteger(state.price)?state.price:state.price.toFixed(2)}`;
-  $('#order-label').textContent=labels[state.product];$('#order-delivery').textContent=delivery[state.product];$('#order-price').textContent=price;$('#button-price').textContent=price;$('#step-7-title').textContent=printed?'Where should we send it?':'Pay and we’ll make their book.';
+  $('#order-label').textContent=labels[state.product];$('#order-price').textContent=`£${Number.isInteger(state.price)?state.price:state.price.toFixed(2)}`;
 }
 $$('input[name="product"]').forEach(input=>input.addEventListener('change',updateProduct));
 
-$('#place-order').addEventListener('click',()=>{
-  updateProduct();const giftOpen=$('.gift-extra').open&&Boolean($('#gift-from').value.trim()||$('#gift-message').value.trim());
-  if(state.product!=='digital'&&!$('#address').value.trim()){$('#step-7-error').textContent='Add the delivery address for the hardback.';$('#address').focus();return;}
-  if(!$('#card-name').value.trim()||$('#card-number').value.replace(/\D/g,'').length!==16||!/^\d{2}\/\d{2}$/.test($('#card-expiry').value.trim())||!/^\d{3,4}$/.test($('#card-cvc').value.trim())){$('#step-7-error').textContent='Check the test payment details to continue.';$('#card-name').focus();return;}
-  $('#step-7-error').textContent='';
-  const idea=selectedStory();const slug=getBookSlug();
-  const payload={book:slug,names:fullNames(),age:state.age,mode:state.mood==='own'?'own':'ai',mood:state.mood,title:idea[0],storySummary:idea[1],format:state.product,gift:giftOpen,giftFrom:$('#gift-from').value.trim(),giftMessage:$('#gift-message').value.trim(),product:state.product,price:state.price,email:state.email||'',paymentStatus:'test-paid'};
-  localStorage.setItem('craven-quill-story-idea',JSON.stringify(payload));
-  const button=$('#place-order');button.disabled=true;button.textContent='Paid. Making their book…';
-  track('test_order_placed',{product:state.product,price:state.price,full_pages_authorised:10});
-  setTimeout(()=>{window.location.href=`test-book.html?book=${slug}&order=1`;},850);
+$('#join-launch').addEventListener('click',async()=>{
+  const error=$('#step-7-error');const button=$('#join-launch');if(button.disabled)return;
+  const email=$('#email').value.trim().toLowerCase();
+  if(!/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)){error.textContent='Enter a valid email address.';$('#email').focus();return;}
+  if(!$('#launch-consent').checked){error.textContent='Tick the email permission box to join the launch list.';$('#launch-consent').focus();return;}
+  updateProduct();button.disabled=true;button.textContent='Saving…';error.textContent='';
+  try{
+    const response=await fetch('/api/launch-signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,product:state.product,previewId:state.previewId,consent:true,consentVersion:'storybook-launch-2026-09-27',website:$('#website').value,...window.cqMeasurement?.context()})});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save that just now. Please try again.');
+    $('#launch-form').hidden=true;$('#launch-success').hidden=false;
+    $('#step-7-title').textContent='Thank you.';
+  }catch(cause){error.textContent=cause.message;button.disabled=false;button.textContent='Join the launch list';}
 });
 
 const context=document.modelContext;

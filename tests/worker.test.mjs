@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {File as NodeFile} from 'node:buffer';
 import worker from '../dist/server/index.js';
+import {testDb} from './sqlite-d1.mjs';
 
 globalThis.File=globalThis.File||NodeFile;
 
@@ -23,7 +24,7 @@ test('keeps the OpenAI key on the server and returns the generated image',async(
   };
   try{
     const form=new FormData();form.append('photo',new File(['image'],'person.jpg',{type:'image/jpeg'}));form.append('name','Amna');form.append('age','teen-adult');form.append('mood','classic');
-    const response=await worker.fetch(new Request('https://example.com/api/generate-character',{method:'POST',headers:{Origin:'https://example.com','CF-Connecting-IP':'203.0.113.10'},body:form}),{OPENAI_API_KEY:'test-secret'});
+    const response=await worker.fetch(new Request('https://example.com/api/generate-character',{method:'POST',headers:{Origin:'https://example.com','CF-Connecting-IP':'203.0.113.10'},body:form}),{OPENAI_API_KEY:'test-secret',DB:testDb()});
     assert.equal(response.status,200);const body=await response.json();assert.equal(body.image,'data:image/jpeg;base64,dGVzdA==');
   }finally{globalThis.fetch=originalFetch;}
 });
@@ -36,7 +37,7 @@ test('explains a blocked character request without blaming photo clarity or retr
   };
   try{
     const form=new FormData();form.append('photo',new File(['image'],'person.jpg',{type:'image/jpeg'}));form.append('name','Amna');form.append('age','6-8');form.append('mood','adventure');
-    const response=await worker.fetch(new Request('https://example.com/api/generate-character',{method:'POST',headers:{Origin:'https://example.com','CF-Connecting-IP':'203.0.113.11'},body:form}),{OPENAI_API_KEY:'test-secret'});
+    const response=await worker.fetch(new Request('https://example.com/api/generate-character',{method:'POST',headers:{Origin:'https://example.com','CF-Connecting-IP':'203.0.113.11'},body:form}),{OPENAI_API_KEY:'test-secret',DB:testDb()});
     assert.equal(response.status,422);
     const body=await response.json();assert.equal(body.code,'character_blocked');assert.match(body.error,/different photo or change the story idea/);
     assert.equal(calls,1);

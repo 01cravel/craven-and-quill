@@ -222,3 +222,7 @@ footer small{flex-basis:100%;font-size:.84rem}
   html{scroll-behavior:auto}
   *,*::before,*::after{transition:none!important;animation:none!important}
 }
+
+.price-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+.measurement-settings{background:none;border:0;color:inherit;font:inherit;text-decoration:underline;cursor:pointer;padding:0}
+@media(max-width:900px){.price-row{grid-template-columns:1fr}}
