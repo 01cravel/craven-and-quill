@@ -172,7 +172,7 @@ async function requestCharacter(file,name,adjustment=''){
   if(adjustment)form.append('adjustment',adjustment);
   const response=await fetch('/api/generate-character',{method:'POST',body:form,headers:{'X-Craven-Preview':'character'}});
   const data=await response.json().catch(()=>({}));
-  if(!response.ok||!data.image)throw new Error(data.error||'The character could not be drawn. Please try again.');
+  if(!response.ok||!data.image)throw Object.assign(new Error(data.error||'The character could not be drawn. Please try again.'),{code:data.code});
   return data.image;
 }
 
@@ -200,12 +200,14 @@ async function preparePreview(){
   $('#story-copy').textContent=previewText(idea);$('#preview-image').src='assets/storybook.webp';$('#preview-image').alt=`Sample opening illustration format for ${idea[0]}`;
   $('#likeness-title').textContent=`Does this look like ${fullNames()}?`;
   $('#making-state').hidden=false;$('#result-state').hidden=true;
-  $('#generation-error').hidden=true;$$('#making-state li').forEach((item,index)=>item.classList.toggle('done',index===0));
+  $('#generation-error').hidden=true;$('#blocked-actions').hidden=true;$('#retry-generation').hidden=false;$$('#making-state li').forEach((item,index)=>item.classList.toggle('done',index===0));
   try{
     $$('#making-state li')[1].classList.add('done');await renderCharacterProof();$$('#making-state li')[2].classList.add('done');
     $('#making-state').hidden=true;$('#result-state').hidden=false;track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});
   }catch(error){
-    $('#generation-error-copy').textContent=error.message||'The character could not be drawn. Please try again.';$('#generation-error').hidden=false;track('free_preview_failed');
+    $('#generation-error-copy').textContent=error.message||'The character could not be drawn. Please try again.';$('#generation-error').hidden=false;
+    const blocked=error.code==='character_blocked';$('#blocked-actions').hidden=!blocked;$('#retry-generation').hidden=blocked;
+    track('free_preview_failed',{reason:blocked?'blocked':'other'});
   }
 }
 
@@ -214,6 +216,8 @@ for(let index=0;index<10;index+=1){const marker=document.createElement('span');m
 $('#approve-face').addEventListener('click',()=>{state.previewApproved=true;$('#approve-face').classList.add('selected');$('#adjust-face').classList.remove('selected');$('#adjust-panel').hidden=true;$('#choose-book').disabled=false;$('#step-5-error').textContent='';track('preview_likeness_approved',{adjusted:state.previewAdjusted});});
 $('#adjust-face').addEventListener('click',()=>{state.previewApproved=false;$('#choose-book').disabled=true;$('#approve-face').classList.remove('selected');$('#adjust-face').classList.add('selected');$('#adjust-panel').hidden=false;});
 $('#retry-generation').addEventListener('click',()=>{void preparePreview();});
+$('#change-photo').addEventListener('click',()=>showStep(4));
+$('#change-story').addEventListener('click',()=>{state.characterImages=[];showStep(3);});
 $('#update-preview').addEventListener('click',async()=>{const button=$('#update-preview');const adjustment=$('input[name="adjustment"]:checked').value;button.disabled=true;button.textContent='Redrawing…';$('#step-5-error').textContent='';try{await renderCharacterProof(adjustment);state.previewAdjusted=true;button.textContent='Redraw the character';$('#adjust-panel').hidden=true;$('#adjust-face').classList.remove('selected');track('free_preview_adjusted',{adjustment});}catch(error){button.textContent='Try the redraw again';$('#step-5-error').textContent=error.message||'The character could not be updated.';}finally{button.disabled=false;}});
 
 $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
