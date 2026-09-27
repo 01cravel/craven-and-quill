@@ -51,6 +51,7 @@ function showStep(number){
   state.step=number;
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
+  const current=document.querySelector(`.journey-step[data-progress="${number}"] em`);$('#progress-num').textContent=number;$('#progress-name').textContent=current?current.textContent:'';$('#progress-fill').style.width=`${number/7*100}%`;
   window.scrollTo({top:0,behavior:'smooth'});
   track('story_step_view',{step:number});
 }
@@ -88,9 +89,7 @@ async function inspectPhoto(file){
   if(!allowed.includes(file.type))return{pass:false,message:'Use a JPG, PNG or WebP image.'};
   let bitmap;
   try{bitmap=await createImageBitmap(file);}catch{return{pass:false,message:'This image could not be read. Try another file.'};}
-  const width=bitmap.width,height=bitmap.height,short=Math.min(width,height);
-  if(short<640){bitmap.close();return{pass:false,message:`This photo is ${width}×${height}. Use at least 640 pixels on the shortest side.`};}
-  const canvas=document.createElement('canvas');const size=180;canvas.width=size;canvas.height=size;
+    const canvas=document.createElement('canvas');const size=180;canvas.width=size;canvas.height=size;
   const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0,size,size);bitmap.close();
   const data=ctx.getImageData(0,0,size,size).data;let light=0,contrast=0,edges=0;const grey=[];
   for(let index=0;index<data.length;index+=4){const value=.299*data[index]+.587*data[index+1]+.114*data[index+2];grey.push(value);light+=value;}
@@ -99,7 +98,7 @@ async function inspectPhoto(file){
   edges/=((size-2)*(size-2));
   if(light<45||light>225)return{pass:false,message:'The face is too dark or washed out. Use an evenly lit photo.'};
   if(contrast<22||edges<9)return{pass:false,message:'The photo is too soft. Use a sharper, clearer photo.'};
-  let faceMessage='Size, light and sharpness passed. Confirm the face manually below.';
+  let faceMessage='Light and sharpness passed. Confirm the face manually below.';
   if('FaceDetector' in window){
     try{const detector=new FaceDetector({fastMode:true,maxDetectedFaces:5});const image=await createImageBitmap(file);const faces=await detector.detect(image);image.close();if(faces.length!==1)return{pass:false,message:faces.length===0?'No clear face was found. Use a front-facing photo.':'More than one face was found. Upload one person per photo.'};faceMessage='One clear face found. Confirm it manually below.';}catch{}
   }
@@ -110,15 +109,16 @@ $('#photos').addEventListener('change',async event=>{
   photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];
   const requiredCount=$('#second-person').hidden?1:2;
   const files=[...event.target.files].slice(0,requiredCount);
-  state.photos=files;state.photoChecks=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;
-  const check=$('#photo-check');check.hidden=false;check.className='photo-check';check.innerHTML='<strong>Checking the photo…</strong><span>Looking at size, light, sharpness and face count.</span>';
+  state.photos=files;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;
+  const check=$('#photo-check');check.hidden=false;check.className='photo-check';check.innerHTML='<strong>Checking the photo…</strong>';
   files.forEach((file,index)=>{const url=URL.createObjectURL(file);photoUrls.push(url);const thumb=document.createElement('img');thumb.src=url;thumb.alt=`Selected photo ${index+1}`;$('#photo-list').append(thumb);});
+  $('.upload-wrap').classList.toggle('has-photo',files.length>0);$('.upload strong').textContent=files.length?(files.length>1?'Photos added':'Photo added'):'Add a photo';$('.upload small').textContent=files.length?'Tap to change':'Face forward, both eyes clear, no sunglasses.';$('.upload-icon').style.backgroundImage=files.length?`url(${photoUrls[0]})`:'';
   if(!files.length){check.hidden=true;$('#face-confirm-wrap').hidden=true;return;}
   state.photoChecks=await Promise.all(files.map(inspectPhoto));
   const failed=state.photoChecks.find(item=>!item.pass);
   const countProblem=files.length!==requiredCount;
   check.classList.add(failed||countProblem?'fail':'pass');
-  check.innerHTML=countProblem?`<strong>Add ${requiredCount===2?'two photos':'one photo'}</strong><span>Use one separate photo for each person.</span>`:failed?`<strong>Use another photo</strong><span>${failed.message}</span>`:`<strong>${requiredCount===2?'Both photos passed':'Photo passed'} the automatic checks</strong><span>${state.photoChecks.map(item=>item.message).join(' ')}</span>`;
+  check.innerHTML=countProblem?`<strong>Add ${requiredCount===2?'two photos':'one photo'}</strong><span>Use one separate photo for each person.</span>`:failed?`<strong>Use another photo</strong><span>${failed.message}</span>`:`<strong>${requiredCount===2?'Both photos look good':'Photo looks good'}</strong><span>Tick below to confirm the face is clear.</span>`;
   $('#face-confirm-wrap').hidden=Boolean(failed||countProblem);$('#step-4-error').textContent='';
   track('photos_checked',{count:files.length,passed:!failed&&!countProblem});
 });
@@ -196,9 +196,9 @@ async function renderCharacterProof(adjustment=''){
 async function preparePreview(){
   const idea=selectedStory();
   state.previewApproved=false;$('#choose-book').disabled=true;$('#approve-face').classList.remove('selected');$('#adjust-panel').hidden=true;
-  $('#result-names').textContent=fullNames();$('#result-story-title').textContent=idea[0];$('#live-title').textContent=idea[0];
+  $('#result-story-title').textContent=idea[0];$('#live-title').textContent=idea[0];
   $('#story-copy').textContent=previewText(idea);$('#preview-image').src='assets/storybook.webp';$('#preview-image').alt=`Sample opening illustration format for ${idea[0]}`;
-  $('#likeness-title').textContent=`Does this character look like ${fullNames()}?`;
+  $('#likeness-title').textContent=`Does this look like ${fullNames()}?`;
   $('#making-state').hidden=false;$('#result-state').hidden=true;
   $('#generation-error').hidden=true;$$('#making-state li').forEach((item,index)=>item.classList.toggle('done',index===0));
   try{
@@ -214,7 +214,7 @@ for(let index=0;index<10;index+=1){const marker=document.createElement('span');m
 $('#approve-face').addEventListener('click',()=>{state.previewApproved=true;$('#approve-face').classList.add('selected');$('#adjust-face').classList.remove('selected');$('#adjust-panel').hidden=true;$('#choose-book').disabled=false;$('#step-5-error').textContent='';track('preview_likeness_approved',{adjusted:state.previewAdjusted});});
 $('#adjust-face').addEventListener('click',()=>{state.previewApproved=false;$('#choose-book').disabled=true;$('#approve-face').classList.remove('selected');$('#adjust-face').classList.add('selected');$('#adjust-panel').hidden=false;});
 $('#retry-generation').addEventListener('click',()=>{void preparePreview();});
-$('#update-preview').addEventListener('click',async()=>{const button=$('#update-preview');const adjustment=$('input[name="adjustment"]:checked').value;button.disabled=true;button.textContent='Updating the character…';$('#step-5-error').textContent='';try{await renderCharacterProof(adjustment);state.previewAdjusted=true;button.textContent='Character updated. Check it again';$('#adjust-panel').hidden=true;$('#adjust-face').classList.remove('selected');track('free_preview_adjusted',{adjustment});}catch(error){button.textContent='Try the update again';$('#step-5-error').textContent=error.message||'The character could not be updated.';}finally{button.disabled=false;}});
+$('#update-preview').addEventListener('click',async()=>{const button=$('#update-preview');const adjustment=$('input[name="adjustment"]:checked').value;button.disabled=true;button.textContent='Redrawing…';$('#step-5-error').textContent='';try{await renderCharacterProof(adjustment);state.previewAdjusted=true;button.textContent='Redraw the character';$('#adjust-panel').hidden=true;$('#adjust-face').classList.remove('selected');track('free_preview_adjusted',{adjustment});}catch(error){button.textContent='Try the redraw again';$('#step-5-error').textContent=error.message||'The character could not be updated.';}finally{button.disabled=false;}});
 
 $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   const next=Number(button.dataset.next);
@@ -240,9 +240,17 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(state.photoChecks.some(item=>!item.pass)){$('#step-4-error').textContent='Use a photo that passes every check.';return;}
     if(!$('#face-confirm').checked){$('#step-4-error').textContent='Confirm that every face is clearly recognisable.';$('#face-confirm').focus();return;}
     if(!$('#photo-permission').checked){$('#step-4-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
+    const email=$('#email').value.trim().toLowerCase();
+    if(!/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)){$('#step-4-error').textContent='Add your email so we can send their preview.';$('#email').focus();return;}
+    state.email=email;fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,interest:'storybook',page:'/create'})}).catch(()=>{});track('email_captured',{step:4});
     $('#step-4-error').textContent='';void preparePreview();
   }
   if(state.step===5&&!state.previewApproved){$('#step-5-error').textContent='Confirm the character looks right before choosing your book.';return;}
+  if(state.step===6){
+    updateProduct();
+    if($('.gift-extra').open&&!$('#gift-from').value.trim()&&$('#gift-message').value.trim()){$('#step-6-error').textContent='Add who the gift is from, or remove the message.';$('#gift-from').focus();return;}
+    $('#step-6-error').textContent='';$('#order-email').textContent=state.email||'your email';
+  }
   showStep(next);
 }));
 
@@ -251,22 +259,20 @@ $$('[data-back]').forEach(button=>button.addEventListener('click',()=>showStep(N
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
   const hardback=state.product==='hardback';$('#shipping-fields').hidden=!hardback;
-  const label=hardback?'Hardback + digital + animation':'Digital book + animation';
-  $('#order-label').textContent=label;$('#order-price').textContent=`£${state.price}`;$('#button-price').textContent=`£${state.price}`;
+  const label=hardback?'Hardback + digital':'Digital';
+  $('#order-label').textContent=label;$('#order-price').textContent=`£${state.price}`;$('#button-price').textContent=`£${state.price}`;$('#step-7-title').textContent=hardback?'Where should we send it?':'Pay and we’ll make their book.';
 }
 $$('input[name="product"]').forEach(input=>input.addEventListener('change',updateProduct));
 
 $('#place-order').addEventListener('click',()=>{
-  updateProduct();const email=$('#email').value.trim();const giftOpen=$('.gift-extra').open;
-  if(!email||!$('#email').validity.valid){$('#step-6-error').textContent='Enter a valid email address for the book.';$('#email').focus();return;}
-  if(state.product==='hardback'&&!$('#address').value.trim()){$('#step-6-error').textContent='Add the delivery address for the hardback.';$('#address').focus();return;}
-  if(giftOpen&&!$('#gift-from').value.trim()){$('#step-6-error').textContent='Add who the gift message is from, or close the gift message.';$('#gift-from').focus();return;}
-  if(!$('#card-name').value.trim()||$('#card-number').value.replace(/\D/g,'').length!==16||!/^\d{2}\/\d{2}$/.test($('#card-expiry').value.trim())||!/^\d{3,4}$/.test($('#card-cvc').value.trim())){$('#step-6-error').textContent='Check the test payment details to continue.';$('#card-name').focus();return;}
-  $('#step-6-error').textContent='';
+  updateProduct();const giftOpen=$('.gift-extra').open&&Boolean($('#gift-from').value.trim()||$('#gift-message').value.trim());
+  if(state.product==='hardback'&&!$('#address').value.trim()){$('#step-7-error').textContent='Add the delivery address for the hardback.';$('#address').focus();return;}
+  if(!$('#card-name').value.trim()||$('#card-number').value.replace(/\D/g,'').length!==16||!/^\d{2}\/\d{2}$/.test($('#card-expiry').value.trim())||!/^\d{3,4}$/.test($('#card-cvc').value.trim())){$('#step-7-error').textContent='Check the test payment details to continue.';$('#card-name').focus();return;}
+  $('#step-7-error').textContent='';
   const idea=selectedStory();const slug=getBookSlug();
-  const payload={book:slug,names:fullNames(),age:state.age,mode:state.mood==='own'?'own':'ai',mood:state.mood,title:idea[0],storySummary:idea[1],format:'both',gift:giftOpen,giftFrom:$('#gift-from').value.trim(),giftMessage:$('#gift-message').value.trim(),product:state.product,price:state.price,paymentStatus:'test-paid'};
+  const payload={book:slug,names:fullNames(),age:state.age,mode:state.mood==='own'?'own':'ai',mood:state.mood,title:idea[0],storySummary:idea[1],format:'both',gift:giftOpen,giftFrom:$('#gift-from').value.trim(),giftMessage:$('#gift-message').value.trim(),product:state.product,price:state.price,email:state.email||'',paymentStatus:'test-paid'};
   localStorage.setItem('craven-quill-story-idea',JSON.stringify(payload));
-  const button=$('#place-order');button.disabled=true;button.textContent='Payment accepted. Creating the full book…';
+  const button=$('#place-order');button.disabled=true;button.textContent='Paid. Making their book…';
   track('test_order_placed',{product:state.product,price:state.price,full_pages_authorised:10});
   setTimeout(()=>{window.location.href=`test-book.html?book=${slug}&order=1`;},850);
 });
