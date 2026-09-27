@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=15">
+  <link rel="stylesheet" href="create.css?v=16">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -152,24 +152,10 @@
           </div>
 
           <div id="result-state" hidden>
-            <div class="preview-heading"><h1 id="likeness-title">Does this look like Leo?</h1><p>Check the face, hair and smile.</p></div>
-
-            <section class="character-proof" aria-label="Their character">
-              <div class="character-proof-list" id="character-proof-list"></div>
-              <p class="proof-note" id="proof-note" hidden></p>
-              <div class="likeness-actions"><button type="button" id="approve-face">Yes, looks right</button><button type="button" id="adjust-face">Change it</button></div>
-            </section>
-
-            <div class="adjust-panel" id="adjust-panel" hidden>
-              <p>What should change? You get one free redraw.</p>
-              <div class="adjust-options"><label><input type="radio" name="adjustment" value="likeness" checked><span>Look more like them</span></label><label><input type="radio" name="adjustment" value="cartoon"><span>More cartoon</span></label><label><input type="radio" name="adjustment" value="expression"><span>Happier face</span></label></div>
-              <button type="button" id="update-preview">Redraw the character</button>
-            </div>
-
             <section class="first-page" aria-labelledby="first-page-title">
               <div class="page-preview-heading"><h2 id="first-page-title">Their first page</h2><p><span id="result-story-title">The Map Beneath the Moon</span>, page 1 of 10</p></div>
               <div class="book-preview">
-                <figure class="preview-art"><img id="preview-image" src="assets/storybook.webp" width="900" height="1125" alt="Sample personalised story illustration format"><span>Free preview</span></figure>
+                <figure class="preview-art" id="preview-art"><img id="preview-image" src="assets/storybook.webp" width="900" height="1125" alt="Sample personalised story illustration format"><img id="preview-image-second" width="900" height="1125" alt="" hidden><span>Free preview</span></figure>
                 <article class="preview-copy"><p class="chapter" id="preview-chapter">The adventure begins</p><p id="story-copy"></p></article>
               </div>
               <div class="locked-pages" aria-label="Locked story pages"><strong>Nine more pages once you order.</strong><div id="locked-dots"></div></div>
@@ -181,13 +167,14 @@
 
         <section class="step checkout-step" data-step="6" aria-labelledby="step-6-title" hidden>
           <h1 id="step-6-title">Choose their book.</h1>
-          <p class="intro">Both include the full 10-page story and animation.</p>
+          <p class="intro">Choose how to enjoy their full 10-page story.</p>
 
           <fieldset>
             <legend class="visually-hidden">Book format</legend>
             <div class="product-options">
-              <label class="product"><input type="radio" name="product" value="digital" data-price="19" checked><span><b>Digital</b><small>Read and watch on any device</small><strong>£19</strong></span></label>
-              <label class="product"><input type="radio" name="product" value="hardback" data-price="39.99"><span><b>Hardback + digital</b><small>Printed book posted to you, plus digital</small><strong>£39.99</strong></span></label>
+              <label class="product"><input type="radio" name="product" value="bundle" data-price="39.99" checked><span><b>Digital &amp; Hardback <em class="recommended">Recommended</em></b><small>Read it now, then keep the printed book</small><strong>£39.99</strong></span></label>
+              <label class="product"><input type="radio" name="product" value="hardback" data-price="35"><span><b>Hardback</b><small>A printed book posted to you</small><strong>£35</strong></span></label>
+              <label class="product"><input type="radio" name="product" value="digital" data-price="19"><span><b>Digital</b><small>Read and watch on any device</small><strong>£19</strong></span></label>
             </div>
           </fieldset>
 
@@ -203,7 +190,7 @@
         <section class="step pay-step" data-step="7" aria-labelledby="step-7-title" hidden>
           <h1 id="step-7-title">Pay and we’ll make their book.</h1>
 
-          <section class="order-total" aria-label="Order summary"><div><span id="order-label">Digital</span><small>Digital copy to <b id="order-email">your email</b></small></div><strong id="order-price">£19</strong></section>
+          <section class="order-total" aria-label="Order summary"><div><span id="order-label">Digital &amp; Hardback</span><small id="order-delivery">Digital copy by email and printed book by post</small></div><strong id="order-price">£39.99</strong></section>
 
           <div class="checkout-fields" id="shipping-fields" hidden>
             <label for="address">Delivery address</label>
@@ -221,13 +208,13 @@
           </section>
 
           <div class="error" id="step-7-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="6">Back</button><button class="next checkout-button" id="place-order" type="button">Pay <span id="button-price">£19</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="6">Back</button><button class="next checkout-button" id="place-order" type="button">Pay <span id="button-price">£39.99</span></button></div>
         </section>
       </form>
     </section>
   </main>
 
   <footer><span>Photos are used only to create your preview.</span><a href="index.html#how">How it works</a></footer>
-  <script src="create.js?v=16" defer></script>
+  <script src="create.js?v=17" defer></script>
 </body>
 </html>
