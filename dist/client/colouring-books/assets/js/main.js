@@ -16,7 +16,7 @@ const BOOKS = {
 // This is the whole current test: no live purchase path yet, just "leave your
 // email, we'll tell you when we're live." Move this date as the real launch
 // date moves — everything with .js-launch-countdown re-reads it on load.
-const LAUNCH_DATE = "2026-09-29";
+const LAUNCH_DATE = "2026-10-15";
 
 // Where the email signup forms submit. "/api/subscribe" is the site's own
 // server (dist/server/index.js), which stores the email plus what they asked
@@ -37,8 +37,9 @@ function initLaunchCountdown() {
   const msPerDay = 86400000;
   const daysLeft = Math.ceil((new Date(LAUNCH_DATE) - new Date()) / msPerDay);
 
+  const dateLabel = new Date(LAUNCH_DATE).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
   let text;
-  if (daysLeft > 10) text = "Launching in 2 weeks";
+  if (daysLeft > 10) text = `Launching ${dateLabel}`;
   else if (daysLeft > 1) text = `Launching in ${daysLeft} days`;
   else if (daysLeft === 1) text = "Launching tomorrow";
   else text = "Launching any day now";
