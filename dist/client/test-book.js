@@ -1,3 +1,4 @@
+const titleCase=value=>String(value||'').toLowerCase().replace(/(^|\s)(\S)/g,(m,space,ch)=>space+ch.toUpperCase()).replace(/\s(A|An|And|The|Of|In|On|To|With|For|At|By)(?=\s)/g,m=>m.toLowerCase());
 const books={
   luke:{name:'Luke',title:'The Cake That Quit',age:'Adult',audience:'Adults',cover:'assets/book-covers/luke-wide.jpg',imageBase:'assets/cake-book-adult-portrait',type:'Funny · written for adults',gift:true,giftFrom:'Someone who knows you too well',giftMessage:'For Luke. You said you wanted a quiet birthday.',identity:'Adult cartoon built from the uploaded photo and used throughout one complete story.',pages:[
     ['AN ENTIRELY REASONABLE PLAN','A quiet birthday. That was the idea.','Luke had rented the cottage because he wanted one birthday without notifications, small talk or anybody asking what he was doing next. He turned off his phone, opened a bottle of something decent and baked a strawberry cake. Pip the fox watched from the doorway with the solemn focus of an auditor. Luke placed the final berry on top. “There,” he said. “One thing today has gone exactly to plan.” The cake gave a small, unmistakable hiccup.'],
@@ -58,18 +59,18 @@ const baseBook=books[slug]||books.luke;
 let saved={};try{saved=JSON.parse(localStorage.getItem('craven-quill-story-idea')||'{}');}catch{}
 const useSaved=query.get('order')==='1'&&saved.book===slug&&saved.paymentStatus==='test-paid';
 const savedAge=saved.age==='teen-adult'?'Adult':(saved.age||baseBook.age).replace('-', '–');
-const book=useSaved?{...baseBook,name:saved.names||baseBook.name,title:saved.title||baseBook.title,age:savedAge,type:saved.mode==='own'?'Written from your idea':'AI story choice',identity:'Test order completed. The ten spreads below show the finished-book format; live illustration generation is not connected in this prototype.'}:baseBook;
-const gift=useSaved?Boolean(saved.gift):book.gift;
-const giftFrom=useSaved&&saved.giftFrom?saved.giftFrom:book.giftFrom;
-const giftMessage=useSaved&&saved.giftMessage?saved.giftMessage:book.giftMessage;
+const book=baseBook;
+const gift=book.gift;
+const giftFrom=book.giftFrom;
+const giftMessage=book.giftMessage;
 const storyImage=index=>`${book.imageBase}/page-${String(index+1).padStart(2,'0')}.jpg`;
-const coverImage=matchMedia('(max-width:900px)').matches?storyImage(0):(book.cover||storyImage(0));
+const coverImage=storyImage(0);
 document.body.dataset.audience=book.age==='Adult'?'adult':book.age.replace('–','-');
 const screens=[
   {kind:'cover',label:'Front cover',image:coverImage},
-  {kind:'special',label:'Ownership page',chapter:'THIS BOOK BELONGS TO',title:book.name,text:'A one-of-a-kind story made especially for you.'},
-  ...(gift?[{kind:'special gift',label:'Gift page',chapter:'A GIFT FROM',title:giftFrom,text:giftMessage||'A little story made especially for you.'}]:[]),
-  ...book.pages.map((page,index)=>({kind:'story',label:`Page ${index+1} of one story`,chapter:page[0],title:page[1],text:page[2],image:storyImage(index),number:index+1,motion:['motion-in','motion-right','motion-left','motion-out'][index%4]}))
+  {kind:'special',label:'Ownership page',chapter:'This book belongs to',title:book.name,text:'A one-of-a-kind story made especially for you.'},
+  ...(gift?[{kind:'special gift',label:'Gift page',chapter:'A gift from',title:giftFrom,text:giftMessage||'A little story made especially for you.'}]:[]),
+  ...book.pages.map((page,index)=>({kind:'story',label:`Page ${index+1} of one story`,chapter:titleCase(page[0]),title:page[1],text:page[2],image:storyImage(index),number:index+1,motion:['motion-in','motion-right','motion-left','motion-out'][index%4]}))
 ];
 
 let current=0,turning=false;
@@ -77,17 +78,20 @@ const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches||match
 const art=document.querySelector('#page-art'),frame=document.querySelector('#art-frame'),stage=document.querySelector('#page-stage'),copy=document.querySelector('#page-copy'),progress=document.querySelector('#page-progress'),label=document.querySelector('#page-label'),number=document.querySelector('#page-number'),chapter=document.querySelector('#chapter'),title=document.querySelector('#page-title'),text=document.querySelector('#page-text'),dots=document.querySelector('#dots'),cover=document.querySelector('#cover-copy');
 document.title=`${book.title} | Finished test book`;
 const ageLabel=book.age==='Adult'||book.age==='teen-adult'?'an adult':`age ${book.age}`;
-document.querySelector('#cover-name').textContent=book.name.toUpperCase();document.querySelector('#cover-title').textContent=book.title;document.querySelector('#cover-meta').textContent=`Written for ${ageLabel}`;document.querySelector('#test-note').textContent=`${book.type}. ${book.identity}`;
+document.querySelector('#cover-name').textContent=book.name;document.querySelector('#cover-title').textContent=book.title;document.querySelector('#cover-meta').textContent=`Written for ${ageLabel}`;document.querySelector('#test-note').textContent=`${book.type}. ${book.identity}`;
+document.querySelector('#page-label').textContent=book.title;
+if(useSaved){const banner=document.querySelector('#order-banner');banner.hidden=false;document.body.classList.add('order-mode');document.querySelector('#order-heading').textContent=`Thank you. We’re making ${saved.names||'their'}’s book.`;document.querySelector('#order-text').textContent=`We’ll email the finished book${saved.email?` to ${saved.email}`:''} once it’s ready. Here’s a finished example so you can see how it will look.`;}
+{let startX=null,startY=0;stage.addEventListener('touchstart',event=>{startX=event.touches[0].clientX;startY=event.touches[0].clientY;},{passive:true});stage.addEventListener('touchend',event=>{if(startX===null)return;const dx=event.changedTouches[0].clientX-startX,dy=event.changedTouches[0].clientY-startY;startX=null;if(Math.abs(dx)<50||Math.abs(dx)<Math.abs(dy))return;if(dx<0)navigate(current===screens.length-1?current:current+1,'forward');else navigate(current-1,'back');});}
 document.querySelectorAll('[data-book]').forEach(link=>link.setAttribute('aria-current',String(link.dataset.book===slug)));
 screens.forEach((screen,index)=>{const button=document.createElement('button');button.type='button';button.textContent=screen.kind==='story'?String(screen.number):screen.kind==='cover'?'C':screen.kind.includes('gift')?'G':'★';button.setAttribute('aria-label',`Go to ${screen.label}`);button.addEventListener('click',()=>navigate(index,index<current?'back':'forward'));dots.append(button);});
 
 function show(index){
   current=Math.max(0,Math.min(screens.length-1,index));const screen=screens[current];stage.dataset.kind=screen.kind;stage.classList.toggle('cover-stage',screen.kind==='cover');frame.className=`art-frame ${screen.motion||'motion-in'}`;
   if(screen.image){art.src=screen.image;art.alt=screen.kind==='cover'?`Cover of ${book.title}`:`Illustration for story spread ${screen.number}`;frame.style.setProperty('--page-art',`url("${screen.image}")`);}
-  const nextButton=document.querySelector('#next');cover.hidden=screen.kind!=='cover';chapter.textContent=screen.chapter||'';title.textContent=screen.title||'';text.textContent=screen.text||'';number.textContent=screen.number||'';label.textContent=screen.label;progress.style.width=`${((current+1)/screens.length)*100}%`;document.querySelector('#previous').disabled=current===0;nextButton.innerHTML=current===screens.length-1?'<span aria-hidden="true">↻</span>':'<span aria-hidden="true">→</span>';nextButton.setAttribute('aria-label',current===screens.length-1?'Back to cover':current===0?'Open book':'Next page');[...dots.children].forEach((button,i)=>button.setAttribute('aria-current',String(i===current)));copy.style.animation='none';void copy.offsetWidth;copy.style.animation='';
+  const nextButton=document.querySelector('#next');cover.hidden=screen.kind!=='cover';chapter.textContent=screen.chapter||'';title.textContent=screen.title||'';text.textContent=screen.text||'';number.textContent=screen.number||'';progress.style.width=`${((current+1)/screens.length)*100}%`;document.querySelector('#previous').disabled=current===0;nextButton.innerHTML=current===0?'<span>Open the book</span>':current===screens.length-1?'<span>Start again</span>':'';nextButton.classList.toggle('has-text',current===0||current===screens.length-1);document.querySelector('#page-count').textContent=screen.kind==='story'?`Page ${screen.number} of ${book.pages.length}`:screen.kind==='cover'?'Cover':screen.kind.includes('gift')?'Gift page':'Belongs to';document.querySelector('.page-nav').classList.toggle('at-cover',current===0);nextButton.setAttribute('aria-label',current===screens.length-1?'Back to cover':current===0?'Open book':'Next page');[...dots.children].forEach((button,i)=>button.setAttribute('aria-current',String(i===current)));copy.style.animation='none';void copy.offsetWidth;copy.style.animation='';
 }
 function navigate(index,direction='forward'){
-  const target=Math.max(0,Math.min(screens.length-1,index));if(turning||target===current)return;if(reduceMotion){show(target);return;}turning=true;const turnClass=direction==='back'?'turn-back':'turn-forward';stage.classList.add(turnClass);setTimeout(()=>show(target),500);setTimeout(()=>{stage.classList.remove(turnClass);turning=false;},1100);
+  const target=Math.max(0,Math.min(screens.length-1,index));if(turning||target===current)return;if(reduceMotion){show(target);return;}turning=true;const turnClass=direction==='back'?'turn-back':'turn-forward';stage.classList.add(turnClass);setTimeout(()=>show(target),260);setTimeout(()=>{stage.classList.remove(turnClass);turning=false;},300);
 }
 document.querySelector('#previous').addEventListener('click',()=>navigate(current-1,'back'));
 document.querySelector('#next').addEventListener('click',()=>navigate(current===screens.length-1?0:current+1,'forward'));
