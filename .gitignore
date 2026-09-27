@@ -1,5 +1,7 @@
 .DS_Store
 .env.local
+node_modules/
+.sites-runtime/
 .openai/
 dist/assets/books/
 dist/assets/books-cartoon/

@@ -3,6 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check dist/server/index.js && node --check dist/client/create.js && node --test tests/worker.test.mjs"
+    "check": "node --check dist/server/index.js && node --check dist/server/campaign.js && node --check dist/client/create.js && node --check dist/client/campaign.js && node --check dist/client/campaign-results.js && node --check dist/client/unsubscribe.js && node --test tests/*.test.mjs",
+    "check:release": "npm run check && node scripts/check-launch-ready.mjs"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.11",
+    "drizzle-orm": "^0.45.3"
   }
 }
