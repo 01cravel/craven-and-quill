@@ -28,6 +28,21 @@ test('keeps the OpenAI key on the server and returns the generated image',async(
   }finally{globalThis.fetch=originalFetch;}
 });
 
+test('explains a blocked character request without blaming photo clarity or retrying it',async()=>{
+  const originalFetch=globalThis.fetch;let calls=0;
+  globalThis.fetch=async()=>{
+    calls+=1;
+    return new Response(JSON.stringify({error:{type:'image_generation_user_error',code:'moderation_blocked',moderation_details:{moderation_stage:'input'}}}),{status:400,headers:{'Content-Type':'application/json','x-request-id':'req_test'}});
+  };
+  try{
+    const form=new FormData();form.append('photo',new File(['image'],'person.jpg',{type:'image/jpeg'}));form.append('name','Amna');form.append('age','6-8');form.append('mood','adventure');
+    const response=await worker.fetch(new Request('https://example.com/api/generate-character',{method:'POST',headers:{Origin:'https://example.com','CF-Connecting-IP':'203.0.113.11'},body:form}),{OPENAI_API_KEY:'test-secret'});
+    assert.equal(response.status,422);
+    const body=await response.json();assert.equal(body.code,'character_blocked');assert.match(body.error,/different photo or change the story idea/);
+    assert.equal(calls,1);
+  }finally{globalThis.fetch=originalFetch;}
+});
+
 // Minimal stand-in for the D1 binding: records every statement and its bound values.
 function fakeDb(rows=[]){
   const calls=[];

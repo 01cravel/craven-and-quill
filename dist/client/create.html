@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=14">
+  <link rel="stylesheet" href="create.css?v=15">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -148,7 +148,7 @@
             <p class="eyebrow">Making your free preview</p>
             <h1 id="step-5-title">Creating their character…</h1>
             <ul><li class="done">Checking the story</li><li>Finding the face</li><li>Drawing the character</li></ul>
-            <div class="generation-error" id="generation-error" hidden><p id="generation-error-copy">We could not draw the character this time.</p><button type="button" id="retry-generation">Try again</button></div>
+            <div class="generation-error" id="generation-error" role="alert" hidden><p id="generation-error-copy">We could not draw the character this time.</p><button type="button" id="retry-generation">Try again</button><div id="blocked-actions" hidden><button type="button" id="change-photo">Change photo</button><button type="button" id="change-story">Change story</button></div></div>
           </div>
 
           <div id="result-state" hidden>
@@ -228,6 +228,6 @@
   </main>
 
   <footer><span>Photos are used only to create your preview.</span><a href="index.html#how">How it works</a></footer>
-  <script src="create.js?v=15" defer></script>
+  <script src="create.js?v=16" defer></script>
 </body>
 </html>
