@@ -158,12 +158,11 @@ function previewText(idea){
   return`${who} noticed a curious light where no light should be. ${idea[1]} With one brave step, the adventure began.`;
 }
 
+let drawingProgress=null,generationBusy=false;
 async function requestCharacter(file,name){
   const idea=selectedStory();const form=new FormData();
   form.append('photo',file,file.name||'photo.jpg');form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',idea?.[1]||'');
-  const response=await fetch('/api/generate-character',{method:'POST',body:form,headers:{'X-Craven-Preview':'character'}});
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok||!data.image)throw Object.assign(new Error(data.error||'The character could not be drawn. Please try again.'),{code:data.code});
+  const data=await window.cqPreviewProgress.request(form,event=>drawingProgress?.update(event));
   state.previewId=data.previewId||null;
   return data.image;
 }
@@ -171,6 +170,7 @@ async function requestCharacter(file,name){
 async function renderStoryArt(){
   for(let index=0;index<state.photos.length;index+=1){
     const file=state.photos[index];const name=index===0?state.names:state.secondName;
+    drawingProgress?.person(index,state.photos.length);
     state.characterImages[index]=state.characterImages[index]||await requestCharacter(file,name);
   }
   $('#preview-image').src=state.characterImages[0];$('#preview-image').alt=`Illustrated ${state.names} on the first story page`;
@@ -180,6 +180,7 @@ async function renderStoryArt(){
 }
 
 async function preparePreview(){
+  if(generationBusy)return;generationBusy=true;
   const idea=selectedStory();
   window.cqMeasurement?.record('preview_start');
   $('#choose-book').disabled=true;
@@ -187,15 +188,18 @@ async function preparePreview(){
   $('#story-copy').textContent=previewText(idea);$('#preview-image').src='assets/storybook.webp';$('#preview-image').alt=`Sample opening illustration format for ${idea[0]}`;
   $('#preview-image-second').hidden=true;$('#preview-art').classList.remove('two-people');
   $('#making-state').hidden=false;$('#result-state').hidden=true;
-  $('#generation-error').hidden=true;$('#blocked-actions').hidden=true;$('#retry-generation').hidden=false;$$('#making-state li').forEach((item,index)=>item.classList.toggle('done',index===0));
+  $('#generation-error').hidden=true;$('#blocked-actions').hidden=true;$('#retry-generation').hidden=false;drawingProgress=window.cqPreviewProgress.start();
   try{
-    $$('#making-state li')[1].classList.add('done');await renderStoryArt();$$('#making-state li')[2].classList.add('done');
+    await renderStoryArt();
+    await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
+    drawingProgress.stop(true);
     $('#making-state').hidden=true;$('#result-state').hidden=false;$('#choose-book').disabled=false;track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});
   }catch(error){
+    drawingProgress.stop(false);
     $('#generation-error-copy').textContent=error.message||'The character could not be drawn. Please try again.';$('#generation-error').hidden=false;
     const blocked=error.code==='character_blocked';$('#blocked-actions').hidden=!blocked;$('#retry-generation').hidden=blocked;
     track('free_preview_failed',{reason:blocked?'blocked':'other'});
-  }
+  }finally{generationBusy=false;}
 }
 
 for(let index=0;index<10;index+=1){const marker=document.createElement('span');marker.setAttribute('aria-hidden','true');$('#locked-dots').append(marker);}

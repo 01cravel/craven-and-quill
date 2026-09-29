@@ -351,3 +351,20 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
   .step-actions .back{position:relative;line-height:0}
   .step-actions .back::before{content:"";position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);background:var(--ink);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 12H5M11 6l-6 6 6 6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 12H5M11 6l-6 6 6 6'/%3E%3C/svg%3E") center/contain no-repeat}
 }
+
+/* A ribbon of moving ink while the illustration is being drawn. */
+.drawing-progress{width:min(460px,100%);margin:8px auto 34px;text-align:left;padding:24px;border-radius:24px;background:#f3f2ff;border:1px solid #dfdcff;box-shadow:0 12px 42px #9490ff14}
+.drawing-progress-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;font-size:16px;font-weight:650}
+#drawing-time{font-variant-numeric:tabular-nums;font-size:16px;color:#5c637a;white-space:nowrap}
+.ink-track{height:20px;position:relative;overflow:hidden;border-radius:99px;background:#dddcf3;box-shadow:inset 0 2px 4px #17332c10}
+.ink-flow{position:absolute;inset:0 auto 0 0;width:var(--upload,0%);border-radius:inherit;background:linear-gradient(100deg,#21473b,#7979e9 60%,#aaa6ff);transition:width .25s ease}
+.ink-glint{display:none;position:absolute;inset:0;width:38%;border-radius:inherit;background:linear-gradient(90deg,transparent,#ffffffa0,transparent);animation:ink-glide 2s ease-in-out infinite}
+.drawing-progress[data-phase="drawing"] .ink-flow{width:100%;opacity:.75;background-size:200% 100%;animation:ink-colour 4s ease-in-out infinite alternate}
+.drawing-progress[data-phase="drawing"] .ink-glint,.drawing-progress[data-phase="received"] .ink-glint{display:block}
+.drawing-progress[data-phase="received"] .ink-flow,.drawing-progress[data-phase="complete"] .ink-flow{width:100%}
+.drawing-progress[data-phase="error"] .ink-flow{background:#bd8072;width:100%;opacity:.35}
+.drawing-progress p{font-size:15px;line-height:1.55;color:#5b6572;margin:16px 0 0;min-height:46px}
+@keyframes ink-glide{from{transform:translateX(-110%)}to{transform:translateX(370%)}}
+@keyframes ink-colour{from{background-position:0% 50%}to{background-position:100% 50%}}
+@media(prefers-reduced-motion:reduce){.ink-flow,.ink-glint{animation:none!important;transition:none!important}.drawing-progress[data-phase="drawing"] .ink-glint{display:none}}
+@media(max-width:500px){.drawing-progress{padding:20px;margin-bottom:26px}.drawing-progress-top{font-size:15px}#making-state h1{font-size:clamp(2rem,9vw,3rem)}}

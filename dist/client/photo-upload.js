@@ -27,7 +27,10 @@
   async function prepare(file){
     if(!file.size)throw new Error('This photo is empty. Choose another photo.');
     if(file.size>30*1024*1024)throw new Error('This photo is too large. Choose one under 30 MB, or upload a screenshot.');
-    if(!await photoKind(file))throw new Error('Choose a JPG, PNG, WebP or iPhone HEIC photo. '+fallback);
+    // Let the browser decode raster formats, including AVIF and newer HEIF variants.
+    // Header recognition is a hint, never a reason to reject a displayable photo.
+    const head=await file.slice(0,4096).text();
+    if(/<svg[\s/>]|<!doctype\s+html|<html[\s>]/i.test(head)||file.type==='image/svg+xml')throw new Error('Choose a photo rather than a vector image or document. '+fallback);
     const image=await decode(file);
     try{
       const width=image.naturalWidth||image.width,height=image.naturalHeight||image.height;

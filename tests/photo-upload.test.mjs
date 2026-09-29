@@ -35,11 +35,24 @@ test('unsupported HEIC provides a screenshot recovery and releases the URL',asyn
 });
 test('rejects renamed non-images, oversized and empty files before decoding',async()=>{
   const {api}=runtime();
-  await assert.rejects(api.prepare(new File(['<svg/>'],'fake.jpg',{type:'image/jpeg'})),/Choose a JPG/);
+  await assert.rejects(api.prepare(new File(['<svg/>'],'fake.jpg',{type:'image/jpeg'})),/photo rather than/);
   await assert.rejects(api.prepare({size:31*1024*1024}),/30 MB/);
   await assert.rejects(api.prepare({size:0}),/empty/);
 });
 test('failed JPEG encoding gives recovery rather than an invalid upload',async()=>{
   const {api,calls}=runtime({blobFails:true});
   await assert.rejects(api.prepare(new File([new Uint8Array(jpeg)],'photo.jpg')),/screenshot/);assert.equal(calls.closed,1);
+});
+
+test('unrecognised raster headers are decoded instead of rejected by a format list',async()=>{
+  const {api}=runtime();
+  for(const type of ['image/avif','image/heif','']){
+    const file=new File(['newer raster container'],'iphone-photo',{type});
+    assert.equal(await api.photoKind(file),null);
+    assert.equal((await api.prepare(file)).type,'image/jpeg');
+  }
+});
+test('undecodable non-image files cannot become an upload',async()=>{
+  const {api}=runtime({bitmapFails:true,imageFails:true});
+  await assert.rejects(api.prepare(new File(['not a picture'],'fake.jpg')),/cannot open/);
 });

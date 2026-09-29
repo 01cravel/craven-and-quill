@@ -75,3 +75,11 @@ Luke's phone screenshot showed a format rejection at step 4, not a saved signup.
 29 automated checks passed. Laptop Chrome accepted a synthetic JPEG with HEIC filename/type, displayed Photo looks good and advanced to step 5. This was a local static preview, so generation intentionally had no backend and no real signup was made. HEIC decoding success/failure branches were covered with mocks; Luke's original file and actual iPhone decoding have not been verified. Paid ads stay paused until the live phone journey and Meta Lead receipt are checked.
 
 Deployment recovered on 29 September at 10:27 UTC. The Sites publishing files became available again; a direct plugin-install attempt itself reported not found, so no claim is made that the CLI reinstalled it. The restored workflow successfully packaged source f7c86116b4f07ffa635d9b91d94b7426490bc522. Site version 21 (appgprj_6aa67cae69ec8191beb2898e48cb0216~appgver_2c36e2b13a4c819191525a560e4de967) deployed successfully as appgdep_6abb9277fc0c8191ac700f639f32ecdf, environment revision 3. Photo repair is now published. Live iPhone upload and received Meta Lead remain unverified; keep ads paused until those gates pass.
+
+### Broader iPhone photo support and visible generation progress
+
+Removed the restrictive header allowlist before decoding. Any browser-decodable raster is now prepared as JPEG, including AVIF and newer HEIF variants; SVG/HTML and oversized files remain rejected. Unsupported native HEIC decoding still needs the screenshot fallback. The exact failing iPhone original was not provided, so its acceptance remains unverified.
+
+Replaced the star with an animated ink bar. Upload percentage comes from actual bytes sent; illustration waiting is deliberately indeterminate with an elapsed timer, real completion stages, slower-response copy and explicit network/timeout recovery. No invented illustration completion percentage. Duplicate in-flight generation is guarded, and preview images decode before display.
+
+33 automated release checks passed, including broader raster handling, invalid files, actual upload progress, timer cleanup and request failures. Mobile Chrome visual QA at 390px showed no horizontal overflow and a moving timer. The visual preview simulated a waiting request, not a new production illustration. Ads remain paused pending live phone success and Meta Lead receipt.
