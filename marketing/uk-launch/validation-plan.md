@@ -57,3 +57,11 @@ A positive interest result earns a small paid pilot, not scale-up. Offer a real 
 ## Daily review
 
 Use matching date ranges (Meta Europe/London, report UTC), actual spend, qualified unique signups by format and creative, preview reliability, cost per qualified signup, and consented funnel drop-off. Record observations without changing targeting daily. Stop for the technical/early-spend gates. Keep a written decision at the end: observed evidence, sample limits, costs still unknown, and proceed/revise/stop recommendation.
+
+## Setup record, 29 September 2026
+
+- Site version 20 successfully deployed from commit 07cff505588152eed3937f2b1326620093286b8b. The optional pixel integration remains inactive because META_PIXEL_ID has not been configured.
+- Replacement draft campaign 120248565983730557; ad set 120248565983720557; ads A 120248565983740557 and B 120248565983750557. Campaign, ad set and both ads are off. Draft dates are 30 September 09:00 BST to 7 October 09:00 BST; reset these to seven days after readiness if launch is delayed.
+- Copying the original placement-customised ads into Leads was rejected by Meta. Both creatives were rebuilt in the Leads editor, using existing account Feed images and separately assigned Story images. Final publish validation remains pending; a successful preview is not proof Meta will accept delivery.
+- Local browser QA used an in-memory database, a mock drawing result and test@example.com. It confirmed required buying interest, clear failed-save recovery and successful saving. No production photo/signup test has been completed. 24 automated release checks passed.
+- Luke's explicit approvals for Meta Business Tools Terms and the production synthetic-photo test remain pending. Do not restart ad spend until every readiness gate above passes.
