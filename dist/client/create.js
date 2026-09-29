@@ -89,9 +89,9 @@ async function inspectPhoto(file){
   const allowed=['image/jpeg','image/png','image/webp'];
   if(!allowed.includes(file.type))return{pass:false,message:'Use a JPG, PNG or WebP image.'};
   let bitmap;
-  try{bitmap=await createImageBitmap(file);}catch{return{pass:false,message:'This image could not be read. Try another file.'};}
+  try{bitmap=await window.cqPhotoUpload.decode(file);}catch{return{pass:false,message:'This image could not be read. Try another file.'};}
     const canvas=document.createElement('canvas');const size=180;canvas.width=size;canvas.height=size;
-  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0,size,size);bitmap.close();
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0,size,size);bitmap.close?.();
   const data=ctx.getImageData(0,0,size,size).data;let light=0,contrast=0,edges=0;const grey=[];
   for(let index=0;index<data.length;index+=4){const value=.299*data[index]+.587*data[index+1]+.114*data[index+2];grey.push(value);light+=value;}
   light/=grey.length;for(const value of grey)contrast+=(value-light)*(value-light);contrast=Math.sqrt(contrast/grey.length);
@@ -106,16 +106,23 @@ async function inspectPhoto(file){
   return{pass:true,message:faceMessage};
 }
 
+let photoSelection=0;
 $('#photos').addEventListener('change',async event=>{
+  const selection=++photoSelection;
   photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];
   const requiredCount=$('#second-person').hidden?1:2;
   const files=[...event.target.files].slice(0,requiredCount);
-  state.photos=files;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;
+  state.photos=files;state.previewId=null;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;$('#face-confirm-wrap').hidden=true;$('#step-4-error').textContent='';
   const check=$('#photo-check');check.hidden=false;check.className='photo-check';check.innerHTML='<strong>Checking the photo…</strong>';
   files.forEach((file,index)=>{const url=URL.createObjectURL(file);photoUrls.push(url);const thumb=document.createElement('img');thumb.src=url;thumb.alt=`Selected photo ${index+1}`;$('#photo-list').append(thumb);});
   $('.upload-wrap').classList.toggle('has-photo',files.length>0);$('.upload strong').textContent=files.length?(files.length>1?'Photos added':'Photo added'):'Add a photo';$('.upload small').textContent=files.length?'Tap to change':'Face forward, both eyes clear, no sunglasses.';$('.upload-icon').style.backgroundImage=files.length?`url(${photoUrls[0]})`:'';
   if(!files.length){check.hidden=true;$('#face-confirm-wrap').hidden=true;return;}
-  state.photoChecks=await Promise.all(files.map(inspectPhoto));
+  const results=await Promise.all(files.map(async file=>{
+    try{const prepared=await window.cqPhotoUpload.prepare(file);return{file:prepared,check:await inspectPhoto(prepared)};}
+    catch(error){return{file,check:{pass:false,message:error.message||'This photo could not be read. Try a screenshot instead.'}};}
+  }));
+  if(selection!==photoSelection)return;
+  state.photos=results.map(result=>result.file);state.photoChecks=results.map(result=>result.check);
   const failed=state.photoChecks.find(item=>!item.pass);
   const countProblem=files.length!==requiredCount;
   check.classList.add(failed||countProblem?'fail':'pass');
@@ -218,7 +225,8 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     const requiredCount=$('#second-person').hidden?1:2;
     if(state.photos.length!==requiredCount){$('#step-4-error').textContent=`Add ${requiredCount===2?'one clear photo for each person':'one clear photo'} to continue.`;return;}
     if(state.photoChecks.length!==state.photos.length){$('#step-4-error').textContent='Wait for the photo check to finish.';return;}
-    if(state.photoChecks.some(item=>!item.pass)){$('#step-4-error').textContent='Use a photo that passes every check.';return;}
+    const failedPhoto=state.photoChecks.find(item=>!item.pass);
+    if(failedPhoto){$('#step-4-error').textContent=failedPhoto.message;$('#photo-check').scrollIntoView({behavior:'smooth',block:'center'});return;}
     if(!$('#face-confirm').checked){$('#step-4-error').textContent='Confirm that every face is clearly recognisable.';$('#face-confirm').focus();return;}
     if(!$('#photo-permission').checked){$('#step-4-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
     $('#step-4-error').textContent='';void preparePreview();

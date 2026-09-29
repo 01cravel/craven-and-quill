@@ -124,7 +124,7 @@
 
           <div class="upload-wrap">
             <label class="upload" for="photos"><span class="upload-icon">+</span><strong>Add a photo</strong><small>Face forward, both eyes clear, no sunglasses.</small></label>
-            <input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple required aria-label="Add a clear photo">
+            <input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple required aria-label="Add a clear photo">
           </div>
           <div class="photo-list" id="photo-list"></div>
           <div class="photo-check" id="photo-check" hidden aria-live="polite"></div>
@@ -202,6 +202,7 @@
 
   <footer><span>Photos are used only to create your preview.</span><a href="privacy.html">Privacy</a><button type="button" class="measurement-settings">Measurement settings</button></footer>
   <script src="campaign.js?v=2" defer></script>
-  <script src="create.js?v=19" defer></script>
+  <script src="photo-upload.js?v=21" defer></script>
+  <script src="create.js?v=21" defer></script>
 </body>
 </html>
