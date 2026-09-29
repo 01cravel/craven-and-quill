@@ -1,0 +1,22 @@
+{
+  "tool": "Built-in image generation",
+  "created": "2026-09-27",
+  "assets": [
+    {
+      "file": "reveal-feed.png",
+      "prompt": "Edit the supplied final photo-to-illustration advertisement, keeping the same fictional child, realistic photo left, full-body watercolour illustrated character right on plain ivory, forest-green literary type, typography and brand. Instagram FEED POST version, output exactly 1080 pixels wide by 1350 pixels tall (4:5). Remove ALL coming-soon or launch wording. Replace the bottom price line with exactly 'Digital & Hardback £49.99'. Keep brand 'Craven & Quill', headline 'Their face. Their story.', CTA 'Try a free preview', and small footer 'Illustrative example · AI-generated artwork'. All important elements within 70 pixels of edge. Simplify by removing extra line 'Turn today into a story for tomorrow' and marginal decoration. No purchase or delivery claims. Finished professional ad, high resolution, exact correct text."
+    },
+    {
+      "file": "reveal-story.png",
+      "prompt": "Make the matching INSTAGRAM STORY version of this Craven & Quill photo-to-character advert. Recompose, do not crop. Tall 9:16 canvas, target1080x1920. Keep the TOP15 percent and BOTTOM20 percent free from ALL essential text or faces (empty warm ivory is fine) for Instagram interface overlays. Inside the safe central area, brand 'Craven & Quill', big literary headline 'Their face. Their story.', side-by-side fictional child's photo and SAME illustrated full-body child on off-white from reference, an arrow between panels. Same premium ivory, forestgreen and lilac brand. Under visual within safezone CTA 'Try a free preview', then price 'Digital & Hardback £49.99'. Small readable disclosure 'Illustrative example · AI-generated artwork' above bottom blankzone. No coming-soon language, no order-now or delivery promises. Full-screen story with legible text, uncluttered mobile design, same likeness and outfit as reference."
+    },
+    {
+      "file": "book-feed.png",
+      "prompt": "Edit this Craven & Quill open-book advertisement as a finished INSTAGRAM FEED POST in 4:5 portrait. Target1080x1350. Keep premium ivory, forestgreen literary type and lilac quill, brand 'Craven & Quill', headline 'A story with them at the heart.', and photorealistic fully visible open hardback with central gutter, thick cover edge, curved paper and gentle shadows. Change open book artwork to match the actual simple character-preview design: the same fictional curly-haired child wearing mustard knitted jumper and blue jeans as handpainted full-body storybook illustration on a PLAIN WARM IVORY background. No elaborate woodland or lantern; left page a small tasteful leaf sprig and short words 'The adventure begins'; right page the character. Keep text 'See their first page free' and CTA 'Try a free preview'. DELETE all coming-soon or launch text and replace BOTH old prices with a single large clear line exactly 'Digital & Hardback £49.99'. Bottom readable disclosure 'Illustrative mockup · AI-generated artwork'. No order-now or delivery promises. Keep all text comfortably inside margins."
+    },
+    {
+      "file": "book-story.png",
+      "prompt": "Make the INSTAGRAM STORY 9:16 version of this Craven & Quill open-book advert. Target1080x1920 tall. Recompose the design, don't crop. TOP15% and BOTTOM20% of canvas plain warm ivory, no essential text/faces there, Instagram will overlay interface. Keep everything important in central65% with generous side margins. Brand 'Craven & Quill'; headline 'A story with them at the heart.'; unmistakable entire open hardback book, full cover edge and spine and pages visible. Left page simple botanical sprig and words 'The adventure begins'. Right page SAME fictional child with curly dark hair, mustard jumper, jeans illustrated on plain warm ivory, not elaborate scenery. Then text 'See their first page free', CTA 'Try a free preview', price 'Digital & Hardback £49.99', and small 'Illustrative mockup · AI-generated artwork', all above bottom20% blankspace. Keep forestgreen classic literary typography and lilacquill. No comingsoon language. No ordernow claims. The actual book is an illustrative mockup for a free online preview."
+    }
+  ]
+}

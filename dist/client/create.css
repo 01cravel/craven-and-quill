@@ -1,7 +1,7 @@
 @font-face{font-family:Story;src:url('assets/story-serif.ttf') format('truetype');font-display:swap}
 :root{--ink:#173f35;--ink-dark:#0d2f28;--paper:#fbfaf4;--white:#fff;--sun:#f7d476;--coral:#e77d68;--blue:#a8dbe0;--plum:#d8c5e7;--mint:#e8f0ea;--line:#b8c7bf;--muted:#5f7069;--danger:#a33e2c}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:auto}
 body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 Arial,Helvetica,sans-serif}
 button,input,textarea{font:inherit}
 button{cursor:pointer}
@@ -337,7 +337,41 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .product b{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 .recommended{display:inline-block;font:600 .72rem/1.2 Figtree,ui-sans-serif,sans-serif;font-style:normal;padding:5px 9px;border-radius:999px;background:var(--sun);color:var(--ink)}
 @media(max-width:580px){.preview-art.two-people{height:300px}}
+.launch-consent{display:flex;gap:12px;align-items:flex-start;margin:20px 0;font-size:.95rem;cursor:pointer}
+.launch-consent input{width:20px;height:20px;flex:none;accent-color:var(--ink);margin-top:3px}
+.signup-honeypot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.launch-success{margin:24px 0;padding:24px;border-radius:24px;background:var(--plum)}
+.launch-success[hidden],#launch-form[hidden]{display:none}
+.launch-success h2{font:2rem Story,Georgia,serif;margin:0 0 12px}
+.launch-success a{border-radius:999px;justify-content:center;text-decoration:none}
+.privacy-line{display:block;line-height:1.6}
+.privacy-line a{color:inherit;text-decoration:underline}
+.measurement-settings{background:none;border:0;padding:0;color:inherit;font:inherit;text-decoration:underline;cursor:pointer}
 @media(max-width:780px){
   .step-actions .back{position:relative;line-height:0}
   .step-actions .back::before{content:"";position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);background:var(--ink);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 12H5M11 6l-6 6 6 6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 12H5M11 6l-6 6 6 6'/%3E%3C/svg%3E") center/contain no-repeat}
 }
+
+/* Book-jacket typography and a forward-filling ribbon of ink. */
+.step-panel:has(.preview-step:not([hidden])){align-items:flex-start}
+.step-panel:has(.preview-step:not([hidden])) form{margin-top:0}
+#making-state{padding:18px 0 36px}
+#step-5-title:focus{outline:none}
+.drawing-brand{display:flex;flex-direction:column;align-items:center;gap:10px;margin:0 auto 38px}
+.drawing-brand img{width:64px;height:64px;object-fit:contain;mix-blend-mode:multiply}
+.drawing-brand span{font:24px Story,Georgia,serif;color:var(--ink)}
+#making-state h1{font-size:clamp(2.6rem,5vw,4.2rem);line-height:1.02;letter-spacing:-.025em}
+.drawing-progress{width:min(440px,100%);margin:36px auto 0}
+.ink-track{height:18px;position:relative;overflow:hidden;border-radius:99px;background:#e9e9e0;border:1px solid #d9dece;box-shadow:inset 0 2px 5px #17332c0c}
+.ink-flow{display:block;position:relative;height:100%;width:var(--progress,4%);border-radius:inherit;background:linear-gradient(90deg,#17332c,#527564 70%,#c4aa72);box-shadow:0 0 16px #c4aa7240;transition:width 1.3s linear}
+.ink-flow:after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 20%,#ffffff45 50%,transparent 80%);background-size:200% 100%;animation:ink-shimmer 3s linear infinite}
+#drawing-stage{font-size:17px;font-weight:650;line-height:1.4;margin:26px 0 8px;color:var(--ink)}
+#drawing-note{font-size:15px;line-height:1.65;color:var(--muted);margin:0 auto;max-width:330px;min-height:50px}
+.drawing-progress[data-phase="complete"] .ink-flow{transition:width .25s ease}
+.drawing-progress[data-phase="error"] .ink-flow{background:#bd8072}
+.drawing-progress[data-phase="error"] .ink-flow:after,.drawing-progress[data-phase="complete"] .ink-flow:after{animation:none}
+@keyframes ink-shimmer{from{background-position:200% 0}to{background-position:0 0}}
+@media(prefers-reduced-motion:reduce){.ink-flow{transition:none}.ink-flow:after{animation:none}}
+@media(max-width:500px){#making-state{padding-top:16px}.drawing-brand{margin-bottom:30px}.drawing-progress{margin-top:30px}}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

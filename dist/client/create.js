@@ -1,7 +1,7 @@
-const state={step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'bundle',price:39.99};
+const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'bundle',price:49.99};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
-const track=(event,data={})=>{window.dataLayer=window.dataLayer||[];window.dataLayer.push({event,...data});};
+const track=(event,data={})=>{const names={free_preview_created:'preview_success',free_preview_failed:'preview_error'};if(names[event])window.cqMeasurement?.record(names[event]);};
 track('story_maker_open',{offer:'one_page_free'});
 
 const ideaBanks={
@@ -47,12 +47,22 @@ function updateLive(){
   updateCover();
 }
 
+function scrollToStepTop(number){
+  document.activeElement?.blur();
+  const heading=document.querySelector(`.step[data-step="${number}"] h1`);
+  if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
+  window.scrollTo({top:0,left:0,behavior:'instant'});
+  requestAnimationFrame(()=>{if(state.step===number)window.scrollTo({top:0,left:0,behavior:'instant'});});
+}
+
 function showStep(number){
   state.step=number;
+  if(number===4)updatePhotoGate();
+  if(number===6)window.cqMeasurement?.record('price_view');
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
   const current=document.querySelector(`.journey-step[data-progress="${number}"] em`);$('#progress-num').textContent=number;$('#progress-name').textContent=current?current.textContent:'';$('#progress-fill').style.width=`${number/7*100}%`;
-  window.scrollTo({top:0,behavior:'smooth'});
+  scrollToStepTop(number);
   track('story_step_view',{step:number});
 }
 
@@ -88,9 +98,9 @@ async function inspectPhoto(file){
   const allowed=['image/jpeg','image/png','image/webp'];
   if(!allowed.includes(file.type))return{pass:false,message:'Use a JPG, PNG or WebP image.'};
   let bitmap;
-  try{bitmap=await createImageBitmap(file);}catch{return{pass:false,message:'This image could not be read. Try another file.'};}
+  try{bitmap=await window.cqPhotoUpload.decode(file);}catch{return{pass:false,message:'This image could not be read. Try another file.'};}
     const canvas=document.createElement('canvas');const size=180;canvas.width=size;canvas.height=size;
-  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0,size,size);bitmap.close();
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0,size,size);bitmap.close?.();
   const data=ctx.getImageData(0,0,size,size).data;let light=0,contrast=0,edges=0;const grey=[];
   for(let index=0;index<data.length;index+=4){const value=.299*data[index]+.587*data[index+1]+.114*data[index+2];grey.push(value);light+=value;}
   light/=grey.length;for(const value of grey)contrast+=(value-light)*(value-light);contrast=Math.sqrt(contrast/grey.length);
@@ -105,21 +115,43 @@ async function inspectPhoto(file){
   return{pass:true,message:faceMessage};
 }
 
+function validPreviewEmail(){
+  const email=$('#email').value.trim();
+  return email.length<=254&&/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)&&$('#email').validity.valid;
+}
+function updatePhotoGate(){
+  const requiredCount=$('#second-person').hidden?1:2;
+  const ready=state.photos.length===requiredCount&&state.photoChecks.length===requiredCount&&state.photoChecks.every(check=>check.pass)&&$('#face-confirm').checked&&$('#photo-permission').checked;
+  $('#preview-email-wrap').hidden=!ready;
+  $('#create-preview').disabled=!ready||!validPreviewEmail();
+}
+['#face-confirm','#photo-permission'].forEach(selector=>$(selector).addEventListener('change',updatePhotoGate));
+$('#email').addEventListener('input',()=>{updatePhotoGate();$('#step-4-error').textContent='';});
+$('#email').addEventListener('change',updatePhotoGate);
+
+let photoSelection=0;
 $('#photos').addEventListener('change',async event=>{
+  const selection=++photoSelection;
   photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];
   const requiredCount=$('#second-person').hidden?1:2;
   const files=[...event.target.files].slice(0,requiredCount);
-  state.photos=files;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;
+  state.photos=files;state.previewId=null;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;$('#face-confirm-wrap').hidden=true;$('#step-4-error').textContent='';updatePhotoGate();
   const check=$('#photo-check');check.hidden=false;check.className='photo-check';check.innerHTML='<strong>Checking the photo…</strong>';
   files.forEach((file,index)=>{const url=URL.createObjectURL(file);photoUrls.push(url);const thumb=document.createElement('img');thumb.src=url;thumb.alt=`Selected photo ${index+1}`;$('#photo-list').append(thumb);});
   $('.upload-wrap').classList.toggle('has-photo',files.length>0);$('.upload strong').textContent=files.length?(files.length>1?'Photos added':'Photo added'):'Add a photo';$('.upload small').textContent=files.length?'Tap to change':'Face forward, both eyes clear, no sunglasses.';$('.upload-icon').style.backgroundImage=files.length?`url(${photoUrls[0]})`:'';
   if(!files.length){check.hidden=true;$('#face-confirm-wrap').hidden=true;return;}
-  state.photoChecks=await Promise.all(files.map(inspectPhoto));
+  const results=await Promise.all(files.map(async file=>{
+    try{const prepared=await window.cqPhotoUpload.prepare(file);return{file:prepared,check:await inspectPhoto(prepared)};}
+    catch(error){return{file,check:{pass:false,message:error.message||'This photo could not be read. Try a screenshot instead.'}};}
+  }));
+  if(selection!==photoSelection)return;
+  state.photos=results.map(result=>result.file);state.photoChecks=results.map(result=>result.check);
   const failed=state.photoChecks.find(item=>!item.pass);
   const countProblem=files.length!==requiredCount;
   check.classList.add(failed||countProblem?'fail':'pass');
   check.innerHTML=countProblem?`<strong>Add ${requiredCount===2?'two photos':'one photo'}</strong><span>Use one separate photo for each person.</span>`:failed?`<strong>Use another photo</strong><span>${failed.message}</span>`:`<strong>${requiredCount===2?'Both photos look good':'Photo looks good'}</strong><span>Tick below to confirm the face is clear.</span>`;
   $('#face-confirm-wrap').hidden=Boolean(failed||countProblem);$('#step-4-error').textContent='';
+  updatePhotoGate();
   track('photos_checked',{count:files.length,passed:!failed&&!countProblem});
 });
 
@@ -150,18 +182,19 @@ function previewText(idea){
   return`${who} noticed a curious light where no light should be. ${idea[1]} With one brave step, the adventure began.`;
 }
 
+let drawingProgress=null,generationBusy=false;
 async function requestCharacter(file,name){
   const idea=selectedStory();const form=new FormData();
   form.append('photo',file,file.name||'photo.jpg');form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',idea?.[1]||'');
-  const response=await fetch('/api/generate-character',{method:'POST',body:form,headers:{'X-Craven-Preview':'character'}});
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok||!data.image)throw Object.assign(new Error(data.error||'The character could not be drawn. Please try again.'),{code:data.code});
+  const data=await window.cqPreviewProgress.request(form,event=>drawingProgress?.update(event));
+  state.previewId=data.previewId||null;
   return data.image;
 }
 
 async function renderStoryArt(){
   for(let index=0;index<state.photos.length;index+=1){
     const file=state.photos[index];const name=index===0?state.names:state.secondName;
+    drawingProgress?.person(index,state.photos.length);
     state.characterImages[index]=state.characterImages[index]||await requestCharacter(file,name);
   }
   $('#preview-image').src=state.characterImages[0];$('#preview-image').alt=`Illustrated ${state.names} on the first story page`;
@@ -170,22 +203,34 @@ async function renderStoryArt(){
   if(hasSecond){second.src=state.characterImages[1];second.alt=`Illustrated ${state.secondName} on the first story page`;}
 }
 
+async function capturePreviewEmail(){
+  const response=await fetch('/api/preview-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#email').value.trim().toLowerCase(),website:$('#website').value,...window.cqMeasurement?.context()}),signal:AbortSignal.timeout(15000)});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save your email. Please try again.');
+}
+
 async function preparePreview(){
+  if(generationBusy)return;generationBusy=true;
   const idea=selectedStory();
+  window.cqMeasurement?.record('preview_start');
   $('#choose-book').disabled=true;
   $('#result-story-title').textContent=idea[0];$('#live-title').textContent=idea[0];
   $('#story-copy').textContent=previewText(idea);$('#preview-image').src='assets/storybook.webp';$('#preview-image').alt=`Sample opening illustration format for ${idea[0]}`;
   $('#preview-image-second').hidden=true;$('#preview-art').classList.remove('two-people');
   $('#making-state').hidden=false;$('#result-state').hidden=true;
-  $('#generation-error').hidden=true;$('#blocked-actions').hidden=true;$('#retry-generation').hidden=false;$$('#making-state li').forEach((item,index)=>item.classList.toggle('done',index===0));
+  $('#generation-error').hidden=true;$('#blocked-actions').hidden=true;$('#retry-generation').hidden=false;drawingProgress=window.cqPreviewProgress.start();if(state.step===5)scrollToStepTop(5);
   try{
-    $$('#making-state li')[1].classList.add('done');await renderStoryArt();$$('#making-state li')[2].classList.add('done');
+    await capturePreviewEmail();
+    await renderStoryArt();
+    await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
+    drawingProgress.stop(true);
     $('#making-state').hidden=true;$('#result-state').hidden=false;$('#choose-book').disabled=false;track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});
   }catch(error){
+    drawingProgress.stop(false);
     $('#generation-error-copy').textContent=error.message||'The character could not be drawn. Please try again.';$('#generation-error').hidden=false;
     const blocked=error.code==='character_blocked';$('#blocked-actions').hidden=!blocked;$('#retry-generation').hidden=blocked;
     track('free_preview_failed',{reason:blocked?'blocked':'other'});
-  }
+  }finally{generationBusy=false;}
 }
 
 for(let index=0;index<10;index+=1){const marker=document.createElement('span');marker.setAttribute('aria-hidden','true');$('#locked-dots').append(marker);}
@@ -215,20 +260,15 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     const requiredCount=$('#second-person').hidden?1:2;
     if(state.photos.length!==requiredCount){$('#step-4-error').textContent=`Add ${requiredCount===2?'one clear photo for each person':'one clear photo'} to continue.`;return;}
     if(state.photoChecks.length!==state.photos.length){$('#step-4-error').textContent='Wait for the photo check to finish.';return;}
-    if(state.photoChecks.some(item=>!item.pass)){$('#step-4-error').textContent='Use a photo that passes every check.';return;}
+    const failedPhoto=state.photoChecks.find(item=>!item.pass);
+    if(failedPhoto){$('#step-4-error').textContent=failedPhoto.message;$('#photo-check').scrollIntoView({behavior:'smooth',block:'center'});return;}
     if(!$('#face-confirm').checked){$('#step-4-error').textContent='Confirm that every face is clearly recognisable.';$('#face-confirm').focus();return;}
     if(!$('#photo-permission').checked){$('#step-4-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
-    const email=$('#email').value.trim().toLowerCase();
-    if(!/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)){$('#step-4-error').textContent='Add your email so we can send their preview.';$('#email').focus();return;}
-    state.email=email;fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,interest:'storybook',page:'/create'})}).catch(()=>{});track('email_captured',{step:4});
+    if(!validPreviewEmail()){$('#step-4-error').textContent='Enter a valid email address.';$('#email').focus();return;}
     $('#step-4-error').textContent='';void preparePreview();
   }
   if(state.step===5&&!state.characterImages[0]){$('#step-5-error').textContent='Wait for the first page to finish before choosing your book.';return;}
-  if(state.step===6){
-    updateProduct();
-    if($('.gift-extra').open&&!$('#gift-from').value.trim()&&$('#gift-message').value.trim()){$('#step-6-error').textContent='Add who the gift is from, or remove the message.';$('#gift-from').focus();return;}
-    $('#step-6-error').textContent='';
-  }
+  if(state.step===6)updateProduct();
   showStep(next);
 }));
 
@@ -236,31 +276,33 @@ $$('[data-back]').forEach(button=>button.addEventListener('click',()=>showStep(N
 
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
-  const printed=state.product!=='digital';$('#shipping-fields').hidden=!printed;
   const labels={bundle:'Digital & Hardback',hardback:'Hardback',digital:'Digital'};
-  const delivery={bundle:`Digital copy to ${state.email||'your email'} and printed book by post`,hardback:'Printed book delivered by post',digital:`Digital copy to ${state.email||'your email'}`};
-  const price=`£${Number.isInteger(state.price)?state.price:state.price.toFixed(2)}`;
-  $('#order-label').textContent=labels[state.product];$('#order-delivery').textContent=delivery[state.product];$('#order-price').textContent=price;$('#button-price').textContent=price;$('#step-7-title').textContent=printed?'Where should we send it?':'Pay and we’ll make their book.';
+  $('#order-label').textContent=labels[state.product];$('#purchase-intent-label').textContent=`I’m interested in buying ${labels[state.product]} at £${state.price.toFixed(2)} when available.`;
+  $('#order-price').textContent=`£${Number.isInteger(state.price)?state.price:state.price.toFixed(2)}`;
 }
-$$('input[name="product"]').forEach(input=>input.addEventListener('change',updateProduct));
+$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{$('#purchase-intent').checked=false;updateProduct();}));
 
-$('#place-order').addEventListener('click',()=>{
-  updateProduct();const giftOpen=$('.gift-extra').open&&Boolean($('#gift-from').value.trim()||$('#gift-message').value.trim());
-  if(state.product!=='digital'&&!$('#address').value.trim()){$('#step-7-error').textContent='Add the delivery address for the hardback.';$('#address').focus();return;}
-  if(!$('#card-name').value.trim()||$('#card-number').value.replace(/\D/g,'').length!==16||!/^\d{2}\/\d{2}$/.test($('#card-expiry').value.trim())||!/^\d{3,4}$/.test($('#card-cvc').value.trim())){$('#step-7-error').textContent='Check the test payment details to continue.';$('#card-name').focus();return;}
-  $('#step-7-error').textContent='';
-  const idea=selectedStory();const slug=getBookSlug();
-  const payload={book:slug,names:fullNames(),age:state.age,mode:state.mood==='own'?'own':'ai',mood:state.mood,title:idea[0],storySummary:idea[1],format:state.product,gift:giftOpen,giftFrom:$('#gift-from').value.trim(),giftMessage:$('#gift-message').value.trim(),product:state.product,price:state.price,email:state.email||'',paymentStatus:'test-paid'};
-  localStorage.setItem('craven-quill-story-idea',JSON.stringify(payload));
-  const button=$('#place-order');button.disabled=true;button.textContent='Paid. Making their book…';
-  track('test_order_placed',{product:state.product,price:state.price,full_pages_authorised:10});
-  setTimeout(()=>{window.location.href=`test-book.html?book=${slug}&order=1`;},850);
+$('#join-launch').addEventListener('click',async()=>{
+  const error=$('#step-7-error');const button=$('#join-launch');if(button.disabled)return;
+  const email=$('#email').value.trim().toLowerCase();
+  if(!validPreviewEmail()){showStep(4);$('#step-4-error').textContent='Enter a valid email address.';$('#email').focus();return;}
+  if(!$('#launch-consent').checked){error.textContent='Tick the email permission box to join the launch list.';$('#launch-consent').focus();return;}
+  if(!$('#purchase-intent').checked){error.textContent='Confirm your interest at the displayed price to join this list.';$('#purchase-intent').focus();return;}
+  updateProduct();button.disabled=true;button.textContent='Saving…';error.textContent='';
+  try{
+    const response=await fetch('/api/launch-signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,product:state.product,previewId:state.previewId,consent:true,purchaseIntent:true,consentVersion:'storybook-validation-2026-09-29',website:$('#website').value,...window.cqMeasurement?.context()})});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save that just now. Please try again.');
+    void window.cqMeasurement?.savedLead(result.eventId);
+    $('#launch-form').hidden=true;$('#launch-success').hidden=false;
+    $('#step-7-title').textContent='Thank you.';
+  }catch(cause){error.textContent=cause.message;button.disabled=false;button.textContent='Continue';}
 });
 
 const context=document.modelContext;
 if(context?.registerTool){const lifecycle=new AbortController();try{void Promise.resolve(context.registerTool({name:'read_story_maker_state',title:'Read story maker',description:'Read the visible step and non-photo choices. Uploaded images are never exposed.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute:()=>({step:state.step,names:fullNames(),age:state.age,mood:state.mood,selectedIdea:selectedStory()?.[0]||null,product:state.product})},{signal:lifecycle.signal})).catch(()=>{});}catch{}}
 
-buildIdeas();updateLive();updateProduct();
+buildIdeas();updateLive();updateProduct();updatePhotoGate();
 
 const characterTest=new URLSearchParams(window.location.search).get('character-test');
 if(characterTest&&['127.0.0.1','localhost'].includes(window.location.hostname)){
