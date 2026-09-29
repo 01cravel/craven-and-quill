@@ -89,3 +89,5 @@ Version 22 deployed successfully on 29 September at 10:55 UTC from 0fd89b588d3dd
 ### Simplified loading and warmer character expression
 
 On 29 September, removed the visible timer, checklist and progress explanations at Luke’s request. The loading view has one heading and a continuously moving bar; it fills only after the image response, without suggesting the provider reports drawing percentages. Step changes now focus the new heading without scrolling and snap to page top immediately and again after layout. Preview panels align at the top. Chrome at 390px verified a transition from scrollY 997.5 to 0 without horizontal overflow, using a local waiting-state harness. Actual iPhone Safari remains unverified. The drawing prompt now asks for a gentle natural smile while keeping facial identity. No new paid image was generated to evaluate the changed expression.
+
+Publishing helper files disappeared during packaging. Fallback packaging preserves dereferenced book-image links and the existing database migrations. An incomplete saved archive was never deployed.
