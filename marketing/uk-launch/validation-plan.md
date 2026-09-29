@@ -85,3 +85,7 @@ Replaced the star with an animated ink bar. Upload percentage comes from actual 
 33 automated release checks passed, including broader raster handling, invalid files, actual upload progress, timer cleanup and request failures. Mobile Chrome visual QA at 390px showed no horizontal overflow and a moving timer. The visual preview simulated a waiting request, not a new production illustration. Ads remain paused pending live phone success and Meta Lead receipt.
 
 Version 22 deployed successfully on 29 September at 10:55 UTC from 0fd89b588d3dd74e63e94dff129acc2b33cc1f35. Saved version: appgprj_6aa67cae69ec8191beb2898e48cb0216~appgver_d2c186bab87c8191bfb6ea2236a82919. Deployment: appgdep_6abb99213f148191bcbae4e46e06fc78, environment revision 3.
+
+### Simplified loading and warmer character expression
+
+On 29 September, removed the visible timer, checklist and progress explanations at Luke’s request. The loading view has one heading and a continuously moving bar; it fills only after the image response, without suggesting the provider reports drawing percentages. Step changes now focus the new heading without scrolling and snap to page top immediately and again after layout. Preview panels align at the top. Chrome at 390px verified a transition from scrollY 997.5 to 0 without horizontal overflow, using a local waiting-state harness. Actual iPhone Safari remains unverified. The drawing prompt now asks for a gentle natural smile while keeping facial identity. No new paid image was generated to evaluate the changed expression.

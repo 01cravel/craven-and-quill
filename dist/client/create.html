@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=22">
+  <link rel="stylesheet" href="create.css?v=23">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -141,14 +141,11 @@
 
         <section class="step preview-step" data-step="5" aria-labelledby="step-5-title" hidden>
           <div id="making-state">
+            <h1 id="step-5-title" tabindex="-1">Creating their character…</h1>
             <div class="drawing-progress" id="drawing-progress" data-phase="upload">
-              <div class="drawing-progress-top"><span id="drawing-stage" role="status">Preparing your photo</span><time id="drawing-time">0:00</time></div>
-              <div class="ink-track" id="drawing-bar" role="progressbar" aria-label="Creating your illustration" aria-valuetext="Preparing your photo"><span class="ink-flow"></span><span class="ink-glint"></span></div>
-              <p id="drawing-note">Your story is taking shape.</p>
+              <span id="drawing-stage" class="sr-only" role="status">Creating your preview</span>
+              <div class="ink-track" id="drawing-bar" role="progressbar" aria-label="Creating your preview" aria-valuetext="Preparing your photo"><span class="ink-flow"></span></div>
             </div>
-            <p class="eyebrow">Making your free preview</p>
-            <h1 id="step-5-title">Creating their character…</h1>
-            <ul><li class="done">Photo prepared</li><li>Photo uploaded</li><li>Illustration received</li></ul>
             <div class="generation-error" id="generation-error" role="alert" hidden><p id="generation-error-copy">We could not draw the character this time.</p><button type="button" id="retry-generation">Try again</button><div id="blocked-actions" hidden><button type="button" id="change-photo">Change photo</button><button type="button" id="change-story">Change story</button></div></div>
           </div>
 
@@ -206,8 +203,8 @@
 
   <footer><span>Photos are used only to create your preview.</span><a href="privacy.html">Privacy</a><button type="button" class="measurement-settings">Measurement settings</button></footer>
   <script src="campaign.js?v=2" defer></script>
-  <script src="photo-upload.js?v=22" defer></script>
-  <script src="preview-progress.js?v=22" defer></script>
-  <script src="create.js?v=22" defer></script>
+  <script src="photo-upload.js?v=23" defer></script>
+  <script src="preview-progress.js?v=23" defer></script>
+  <script src="create.js?v=23" defer></script>
 </body>
 </html>

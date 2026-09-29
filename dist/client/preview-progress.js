@@ -16,18 +16,14 @@
     });
   }
   function start(){
-    const root=document.getElementById('drawing-progress'),bar=document.getElementById('drawing-bar'),stage=document.getElementById('drawing-stage'),note=document.getElementById('drawing-note'),clock=document.getElementById('drawing-time');
-    const rows=document.querySelectorAll('#making-state li');const started=Date.now();let stopped=false,phase='upload',person='';
-    const tick=()=>{const seconds=Math.floor((Date.now()-started)/1000);clock.textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
-      if(phase==='drawing')note.textContent=seconds>=90?'This one is taking a little longer. Keep this page open while we wait for your illustration.':'Drawing takes a little time. You can watch the timer here while we wait for your illustration.';};
-    const update=event=>{if(stopped)return;phase=event.phase;root.dataset.phase=phase;bar.removeAttribute('aria-valuenow');
-      if(phase==='upload'){const percent=event.percent;stage.textContent='Uploading your photo'+person;note.textContent=percent==null?'Sending your prepared photo securely.':`${percent}% uploaded`;root.style.setProperty('--upload',`${percent??0}%`);if(percent!=null){bar.setAttribute('aria-valuenow',String(percent));bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax','100');}}
-      if(phase==='drawing'){stage.textContent='Illustrating your character'+person;rows[1].classList.add('done');}
-      if(phase==='received'){stage.textContent='Opening your first page';note.textContent='Your illustration has arrived.';rows[2].classList.add('done');}
-      bar.setAttribute('aria-valuetext',stage.textContent);tick();
+    const root=document.getElementById('drawing-progress'),bar=document.getElementById('drawing-bar'),stage=document.getElementById('drawing-stage');
+    let stopped=false,person='';
+    const update=event=>{if(stopped)return;root.dataset.phase=event.phase;
+      const text=event.phase==='received'?'Opening your first page':event.phase==='drawing'?'Illustrating your character'+person:'Uploading your photo'+person;
+      stage.textContent=text;bar.setAttribute('aria-valuetext',text);
     };
-    rows.forEach((row,index)=>row.classList.toggle('done',index===0));update({phase:'upload',percent:0});const timer=setInterval(tick,1000);tick();
-    return{update,person(index,total){person=total>1?` (${index+1} of ${total})`:'';rows[1].classList.remove('done');rows[2].classList.remove('done');update({phase:'upload',percent:0});},stop(ok){stopped=true;clearInterval(timer);root.dataset.phase=ok?'complete':'error';stage.textContent=ok?'Your first page is ready':'Preview paused';note.textContent=ok?'Made for your story.':'See below for the next step.';bar.setAttribute('aria-valuetext',stage.textContent);bar.removeAttribute('aria-valuenow');}};
+    update({phase:'upload'});
+    return{update,person(index,total){person=total>1?` (${index+1} of ${total})`:'';update({phase:'upload'});},stop(ok){stopped=true;root.dataset.phase=ok?'complete':'error';const text=ok?'Your first page is ready':'Preview paused';stage.textContent=text;bar.setAttribute('aria-valuetext',text);}};
   }
   window.cqPreviewProgress={request,start};
 })();

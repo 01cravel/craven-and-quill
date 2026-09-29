@@ -47,13 +47,21 @@ function updateLive(){
   updateCover();
 }
 
+function scrollToStepTop(number){
+  document.activeElement?.blur();
+  const heading=document.querySelector(`.step[data-step="${number}"] h1`);
+  if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
+  window.scrollTo({top:0,left:0,behavior:'instant'});
+  requestAnimationFrame(()=>{if(state.step===number)window.scrollTo({top:0,left:0,behavior:'instant'});});
+}
+
 function showStep(number){
   state.step=number;
   if(number===6)window.cqMeasurement?.record('price_view');
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
   const current=document.querySelector(`.journey-step[data-progress="${number}"] em`);$('#progress-num').textContent=number;$('#progress-name').textContent=current?current.textContent:'';$('#progress-fill').style.width=`${number/7*100}%`;
-  window.scrollTo({top:0,behavior:'smooth'});
+  scrollToStepTop(number);
   track('story_step_view',{step:number});
 }
 
@@ -188,7 +196,7 @@ async function preparePreview(){
   $('#story-copy').textContent=previewText(idea);$('#preview-image').src='assets/storybook.webp';$('#preview-image').alt=`Sample opening illustration format for ${idea[0]}`;
   $('#preview-image-second').hidden=true;$('#preview-art').classList.remove('two-people');
   $('#making-state').hidden=false;$('#result-state').hidden=true;
-  $('#generation-error').hidden=true;$('#blocked-actions').hidden=true;$('#retry-generation').hidden=false;drawingProgress=window.cqPreviewProgress.start();
+  $('#generation-error').hidden=true;$('#blocked-actions').hidden=true;$('#retry-generation').hidden=false;drawingProgress=window.cqPreviewProgress.start();if(state.step===5)scrollToStepTop(5);
   try{
     await renderStoryArt();
     await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
