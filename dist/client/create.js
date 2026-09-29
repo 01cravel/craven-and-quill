@@ -203,6 +203,12 @@ async function renderStoryArt(){
   if(hasSecond){second.src=state.characterImages[1];second.alt=`Illustrated ${state.secondName} on the first story page`;}
 }
 
+async function capturePreviewEmail(){
+  const response=await fetch('/api/preview-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#email').value.trim().toLowerCase(),website:$('#website').value,...window.cqMeasurement?.context()}),signal:AbortSignal.timeout(15000)});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save your email. Please try again.');
+}
+
 async function preparePreview(){
   if(generationBusy)return;generationBusy=true;
   const idea=selectedStory();
@@ -214,6 +220,7 @@ async function preparePreview(){
   $('#making-state').hidden=false;$('#result-state').hidden=true;
   $('#generation-error').hidden=true;$('#blocked-actions').hidden=true;$('#retry-generation').hidden=false;drawingProgress=window.cqPreviewProgress.start();if(state.step===5)scrollToStepTop(5);
   try{
+    await capturePreviewEmail();
     await renderStoryArt();
     await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
     drawingProgress.stop(true);

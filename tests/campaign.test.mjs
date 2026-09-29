@@ -77,3 +77,25 @@ test('ad configuration exposes only a valid public pixel id and fails closed',as
   for(const value of [undefined,'<script>', ''])assert.deepEqual(await(await campaignApi(new Request('https://example.com/api/ad-config'),{...env,META_PIXEL_ID:value})).json(),{pixelId:null});
   assert.deepEqual(await(await campaignApi(new Request('https://example.com/api/ad-config'),{...env,META_PIXEL_ID:'1234567890'})).json(),{pixelId:'1234567890'});
 });
+
+test('captures preview email before drawing, deduplicates and never creates a marketing lead',async()=>{
+ const env={DB:testDb(),SIGNUPS_EXPORT_TOKEN:'test-only'};
+ const input={email:'Early@Example.com',source:'meta',medium:'paid_social',campaign:'cq_uk_validation_2026',measurementConsent:true};
+ assert.equal((await campaignApi(request('preview-email',input),env)).status,200);
+ await campaignApi(request('preview-email',{...input,email:'EARLY@example.com'}),env);
+ assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM preview_contacts').get().n,1);
+ assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM launch_leads').get().n,0);
+ assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM preview_receipts').get().n,0);
+ const report=await(await campaignApi(new Request('https://example.com/api/campaign-report',{headers:{Authorization:'Bearer test-only'}}),env)).json();
+ assert.equal(report.previewContacts[0].contacts,1);assert.equal(report.leads.length,0);
+ const csv=await(await campaignApi(new Request('https://example.com/api/preview-emails.csv',{headers:{Authorization:'Bearer test-only'}}),env)).text();assert.match(csv,/early@example.com/);assert.match(csv,/not_granted/);
+ assert.equal((await campaignApi(new Request('https://example.com/api/preview-emails.csv'),env)).status,404);
+ await campaignApi(request('preview-email',{...input,email:'private@example.com',measurementConsent:false}),env);
+ assert.equal(env.DB.sqlite.prepare('SELECT campaign FROM preview_contacts WHERE email=?').get('private@example.com').campaign,'organic');
+});
+test('preview capture rejects invalid or cross-origin input and fails honestly when saving fails',async()=>{
+ const env={DB:testDb()};
+ for(const input of [null,{email:'bad'},{email:'valid@example.com',website:'bot'}])assert.equal((await campaignApi(request('preview-email',input),env)).status,400);
+ assert.equal((await campaignApi(request('preview-email',{email:'valid@example.com'},{Origin:'https://other.example'}),env)).status,403);
+ env.DB.sqlite.exec('DROP TABLE preview_contacts');assert.equal((await campaignApi(request('preview-email',{email:'valid@example.com'}),env)).status,503);
+});

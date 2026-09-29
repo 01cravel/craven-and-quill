@@ -12,7 +12,8 @@ function render(){
   const attempts=report.previews.reduce((n,row)=>n+row.attempts,0);
   const success=report.previews.find(row=>row.status==='succeeded')?.attempts||0;
   const measured=report.measuredConversion||{visitors:0,converted_visitors:0};
-  const stats=[['Qualified UK paid signups',count],['Ad cost / qualified signup',count?'£'+cpl.toFixed(2):'No qualified signups'],['Ad + preview cost / signup',count?'£'+totalCpl.toFixed(2):'No qualified signups'],['Measured visitor conversion',measured.visitors?(100*measured.converted_visitors/measured.visitors).toFixed(1)+'%':'No measured visits'],['Drawing requests (all traffic)',attempts],['Preview success',attempts?(100*success/attempts).toFixed(1)+'%':'No attempts']];
+  const early=(report.previewContacts||[]).reduce((n,row)=>n+Number(row.contacts||0),0);
+  const stats=[['Preview emails (selected campaign)',early],['Qualified UK paid signups',count],['Ad cost / qualified signup',count?'£'+cpl.toFixed(2):'No qualified signups'],['Ad + preview cost / signup',count?'£'+totalCpl.toFixed(2):'No qualified signups'],['Measured visitor conversion',measured.visitors?(100*measured.converted_visitors/measured.visitors).toFixed(1)+'%':'No measured visits'],['Drawing requests (all traffic)',attempts],['Preview success',attempts?(100*success/attempts).toFixed(1)+'%':'No attempts']];
   $('#stats').replaceChildren();
   for(const [title,value]of stats){const card=document.createElement('article');const label=document.createElement('span');label.textContent=title;const number=document.createElement('strong');number.textContent=value;card.append(label,number);$('#stats').append(card);}
   const decisions=[];
@@ -40,3 +41,5 @@ async function get(path){const response=await fetch(path,{headers:{Authorization
 $('#report-form').addEventListener('submit',async event=>{event.preventDefault();$('#error').textContent='';try{const query=new URLSearchParams({since:$('#since').value+'T00:00:00.000Z',until:$('#until').value+'T00:00:00.000Z',campaign:$('#campaign').value});report=await(await get('/api/campaign-report?'+query)).json();render();}catch(error){$('#error').textContent=error.message;}});
 for(const id of ['spend','drawing-cost','margin'])$('#'+id).addEventListener('input',render);
 $('#export').addEventListener('click',async()=>{try{const blob=await(await get('/api/launch-signups.csv')).blob();const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='storybook-launch-signups.csv';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}catch(error){$('#error').textContent=error.message;}});
+
+$('#export-preview').addEventListener('click',async()=>{try{const blob=await(await get('/api/preview-emails.csv')).blob();const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='preview-contacts-not-marketing.csv';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}catch(error){$('#error').textContent=error.message;}});

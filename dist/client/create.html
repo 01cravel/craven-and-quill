@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=23">
+  <link rel="stylesheet" href="create.css?v=27">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -136,7 +136,8 @@
 
           <div id="preview-email-wrap" hidden>
             <label class="field-label" for="email">Your email</label>
-            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required>
+            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
+            <p class="privacy-line" id="preview-email-note">We save your email when you create a preview. Marketing emails are optional and asked about later.</p>
           </div>
 
           <div class="error" id="step-4-error" role="alert"></div>
@@ -146,10 +147,12 @@
 
         <section class="step preview-step" data-step="5" aria-labelledby="step-5-title" hidden>
           <div id="making-state">
-            <h1 id="step-5-title" tabindex="-1">Creating their character…</h1>
-            <div class="drawing-progress" id="drawing-progress" data-phase="upload">
-              <span id="drawing-stage" class="sr-only" role="status">Creating your preview</span>
-              <div class="ink-track" id="drawing-bar" role="progressbar" aria-label="Creating your preview" aria-valuetext="Preparing your photo"><span class="ink-flow"></span></div>
+            <div class="drawing-brand"><img src="assets/logo-mark-on-white.png" alt="" width="64" height="64"><span>Craven &amp; Quill</span></div>
+            <h1 id="step-5-title" tabindex="-1">Your story is<br>taking shape.</h1>
+            <div class="drawing-progress" id="drawing-progress" data-phase="saving">
+              <div class="ink-track" id="drawing-bar" role="progressbar" aria-label="Creating your free preview" aria-valuetext="Saving your preview details"><span class="ink-flow"></span></div>
+              <p id="drawing-stage" role="status">Saving your preview details.</p>
+              <p id="drawing-note">A little imagination. A story all their own.</p>
             </div>
             <div class="generation-error" id="generation-error" role="alert" hidden><p id="generation-error-copy">We could not draw the character this time.</p><button type="button" id="retry-generation">Try again</button><div id="blocked-actions" hidden><button type="button" id="change-photo">Change photo</button><button type="button" id="change-story">Change story</button></div></div>
           </div>
@@ -207,7 +210,7 @@
   <footer><span>Photos are used only to create your preview.</span><a href="privacy.html">Privacy</a><button type="button" class="measurement-settings">Measurement settings</button></footer>
   <script src="campaign.js?v=2" defer></script>
   <script src="photo-upload.js?v=23" defer></script>
-  <script src="preview-progress.js?v=23" defer></script>
-  <script src="create.js?v=25" defer></script>
+  <script src="preview-progress.js?v=27" defer></script>
+  <script src="create.js?v=27" defer></script>
 </body>
 </html>

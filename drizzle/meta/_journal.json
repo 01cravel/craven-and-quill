@@ -15,6 +15,13 @@
       "when": 1790666897187,
       "tag": "0001_overjoyed_giant_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790680797619,
+      "tag": "0002_chunky_songbird",
+      "breakpoints": true
     }
   ]
 }

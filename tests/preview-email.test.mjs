@@ -19,3 +19,13 @@ test('email appears only after a checked photo and both confirmations; valid ema
  state.photos.push({});state.photoChecks.push({pass:true});update();assert.equal(nodes['#create-preview'].disabled,false);
  nodes['#email'].value='';update();assert.equal(nodes['#create-preview'].disabled,true);
 });
+
+test('preview email is saved before drawing and save errors stop generation',async()=>{
+ const fn=source.slice(source.indexOf('async function capturePreviewEmail(){'),source.indexOf('async function preparePreview(){'));
+ let payload;
+ const ctx={$:id=>({value:id==='#email'?'Person@Example.com':''}),AbortSignal,window:{cqMeasurement:{context:()=>({source:'meta'})}},fetch:async(url,options)=>{assert.equal(url,'/api/preview-email');payload=JSON.parse(options.body);return{ok:true,json:async()=>({ok:true})};}};
+ vm.runInNewContext(fn,ctx);await ctx.capturePreviewEmail();assert.equal(payload.email,'person@example.com');assert.equal(payload.source,'meta');
+ ctx.fetch=async()=>({ok:false,json:async()=>({error:'Save failed'})});await assert.rejects(ctx.capturePreviewEmail(),/Save failed/);
+ const prepare=source.slice(source.indexOf('async function preparePreview(){'),source.indexOf('for(let index=0;index<10;'));
+ assert.ok(prepare.indexOf('await capturePreviewEmail()')<prepare.indexOf('await renderStoryArt()'));
+});

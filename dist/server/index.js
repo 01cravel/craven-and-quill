@@ -105,6 +105,7 @@ async function serveAsset(request,env){
 
 export default {async fetch(request,env){
   const url=new URL(request.url);
+  if(url.pathname==='/api/preview-email'&&request.method==='POST'&&rateLimited(request,signupBuckets,SIGNUP_RATE_LIMIT))return json({error:'Too many attempts. Please try again later.'},429);
   const campaignResponse=await campaignApi(request,env);if(campaignResponse)return campaignResponse;
   if(url.pathname==='/api/generate-character')return generateCharacter(request,env);
   if(url.pathname==='/api/subscribe')return subscribe(request,env);

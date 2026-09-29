@@ -26,8 +26,8 @@ export async function finishPreview(env,id,status){await env.DB.prepare('UPDATE 
 export async function campaignApi(request,env){
   const path=new URL(request.url).pathname;
   if(path==='/api/ad-config')return request.method==='GET'?reply({pixelId:/^[0-9]{5,30}$/.test(env.META_PIXEL_ID||'')?env.META_PIXEL_ID:null}):reply({error:'Method not allowed.'},405);
-  if(!['/api/launch-signup','/api/campaign-event','/api/campaign-report','/api/launch-signups.csv','/api/unsubscribe'].includes(path))return null;
-  const report=path==='/api/campaign-report'||path==='/api/launch-signups.csv';
+  if(!['/api/preview-email','/api/preview-emails.csv','/api/launch-signup','/api/campaign-event','/api/campaign-report','/api/launch-signups.csv','/api/unsubscribe'].includes(path))return null;
+  const report=path==='/api/campaign-report'||path==='/api/launch-signups.csv'||path==='/api/preview-emails.csv';
   if(request.method!==(report?'GET':'POST'))return reply({error:'Method not allowed.'},405);
   if(report&&!authorized(request,env))return reply({error:'Not found.'},404);
   const origin=request.headers.get('Origin');if(!report&&origin!==new URL(request.url).origin)return reply({error:'Please reload the page and try again.'},403);
@@ -45,8 +45,16 @@ export async function campaignApi(request,env){
         env.DB.prepare('SELECT status, COUNT(*) AS attempts FROM preview_receipts WHERE created_at >= ?1 AND created_at < ?2 GROUP BY status').bind(since,until),
         env.DB.prepare("SELECT product, price_pence, COUNT(*) AS signups FROM launch_leads WHERE created_at >= ?1 AND created_at < ?2 AND campaign=?3 AND source='meta' AND medium='paid_social' AND country='GB' AND purchase_intent=1 AND unsubscribed_at IS NULL GROUP BY product,price_pence").bind(since,until,campaign),
         env.DB.prepare("SELECT COUNT(DISTINCT e.visit_id) AS visitors, COUNT(DISTINCT CASE WHEN EXISTS (SELECT 1 FROM launch_leads l WHERE l.visit_id=e.visit_id AND l.created_at >= ?1 AND l.created_at < ?2 AND l.source='meta' AND l.medium='paid_social' AND l.campaign=?3 AND l.country='GB' AND l.purchase_intent=1 AND l.unsubscribed_at IS NULL) THEN e.visit_id END) AS converted_visitors FROM campaign_events e WHERE e.created_at >= ?1 AND e.created_at < ?2 AND e.source='meta' AND e.medium='paid_social' AND e.campaign=?3 AND e.country='GB' AND e.event='landing_view'").bind(since,until,campaign),
+        env.DB.prepare('SELECT source, medium, campaign, creative, country, COUNT(*) AS contacts FROM preview_contacts WHERE created_at >= ?1 AND created_at < ?2 AND campaign=?3 GROUP BY source, medium, campaign, creative, country').bind(since,until,campaign),
       ]);
-      return reply({since,until,campaign,leads:data[0].results||[],events:data[1].results||[],previews:data[2].results||[],products:data[3].results||[],measuredConversion:data[4].results?.[0]||{visitors:0,converted_visitors:0},note:'Qualified signups are unique active emails with a successful preview and explicit interest at the chosen price. Emails are not verified; these are not orders. Visit conversion covers only people allowing measurement. Drawing requests are site-wide, including organic traffic and retries. QA uses a separate campaign code and is excluded from this campaign.'});
+      return reply({since,until,campaign,previewContacts:data[5].results||[],leads:data[0].results||[],events:data[1].results||[],previews:data[2].results||[],products:data[3].results||[],measuredConversion:data[4].results?.[0]||{visitors:0,converted_visitors:0},note:'Preview contacts are saved when a preview is requested, not marketing subscribers or buying intent. Qualified signups are unique active emails with a successful preview and explicit interest at the chosen price. Emails are not verified; these are not orders. Visit conversion covers only people allowing measurement. Drawing requests are site-wide, including organic traffic and retries. QA uses a separate campaign code and is excluded from this campaign.'});
+    }
+    if(path==='/api/preview-emails.csv'){
+      const rows=(await env.DB.prepare('SELECT email, source, medium, campaign, creative, country, created_at, updated_at FROM preview_contacts ORDER BY created_at').all()).results||[];
+      const columns=['email','source','medium','campaign','creative','country','created_at','updated_at','marketing_permission'];
+      const cell=value=>'"'+String(value??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';
+      const csv=[columns.join(','),...rows.map(row=>columns.map(key=>cell(key==='marketing_permission'?'not_granted':row[key])).join(','))].join('\n')+'\n';
+      return new Response(csv,{headers:{'Content-Type':'text/csv;charset=utf-8','Content-Disposition':'attachment; filename="preview-contacts-not-marketing.csv"','Cache-Control':'private, no-store'}});
     }
     if(path==='/api/launch-signups.csv'){
       const rows=(await env.DB.prepare('SELECT email, product, price_pence, purchase_intent, source, medium, campaign, creative, country, consent_version, consent_text, consent_at, created_at, unsubscribe_token FROM launch_leads WHERE unsubscribed_at IS NULL ORDER BY created_at').all()).results||[];
@@ -70,6 +78,12 @@ export async function campaignApi(request,env){
     const email=typeof input.email==='string'?input.email.trim().toLowerCase():'';
     if(input.website)return reply({error:'Please try again.'},400);
     if(email.length>254||!/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email))return reply({error:'Enter a valid email address.'},400);
+    if(path==='/api/preview-email'){
+      const now=new Date().toISOString();
+      const result=await env.DB.prepare('INSERT INTO preview_contacts (email, source, medium, campaign, creative, country, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7) ON CONFLICT(email) DO UPDATE SET updated_at=excluded.updated_at').bind(email,...attribution(input.measurementConsent===true?input:{}),country(request),now).run();
+      if(result.success===false)throw new Error('Preview email write failed');
+      return reply({ok:true});
+    }
     if(input.consent!==true||input.consentVersion!==CONSENT_VERSION)return reply({error:'Please tick the email permission box to join the launch list.'},400);
     if(input.purchaseIntent!==true)return reply({error:'Confirm your interest at the displayed price to join this list.'},400);
     if(!Object.hasOwn(PRODUCTS,input.product))return reply({error:'Choose a book format.'},400);
