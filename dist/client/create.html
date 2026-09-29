@@ -134,8 +134,13 @@
 
           <p class="privacy-line">Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
 
+          <div id="preview-email-wrap" hidden>
+            <label class="field-label" for="email">Your email</label>
+            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required>
+          </div>
+
           <div class="error" id="step-4-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next make" type="button" data-next="5">Create free preview <span>→</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next make" id="create-preview" type="button" data-next="5" disabled>Create free preview <span>→</span></button></div>
           <p class="under-button">Free. No card needed.</p>
         </section>
 
@@ -185,8 +190,6 @@
           <p class="intro">We’re testing interest in these books. Join the list to hear when you can order. This is not an order and no payment is taken.</p>
           <section class="order-total" aria-label="Your preferred book"><div><span id="order-label">Digital &amp; Hardback</span><small>Your selected price. No payment today.</small></div><strong id="order-price">£49.99</strong></section>
           <div id="launch-form">
-            <label class="field-label" for="email">Your email</label>
-            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com">
             <div class="signup-honeypot" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
             <label class="launch-consent"><input id="purchase-intent" type="checkbox"><span id="purchase-intent-label">I’m interested in buying Digital &amp; Hardback at £49.99 when available.</span></label>
             <label class="launch-consent"><input id="launch-consent" type="checkbox"><span>Email me when Craven &amp; Quill storybooks are ready to order. I can unsubscribe at any time.</span></label>
@@ -205,6 +208,6 @@
   <script src="campaign.js?v=2" defer></script>
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=23" defer></script>
-  <script src="create.js?v=24" defer></script>
+  <script src="create.js?v=25" defer></script>
 </body>
 </html>

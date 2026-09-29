@@ -57,6 +57,7 @@ function scrollToStepTop(number){
 
 function showStep(number){
   state.step=number;
+  if(number===4)updatePhotoGate();
   if(number===6)window.cqMeasurement?.record('price_view');
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
@@ -114,13 +115,27 @@ async function inspectPhoto(file){
   return{pass:true,message:faceMessage};
 }
 
+function validPreviewEmail(){
+  const email=$('#email').value.trim();
+  return email.length<=254&&/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)&&$('#email').validity.valid;
+}
+function updatePhotoGate(){
+  const requiredCount=$('#second-person').hidden?1:2;
+  const ready=state.photos.length===requiredCount&&state.photoChecks.length===requiredCount&&state.photoChecks.every(check=>check.pass)&&$('#face-confirm').checked&&$('#photo-permission').checked;
+  $('#preview-email-wrap').hidden=!ready;
+  $('#create-preview').disabled=!ready||!validPreviewEmail();
+}
+['#face-confirm','#photo-permission'].forEach(selector=>$(selector).addEventListener('change',updatePhotoGate));
+$('#email').addEventListener('input',()=>{updatePhotoGate();$('#step-4-error').textContent='';});
+$('#email').addEventListener('change',updatePhotoGate);
+
 let photoSelection=0;
 $('#photos').addEventListener('change',async event=>{
   const selection=++photoSelection;
   photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];
   const requiredCount=$('#second-person').hidden?1:2;
   const files=[...event.target.files].slice(0,requiredCount);
-  state.photos=files;state.previewId=null;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;$('#face-confirm-wrap').hidden=true;$('#step-4-error').textContent='';
+  state.photos=files;state.previewId=null;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;$('#face-confirm-wrap').hidden=true;$('#step-4-error').textContent='';updatePhotoGate();
   const check=$('#photo-check');check.hidden=false;check.className='photo-check';check.innerHTML='<strong>Checking the photo…</strong>';
   files.forEach((file,index)=>{const url=URL.createObjectURL(file);photoUrls.push(url);const thumb=document.createElement('img');thumb.src=url;thumb.alt=`Selected photo ${index+1}`;$('#photo-list').append(thumb);});
   $('.upload-wrap').classList.toggle('has-photo',files.length>0);$('.upload strong').textContent=files.length?(files.length>1?'Photos added':'Photo added'):'Add a photo';$('.upload small').textContent=files.length?'Tap to change':'Face forward, both eyes clear, no sunglasses.';$('.upload-icon').style.backgroundImage=files.length?`url(${photoUrls[0]})`:'';
@@ -136,6 +151,7 @@ $('#photos').addEventListener('change',async event=>{
   check.classList.add(failed||countProblem?'fail':'pass');
   check.innerHTML=countProblem?`<strong>Add ${requiredCount===2?'two photos':'one photo'}</strong><span>Use one separate photo for each person.</span>`:failed?`<strong>Use another photo</strong><span>${failed.message}</span>`:`<strong>${requiredCount===2?'Both photos look good':'Photo looks good'}</strong><span>Tick below to confirm the face is clear.</span>`;
   $('#face-confirm-wrap').hidden=Boolean(failed||countProblem);$('#step-4-error').textContent='';
+  updatePhotoGate();
   track('photos_checked',{count:files.length,passed:!failed&&!countProblem});
 });
 
@@ -241,6 +257,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(failedPhoto){$('#step-4-error').textContent=failedPhoto.message;$('#photo-check').scrollIntoView({behavior:'smooth',block:'center'});return;}
     if(!$('#face-confirm').checked){$('#step-4-error').textContent='Confirm that every face is clearly recognisable.';$('#face-confirm').focus();return;}
     if(!$('#photo-permission').checked){$('#step-4-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
+    if(!validPreviewEmail()){$('#step-4-error').textContent='Enter a valid email address.';$('#email').focus();return;}
     $('#step-4-error').textContent='';void preparePreview();
   }
   if(state.step===5&&!state.characterImages[0]){$('#step-5-error').textContent='Wait for the first page to finish before choosing your book.';return;}
@@ -261,7 +278,7 @@ $$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{
 $('#join-launch').addEventListener('click',async()=>{
   const error=$('#step-7-error');const button=$('#join-launch');if(button.disabled)return;
   const email=$('#email').value.trim().toLowerCase();
-  if(!/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)){error.textContent='Enter a valid email address.';$('#email').focus();return;}
+  if(!validPreviewEmail()){showStep(4);$('#step-4-error').textContent='Enter a valid email address.';$('#email').focus();return;}
   if(!$('#launch-consent').checked){error.textContent='Tick the email permission box to join the launch list.';$('#launch-consent').focus();return;}
   if(!$('#purchase-intent').checked){error.textContent='Confirm your interest at the displayed price to join this list.';$('#purchase-intent').focus();return;}
   updateProduct();button.disabled=true;button.textContent='Saving…';error.textContent='';
@@ -278,7 +295,7 @@ $('#join-launch').addEventListener('click',async()=>{
 const context=document.modelContext;
 if(context?.registerTool){const lifecycle=new AbortController();try{void Promise.resolve(context.registerTool({name:'read_story_maker_state',title:'Read story maker',description:'Read the visible step and non-photo choices. Uploaded images are never exposed.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute:()=>({step:state.step,names:fullNames(),age:state.age,mood:state.mood,selectedIdea:selectedStory()?.[0]||null,product:state.product})},{signal:lifecycle.signal})).catch(()=>{});}catch{}}
 
-buildIdeas();updateLive();updateProduct();
+buildIdeas();updateLive();updateProduct();updatePhotoGate();
 
 const characterTest=new URLSearchParams(window.location.search).get('character-test');
 if(characterTest&&['127.0.0.1','localhost'].includes(window.location.hostname)){
