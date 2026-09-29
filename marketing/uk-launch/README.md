@@ -53,7 +53,7 @@ The two variants test overall concepts, not a single isolated wording change. Me
 - Preview drawing API costs are separate. Production code limits accepted drawing requests to 50/day by default (durable DB counter), with the existing per-IP limit as an additional best-effort guard. Retries count. Confirm provider costs and set an appropriate project budget before paid traffic. A requests cap is not a monetary cap.
 - UK location, adults 25–60, all genders. Parent/gift-buyer language; no narrow audience stacking in a small test.
 - Placements: Facebook and Instagram feeds and Instagram Stories with the matching creative. Inspect all previews and disable unsuitable automatic crops/creative changes. No separate retargeting campaign initially.
-- Consent-gated browser Pixel integration is implemented, but the Meta dataset and production receipt verification are still pending. No Conversions API or email service is connected. Keep the original Traffic campaign off; the replacement must optimise website Leads after verification. Do not claim the Meta connection is live until the public pixel ID is configured and Test Events confirms receipt.
+- Consent-gated browser Pixel integration and dataset 4063290887140211 are configured in production. The live preview and QA signup passed; Meta Lead receipt verification is still pending. No Conversions API or email service is connected. Keep the original Traffic campaign off; the replacement must optimise website Leads after verification. Do not claim the Meta connection is live until the public pixel ID is configured and Test Events confirms receipt.
 
 ## Measure and decide
 
