@@ -83,3 +83,5 @@ Removed the restrictive header allowlist before decoding. Any browser-decodable 
 Replaced the star with an animated ink bar. Upload percentage comes from actual bytes sent; illustration waiting is deliberately indeterminate with an elapsed timer, real completion stages, slower-response copy and explicit network/timeout recovery. No invented illustration completion percentage. Duplicate in-flight generation is guarded, and preview images decode before display.
 
 33 automated release checks passed, including broader raster handling, invalid files, actual upload progress, timer cleanup and request failures. Mobile Chrome visual QA at 390px showed no horizontal overflow and a moving timer. The visual preview simulated a waiting request, not a new production illustration. Ads remain paused pending live phone success and Meta Lead receipt.
+
+Version 22 deployed successfully on 29 September at 10:55 UTC from 0fd89b588d3dd74e63e94dff129acc2b33cc1f35. Saved version: appgprj_6aa67cae69ec8191beb2898e48cb0216~appgver_d2c186bab87c8191bfb6ea2236a82919. Deployment: appgdep_6abb99213f148191bcbae4e46e06fc78, environment revision 3.
