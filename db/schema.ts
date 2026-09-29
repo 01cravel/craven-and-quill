@@ -7,6 +7,7 @@ export const launchLeads=sqliteTable('launch_leads',{
   source:text('source').notNull(),medium:text('medium').notNull(),campaign:text('campaign').notNull(),creative:text('creative').notNull(),
   visitId:text('visit_id'),previewId:text('preview_id').notNull(),country:text('country').notNull(),
   unsubscribeToken:text('unsubscribe_token').notNull().unique(),unsubscribedAt:text('unsubscribed_at'),createdAt:text('created_at').notNull(),
+  purchaseIntent:integer('purchase_intent').notNull().default(0),conversionId:text('conversion_id'),
 },t=>[index('launch_leads_campaign_created_idx').on(t.campaign,t.createdAt)]);
 
 export const campaignEvents=sqliteTable('campaign_events',{

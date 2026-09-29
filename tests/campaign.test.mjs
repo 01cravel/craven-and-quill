@@ -4,20 +4,20 @@ import {campaignApi,beginPreview,finishPreview,CONSENT_VERSION} from '../dist/se
 import {testDb} from './sqlite-d1.mjs';
 
 const request=(path,input,headers={})=>new Request('https://example.com/api/'+path,{method:'POST',headers:{Origin:'https://example.com','Content-Type':'application/json','CF-IPCountry':'GB',...headers},body:JSON.stringify(input)});
-async function setup(){const env={DB:testDb(),SIGNUPS_EXPORT_TOKEN:'test-only'};const previewId=await beginPreview(env);await finishPreview(env,previewId,'succeeded');return {env,input:{email:'Reader@example.com',previewId,product:'bundle',consent:true,consentVersion:CONSENT_VERSION,source:'meta',medium:'paid_social',campaign:'cq_uk_launch_2026',creative:'reveal'}};}
+async function setup(){const env={DB:testDb(),SIGNUPS_EXPORT_TOKEN:'test-only'};const previewId=await beginPreview(env);await finishPreview(env,previewId,'succeeded');return {env,input:{email:'Reader@example.com',previewId,product:'bundle',purchaseIntent:true,consent:true,consentVersion:CONSENT_VERSION,source:'meta',medium:'paid_social',campaign:'cq_uk_validation_2026',creative:'reveal'}};}
 const submit=(env,input)=>campaignApi(request('launch-signup',input),env);
 
 test('saves a unique lead only after a successful preview and records price/consent on server',async()=>{
   const {env,input}=await setup();assert.equal((await submit(env,{...input,price_pence:1})).status,200);
   const lead=env.DB.sqlite.prepare('SELECT * FROM launch_leads').get();
-  assert.equal(lead.email,'reader@example.com');assert.equal(lead.price_pence,4999);assert.equal(lead.country,'GB');assert.equal(lead.campaign,'cq_uk_launch_2026');assert.equal(lead.visit_id,null);assert.match(lead.consent_text,/Email me/);
+  assert.equal(lead.email,'reader@example.com');assert.equal(lead.price_pence,4999);assert.equal(lead.country,'GB');assert.equal(lead.campaign,'cq_uk_validation_2026');assert.equal(lead.visit_id,null);assert.match(lead.consent_text,/Email me/);
   await submit(env,{...input,email:'READER@EXAMPLE.COM',creative:'other'});
   assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM launch_leads').get().n,1);
   assert.equal(env.DB.sqlite.prepare('SELECT creative FROM launch_leads').get().creative,'reveal');
 });
 test('rejects missing consent, invalid format, expired/failed/missing preview and cross-site posts',async()=>{
   const {env,input}=await setup();
-  for(const change of [{consent:false},{consentVersion:'old'},{product:'__proto__'},{previewId:crypto.randomUUID()},{email:'bad'},{website:'bot'}])assert.equal((await submit(env,{...input,...change})).status,400);
+  for(const change of [{purchaseIntent:false},{consent:false},{consentVersion:'old'},{product:'__proto__'},{previewId:crypto.randomUUID()},{email:'bad'},{website:'bot'}])assert.equal((await submit(env,{...input,...change})).status,400);
   assert.equal((await campaignApi(request('launch-signup',input,{Origin:'https://attacker.example'}),env)).status,403);
   await finishPreview(env,input.previewId,'failed');assert.equal((await submit(env,input)).status,400);
   env.DB.sqlite.prepare('UPDATE preview_receipts SET status=?,created_at=?').run('succeeded','2020-01-01T00:00:00Z');assert.equal((await submit(env,input)).status,400);
@@ -57,4 +57,23 @@ test('daily drawing ceiling is durable across requests and does not exceed the l
 });
 test('malformed, oversized and null bodies are rejected without writing',async()=>{
   const {env}=await setup();for(const input of [null,[],{email:'x'.repeat(5000)}])assert.equal((await campaignApi(request('launch-signup',input),env)).status,400);
+});
+
+test('conversion receipt is random, stable on duplicate saves, and never an unsubscribe token',async()=>{
+  const {env,input}=await setup();const a=await(await submit(env,input)).json(),b=await(await submit(env,input)).json();
+  assert.match(a.eventId,/^[0-9a-f-]{36}$/);assert.equal(a.eventId,b.eventId);
+  const lead=env.DB.sqlite.prepare('SELECT * FROM launch_leads').get();assert.notEqual(a.eventId,lead.unsubscribe_token);assert.equal(lead.purchase_intent,1);
+});
+test('report isolates the experiment, dates, active intent and UK paid acquisition',async()=>{
+  const {env,input}=await setup();
+  for(const change of [{},{email:'qa@example.com',campaign:'cq_qa_2026'},{email:'else@example.com',campaign:'old_test'},{email:'unsub@example.com'}])await submit(env,{...input,...change});
+  env.DB.sqlite.prepare("UPDATE launch_leads SET unsubscribed_at='2026-09-29T01:00:00.000Z' WHERE email='unsub@example.com'").run();
+  const report=await(await campaignApi(new Request('https://example.com/api/campaign-report?since=2020-01-01T00:00:00.000Z&until=2099-01-01T00:00:00.000Z&campaign=cq_uk_validation_2026',{headers:{Authorization:'Bearer test-only'}}),env)).json();
+  assert.equal(report.leads.length,1);assert.equal(report.leads[0].qualified_signups,1);assert.equal(report.products[0].signups,1);
+  const past=await(await campaignApi(new Request('https://example.com/api/campaign-report?since=2020-01-01&until=2021-01-01',{headers:{Authorization:'Bearer test-only'}}),env)).json();assert.equal(past.leads.length,0);
+});
+test('ad configuration exposes only a valid public pixel id and fails closed',async()=>{
+  const {env}=await setup();
+  for(const value of [undefined,'<script>', ''])assert.deepEqual(await(await campaignApi(new Request('https://example.com/api/ad-config'),{...env,META_PIXEL_ID:value})).json(),{pixelId:null});
+  assert.deepEqual(await(await campaignApi(new Request('https://example.com/api/ad-config'),{...env,META_PIXEL_ID:'1234567890'})).json(),{pixelId:'1234567890'});
 });

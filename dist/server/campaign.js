@@ -1,4 +1,4 @@
-export const CONSENT_VERSION='storybook-launch-2026-09-27';
+export const CONSENT_VERSION='storybook-validation-2026-09-29';
 export const CONSENT_TEXT='Email me when Craven & Quill storybooks are ready to order. I can unsubscribe at any time.';
 const PRODUCTS={digital:1900,hardback:3500,bundle:4999};
 const EVENTS=new Set(['landing_view','maker_start','preview_start','preview_success','preview_error','price_view']);
@@ -25,6 +25,7 @@ export async function finishPreview(env,id,status){await env.DB.prepare('UPDATE 
 
 export async function campaignApi(request,env){
   const path=new URL(request.url).pathname;
+  if(path==='/api/ad-config')return request.method==='GET'?reply({pixelId:/^[0-9]{5,30}$/.test(env.META_PIXEL_ID||'')?env.META_PIXEL_ID:null}):reply({error:'Method not allowed.'},405);
   if(!['/api/launch-signup','/api/campaign-event','/api/campaign-report','/api/launch-signups.csv','/api/unsubscribe'].includes(path))return null;
   const report=path==='/api/campaign-report'||path==='/api/launch-signups.csv';
   if(request.method!==(report?'GET':'POST'))return reply({error:'Method not allowed.'},405);
@@ -33,20 +34,23 @@ export async function campaignApi(request,env){
   if(!env.DB)return reply({error:'We could not save that just now. Please try again.'},503);
   try{
     if(path==='/api/campaign-report'){
-      const since=new URL(request.url).searchParams.get('since')||new Date(Date.now()-7*86400000).toISOString();
-      if(!Number.isFinite(Date.parse(since)))return reply({error:'Choose a valid start date.'},400);
+      const params=new URL(request.url).searchParams;
+      const since=params.get('since')||new Date(Date.now()-7*86400000).toISOString();
+      const until=params.get('until')||new Date(Date.now()+1).toISOString();
+      const campaign=code(params.get('campaign'),'cq_uk_validation_2026');
+      if(!Number.isFinite(Date.parse(since))||!Number.isFinite(Date.parse(until))||Date.parse(until)<=Date.parse(since))return reply({error:'Choose a valid date range.'},400);
       const data=await env.DB.batch([
-        env.DB.prepare('SELECT source, medium, campaign, creative, country, COUNT(*) AS signups, SUM(CASE WHEN unsubscribed_at IS NULL THEN 1 ELSE 0 END) AS active_signups FROM launch_leads WHERE created_at >= ?1 GROUP BY source, medium, campaign, creative, country').bind(since),
-        env.DB.prepare('SELECT source, campaign, creative, country, event, COUNT(DISTINCT visit_id) AS visits FROM campaign_events WHERE created_at >= ?1 GROUP BY source, campaign, creative, country, event').bind(since),
-        env.DB.prepare('SELECT status, COUNT(*) AS attempts FROM preview_receipts WHERE created_at >= ?1 GROUP BY status').bind(since),
-        env.DB.prepare('SELECT product, COUNT(*) AS signups FROM launch_leads WHERE created_at >= ?1 GROUP BY product').bind(since),
-        env.DB.prepare("SELECT COUNT(DISTINCT e.visit_id) AS visitors, COUNT(DISTINCT CASE WHEN EXISTS (SELECT 1 FROM launch_leads l WHERE l.visit_id=e.visit_id AND l.created_at >= ?1 AND l.source='meta' AND l.campaign='cq_uk_launch_2026' AND l.country='GB') THEN e.visit_id END) AS converted_visitors FROM campaign_events e WHERE e.created_at >= ?1 AND e.source='meta' AND e.campaign='cq_uk_launch_2026' AND e.country='GB' AND e.event='landing_view'").bind(since),
+        env.DB.prepare('SELECT source, medium, campaign, creative, country, COUNT(*) AS signups, SUM(CASE WHEN unsubscribed_at IS NULL THEN 1 ELSE 0 END) AS active_signups, SUM(CASE WHEN purchase_intent=1 AND unsubscribed_at IS NULL THEN 1 ELSE 0 END) AS qualified_signups FROM launch_leads WHERE created_at >= ?1 AND created_at < ?2 AND campaign=?3 GROUP BY source, medium, campaign, creative, country').bind(since,until,campaign),
+        env.DB.prepare('SELECT source, medium, campaign, creative, country, event, COUNT(DISTINCT visit_id) AS visits FROM campaign_events WHERE created_at >= ?1 AND created_at < ?2 AND campaign=?3 GROUP BY source, medium, campaign, creative, country, event').bind(since,until,campaign),
+        env.DB.prepare('SELECT status, COUNT(*) AS attempts FROM preview_receipts WHERE created_at >= ?1 AND created_at < ?2 GROUP BY status').bind(since,until),
+        env.DB.prepare("SELECT product, price_pence, COUNT(*) AS signups FROM launch_leads WHERE created_at >= ?1 AND created_at < ?2 AND campaign=?3 AND source='meta' AND medium='paid_social' AND country='GB' AND purchase_intent=1 AND unsubscribed_at IS NULL GROUP BY product,price_pence").bind(since,until,campaign),
+        env.DB.prepare("SELECT COUNT(DISTINCT e.visit_id) AS visitors, COUNT(DISTINCT CASE WHEN EXISTS (SELECT 1 FROM launch_leads l WHERE l.visit_id=e.visit_id AND l.created_at >= ?1 AND l.created_at < ?2 AND l.source='meta' AND l.medium='paid_social' AND l.campaign=?3 AND l.country='GB' AND l.purchase_intent=1 AND l.unsubscribed_at IS NULL) THEN e.visit_id END) AS converted_visitors FROM campaign_events e WHERE e.created_at >= ?1 AND e.created_at < ?2 AND e.source='meta' AND e.medium='paid_social' AND e.campaign=?3 AND e.country='GB' AND e.event='landing_view'").bind(since,until,campaign),
       ]);
-      return reply({since,leads:data[0].results||[],events:data[1].results||[],previews:data[2].results||[],products:data[3].results||[],measuredConversion:data[4].results?.[0]||{visitors:0,converted_visitors:0},note:'Visit counts and conversion rates cover people who allow measurement, not all visitors. Signups are unique saved emails, not verified email addresses or sales. Preview figures count drawing requests, including retries; they include organic traffic.'});
+      return reply({since,until,campaign,leads:data[0].results||[],events:data[1].results||[],previews:data[2].results||[],products:data[3].results||[],measuredConversion:data[4].results?.[0]||{visitors:0,converted_visitors:0},note:'Qualified signups are unique active emails with a successful preview and explicit interest at the chosen price. Emails are not verified; these are not orders. Visit conversion covers only people allowing measurement. Drawing requests are site-wide, including organic traffic and retries. QA uses a separate campaign code and is excluded from this campaign.'});
     }
     if(path==='/api/launch-signups.csv'){
-      const rows=(await env.DB.prepare('SELECT email, product, price_pence, source, medium, campaign, creative, country, consent_version, consent_text, consent_at, created_at, unsubscribe_token FROM launch_leads WHERE unsubscribed_at IS NULL ORDER BY created_at').all()).results||[];
-      const columns=['email','product','price_pence','source','medium','campaign','creative','country','consent_version','consent_text','consent_at','created_at','unsubscribe_url'];
+      const rows=(await env.DB.prepare('SELECT email, product, price_pence, purchase_intent, source, medium, campaign, creative, country, consent_version, consent_text, consent_at, created_at, unsubscribe_token FROM launch_leads WHERE unsubscribed_at IS NULL ORDER BY created_at').all()).results||[];
+      const columns=['email','product','price_pence','purchase_intent','source','medium','campaign','creative','country','consent_version','consent_text','consent_at','created_at','unsubscribe_url'];
       const cell=value=>'"'+String(value??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';
       const csv=[columns.join(','),...rows.map(row=>columns.map(key=>cell(key==='unsubscribe_url'?`https://cravenandquill.com/unsubscribe?token=${row.unsubscribe_token}`:row[key])).join(','))].join('\n')+'\n';
       return new Response(csv,{headers:{'Content-Type':'text/csv;charset=utf-8','Content-Disposition':'attachment; filename="storybook-launch-signups.csv"','Cache-Control':'private, no-store'}});
@@ -67,14 +71,17 @@ export async function campaignApi(request,env){
     if(input.website)return reply({error:'Please try again.'},400);
     if(email.length>254||!/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email))return reply({error:'Enter a valid email address.'},400);
     if(input.consent!==true||input.consentVersion!==CONSENT_VERSION)return reply({error:'Please tick the email permission box to join the launch list.'},400);
+    if(input.purchaseIntent!==true)return reply({error:'Confirm your interest at the displayed price to join this list.'},400);
     if(!Object.hasOwn(PRODUCTS,input.product))return reply({error:'Choose a book format.'},400);
     if(!UUID.test(input.previewId))return reply({error:'Create a free preview before joining this list.'},400);
     const receipt=await env.DB.prepare('SELECT status, created_at FROM preview_receipts WHERE id = ?1').bind(input.previewId).first();
     if(!receipt||receipt.status!=='succeeded'||Date.now()-Date.parse(receipt.created_at)>86400000)return reply({error:'Your preview has expired. Create another free preview to join.'},400);
     const now=new Date().toISOString();const token=crypto.randomUUID();
-    const result=await env.DB.prepare('INSERT INTO launch_leads (email, product, price_pence, consent_version, consent_text, consent_at, source, medium, campaign, creative, visit_id, preview_id, country, unsubscribe_token, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15) ON CONFLICT(email) DO UPDATE SET product=excluded.product, price_pence=excluded.price_pence, consent_version=excluded.consent_version, consent_text=excluded.consent_text, consent_at=excluded.consent_at, unsubscribed_at=NULL WHERE launch_leads.unsubscribed_at IS NOT NULL').bind(email,input.product,PRODUCTS[input.product],CONSENT_VERSION,CONSENT_TEXT,now,...attribution(input),input.measurementConsent===true&&UUID.test(input.visitId)?input.visitId:null,input.previewId,country(request),token,now).run();
+    const conversionId=crypto.randomUUID();
+    const result=await env.DB.prepare('INSERT INTO launch_leads (email, product, price_pence, consent_version, consent_text, consent_at, source, medium, campaign, creative, visit_id, preview_id, country, unsubscribe_token, created_at, purchase_intent, conversion_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, 1, ?16) ON CONFLICT(email) DO UPDATE SET product=excluded.product, price_pence=excluded.price_pence, consent_version=excluded.consent_version, consent_text=excluded.consent_text, consent_at=excluded.consent_at, purchase_intent=1, unsubscribed_at=NULL WHERE launch_leads.unsubscribed_at IS NOT NULL').bind(email,input.product,PRODUCTS[input.product],CONSENT_VERSION,CONSENT_TEXT,now,...attribution(input),input.measurementConsent===true&&UUID.test(input.visitId)?input.visitId:null,input.previewId,country(request),token,now,conversionId).run();
     if(result.success===false)throw new Error('Lead write failed');
     // Same response for duplicate emails avoids exposing who is already subscribed.
-    return reply({ok:true});
+    const saved=await env.DB.prepare('SELECT conversion_id FROM launch_leads WHERE email=?1').bind(email).first();
+    return reply({ok:true,eventId:saved?.conversion_id||null});
   }catch(error){console.error('Campaign operation failed',path,error?.name||'Error');return reply({error:'We could not save that just now. Please try again.'},503);}
 }

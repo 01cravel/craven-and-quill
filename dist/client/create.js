@@ -233,20 +233,23 @@ $$('[data-back]').forEach(button=>button.addEventListener('click',()=>showStep(N
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
   const labels={bundle:'Digital & Hardback',hardback:'Hardback',digital:'Digital'};
-  $('#order-label').textContent=labels[state.product];$('#order-price').textContent=`£${Number.isInteger(state.price)?state.price:state.price.toFixed(2)}`;
+  $('#order-label').textContent=labels[state.product];$('#purchase-intent-label').textContent=`I’m interested in buying ${labels[state.product]} at £${state.price.toFixed(2)} when available.`;
+  $('#order-price').textContent=`£${Number.isInteger(state.price)?state.price:state.price.toFixed(2)}`;
 }
-$$('input[name="product"]').forEach(input=>input.addEventListener('change',updateProduct));
+$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{$('#purchase-intent').checked=false;updateProduct();}));
 
 $('#join-launch').addEventListener('click',async()=>{
   const error=$('#step-7-error');const button=$('#join-launch');if(button.disabled)return;
   const email=$('#email').value.trim().toLowerCase();
   if(!/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)){error.textContent='Enter a valid email address.';$('#email').focus();return;}
   if(!$('#launch-consent').checked){error.textContent='Tick the email permission box to join the launch list.';$('#launch-consent').focus();return;}
+  if(!$('#purchase-intent').checked){error.textContent='Confirm your interest at the displayed price to join this list.';$('#purchase-intent').focus();return;}
   updateProduct();button.disabled=true;button.textContent='Saving…';error.textContent='';
   try{
-    const response=await fetch('/api/launch-signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,product:state.product,previewId:state.previewId,consent:true,consentVersion:'storybook-launch-2026-09-27',website:$('#website').value,...window.cqMeasurement?.context()})});
+    const response=await fetch('/api/launch-signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,product:state.product,previewId:state.previewId,consent:true,purchaseIntent:true,consentVersion:'storybook-validation-2026-09-29',website:$('#website').value,...window.cqMeasurement?.context()})});
     const result=await response.json().catch(()=>({}));
     if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save that just now. Please try again.');
+    void window.cqMeasurement?.savedLead(result.eventId);
     $('#launch-form').hidden=true;$('#launch-success').hidden=false;
     $('#step-7-title').textContent='Thank you.';
   }catch(cause){error.textContent=cause.message;button.disabled=false;button.textContent='Join the launch list';}

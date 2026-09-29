@@ -1,10 +1,11 @@
 import {DatabaseSync} from 'node:sqlite';
-import {readFileSync} from 'node:fs';
+import {readFileSync,readdirSync} from 'node:fs';
 
 // Exercise the generated migration and production SQL against SQLite, not string mocks.
 export function testDb(){
   const sqlite=new DatabaseSync(':memory:');
-  sqlite.exec(readFileSync(new URL('../drizzle/0000_storybook_launch_test.sql',import.meta.url),'utf8'));
+  const dir=new URL('../drizzle/',import.meta.url);
+  for(const file of readdirSync(dir).filter(name=>name.endsWith('.sql')).sort())sqlite.exec(readFileSync(new URL(file,dir),'utf8'));
   return {sqlite,prepare(sql){
     let args=[];
     // D1's ?1 bindings correspond to SQLite numbered parameters.

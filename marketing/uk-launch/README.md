@@ -1,6 +1,6 @@
 # Craven & Quill UK signup test
 
-Prepared 27 September 2026. Campaign is not running. No advertising spend has been started.
+Updated 29 September 2026. Original Traffic campaign published, then PAUSED at £0 recorded spend. Replacement Leads test is being prepared and must remain off until the gates in [validation-plan.md](validation-plan.md) pass. That protocol supersedes the original proposal below.
 
 ## What this test answers
 
@@ -29,7 +29,7 @@ Description: See their first page free.
 
 CTA: Learn more (destination promises the free preview).
 
-Destination: https://cravenandquill.com/?utm_source=meta&utm_medium=paid_social&utm_campaign=cq_uk_launch_2026&utm_content=reveal
+Destination: https://cravenandquill.com/?utm_source=meta&utm_medium=paid_social&utm_campaign=cq_uk_validation_2026&utm_content=reveal
 
 ### Ad B
 
@@ -41,7 +41,7 @@ Description: Create their free preview.
 
 CTA: Learn more.
 
-Destination: https://cravenandquill.com/?utm_source=meta&utm_medium=paid_social&utm_campaign=cq_uk_launch_2026&utm_content=book
+Destination: https://cravenandquill.com/?utm_source=meta&utm_medium=paid_social&utm_campaign=cq_uk_validation_2026&utm_content=book
 
 The two variants test overall concepts, not a single isolated wording change. Meta may allocate delivery unevenly, so this is not a statistically controlled A/B test.
 
@@ -49,11 +49,11 @@ The two variants test overall concepts, not a single isolated wording change. Me
 
 - Created account: Craven & Quill (1788200192428375), GBP, within Luke Craven's Business (359043274851885). Payment method saved, email verified and phone verified. Europe/London was selected during preparation. No campaigns active and £0 spent at verification on 27 September 2026.
 - Created Facebook Page: Craven & Quill (61595085862185), category Publisher. Select this Page in the campaign. A separate Instagram identity is not yet connected; do not use an unrelated existing brand.
-- Proposed test cap: **£200 media spend over 7 days**, no automatic extension. Use a campaign lifetime budget with explicit end date. Verify taxes/payment fees before any final spending approval; £200 is not an all-cost project budget.
+- Proposed test cap: **£100 media spend over 7 days**, no automatic extension. Use a campaign lifetime budget with explicit end date. Verify taxes/payment fees before any final spending approval; £100 is not an all-cost project budget.
 - Preview drawing API costs are separate. Production code limits accepted drawing requests to 50/day by default (durable DB counter), with the existing per-IP limit as an additional best-effort guard. Retries count. Confirm provider costs and set an appropriate project budget before paid traffic. A requests cap is not a monetary cap.
 - UK location, adults 25–60, all genders. Parent/gift-buyer language; no narrow audience stacking in a small test.
 - Placements: Facebook and Instagram feeds and Instagram Stories with the matching creative. Inspect all previews and disable unsuitable automatic crops/creative changes. No separate retargeting campaign initially.
-- This build has first-party consent-based measurement and saved-lead attribution, but **no Meta Pixel, Conversions API or email service**. It cannot optimise Meta delivery toward actual saved site leads yet. If launched in this state, use a clearly labelled preliminary Traffic/link-click test and evaluate signups in our own report. A Leads campaign needs a configured, consent-respecting conversion integration first. Do not claim those connections are complete.
+- Consent-gated browser Pixel integration is implemented, but the Meta dataset and production receipt verification are still pending. No Conversions API or email service is connected. Keep the original Traffic campaign off; the replacement must optimise website Leads after verification. Do not claim the Meta connection is live until the public pixel ID is configured and Test Events confirms receipt.
 
 ## Measure and decide
 
@@ -61,13 +61,13 @@ The private /campaign-results page requires SIGNUPS_EXPORT_TOKEN in its password
 
 | Measure | Proposed criterion |
 |---|---|
-| Qualified signup | One unique saved email, successful preview, chosen price and explicit email permission |
+| Qualified signup | One unique active email, successful preview, chosen price, explicit buying interest and email permission |
 | Signup cost | ≤£4 promising; £4–8 improve/retest; >£8 pause/rethink |
-| Evidence | At least 30 signups for a directional decision, not statistical proof |
+| Evidence | At least 25 qualified signups at ≤£4 for a paid-pilot decision, not proof of sales |
 | Measured landing conversion | Aim ≥10%; below 5% after 100 measured visits, revisit offer/journey |
 | Drawing reliability | Aim ≥95%; pause above 10% incomplete requests once there are 20 attempts |
-| Early stop | £50 spent and zero qualified UK paid signups |
-| Hard stop | Seven days or £200 media spend, whichever comes first |
+| Early stop | £30 spent and zero qualified UK paid signups |
+| Hard stop | Seven days or £100 media spend, whichever comes first |
 
 Criteria are business hypotheses, not industry benchmarks. The dashboard only shows review prompts; it does not automatically pause Meta. Before activation, set an actual end date and lifetime cap and arrange a daily review. No monitoring automation has been created.
 
