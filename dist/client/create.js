@@ -296,7 +296,7 @@ $('#join-launch').addEventListener('click',async()=>{
     void window.cqMeasurement?.savedLead(result.eventId);
     $('#launch-form').hidden=true;$('#launch-success').hidden=false;
     $('#step-7-title').textContent='Thank you.';
-  }catch(cause){error.textContent=cause.message;button.disabled=false;button.textContent='Continue';}
+  }catch(cause){error.textContent=cause.message;button.disabled=false;button.textContent='Email me when I can order';}
 });
 
 const context=document.modelContext;

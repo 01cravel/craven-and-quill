@@ -375,3 +375,6 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 @media(max-width:500px){#making-state{padding-top:16px}.drawing-brand{margin-bottom:30px}.drawing-progress{margin-top:30px}}
 
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Keep the order-notification action readable on narrow phones. */
+#join-launch{white-space:normal;line-height:1.3;padding:12px 20px}
