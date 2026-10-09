@@ -71,5 +71,7 @@ export async function storyApi(request,env){
   const text=content.filter(item=>item.type==='output_text').map(item=>item.text||'').join('');
   let story;try{story=validStory(JSON.parse(text));}catch{}
   if(!story)return reply({error:'The story did not come back complete. Your draft has not changed. Please try again.'},502);
+  // The title is an editable customer choice, not something a revision may silently rename.
+  if(input.previousStory)story.title=input.previousStory.title;
   return reply({ok:true,story});
 }

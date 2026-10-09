@@ -31,7 +31,7 @@ test('generates a complete structured story without creating contacts, leads or 
 test('revision includes the manually edited complete draft and requested changes',async()=>{
   const original=globalThis.fetch,previous=draft();previous.title='My edited title';previous.spreads[0].text='Leo put the ball beside his favourite chips.';
   globalThis.fetch=async(_url,options)=>{const sent=JSON.parse(JSON.parse(options.body).input[0].content);assert.equal(sent.previousStory.title,previous.title);assert.equal(sent.previousStory.spreads[0].text,previous.spreads[0].text);assert.equal(sent.changes,'Make the ending funnier.');return Response.json(result(draft()));};
-  try{assert.equal((await worker.fetch(request({...inputs,previousStory:previous,changes:'Make the ending funnier.'}),{DB:testDb(),OPENAI_API_KEY:'server-only'})).status,200);}finally{globalThis.fetch=original;}
+  try{const response=await worker.fetch(request({...inputs,previousStory:previous,changes:'Make the ending funnier.'}),{DB:testDb(),OPENAI_API_KEY:'server-only'});assert.equal(response.status,200);assert.equal((await response.json()).story.title,'My edited title');}finally{globalThis.fetch=original;}
 });
 
 test('rejects cross-site requests, oversized inputs and incomplete edited drafts before quota or provider use',async()=>{
