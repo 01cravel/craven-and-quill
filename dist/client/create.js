@@ -1,4 +1,4 @@
-const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'bundle',price:49.99};
+const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'bundle',price:49.99};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const track=(event,data={})=>{const names={free_preview_created:'preview_success',free_preview_failed:'preview_error'};if(names[event])window.cqMeasurement?.record(names[event]);};
@@ -98,7 +98,7 @@ function draftValid(story){return Boolean(typeof story?.title==='string'&&story.
 function updateStoryGate(){
   const outdated=Boolean(state.storyDraft&&(state.storyBasis!==storyBasis()||state.storylineNeedsUpdate));
   $('#story-outdated').hidden=!outdated;
-  $('#story-outdated').textContent=state.storylineNeedsUpdate?'You changed the storyline. Choose Update story to rewrite the pages before continuing.':'You changed their details or starting idea. Your draft is still here. Update it before continuing.';
+  $('#story-outdated').textContent=state.storylineNeedsUpdate?'You changed the storyline. Choose Rewrite story to update the pages before continuing.':'You changed their details or starting idea. Your draft is still here. Choose Rewrite story before continuing.';
   $('#use-story').disabled=storyWriting||!draftValid(state.storyDraft)||outdated;
   $('#generate-story').disabled=storyWriting;
   $('#revise-story').disabled=storyWriting;
@@ -113,17 +113,32 @@ function editDraft(){
   $$('#story-pages textarea').forEach((field,index)=>{state.storyDraft.spreads[index].text=field.value;});
   invalidatePreview();updateLive();
 }
+function updateStoryPage(index){
+  const total=state.storyDraft?.spreads.length||0;
+  state.storyPage=Math.max(0,Math.min(index,total-1));
+  $('#story-page-position').textContent=`Page ${state.storyPage+1} of ${total}`;
+  $('#story-previous').disabled=state.storyPage===0;
+  $('#story-next').disabled=state.storyPage>=total-1;
+  $$('#story-pages .story-page').forEach((page,i)=>{page.inert=i!==state.storyPage;page.setAttribute('aria-hidden',String(i!==state.storyPage));});
+}
+function turnStoryPage(index,behavior){
+  const pages=$('#story-pages');if(!state.storyDraft||!pages.clientWidth)return;
+  updateStoryPage(index);
+  pages.scrollTo({left:state.storyPage*pages.clientWidth,behavior:behavior||(matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth')});
+}
 function renderStoryDraft(){
   const story=state.storyDraft;$('#story-editor').hidden=false;
   $('#story-title').value=story.title;$('#story-synopsis').value=story.synopsis;
   const pages=$('#story-pages');pages.replaceChildren();
   story.spreads.forEach((page,index)=>{
-    const panel=document.createElement('details');panel.className='story-page';panel.open=index===0;
-    const summary=document.createElement('summary');summary.textContent=`Page ${index+1}`;
+    const panel=document.createElement('article');panel.className='story-page';panel.setAttribute('role','group');panel.setAttribute('aria-roledescription','page');panel.setAttribute('aria-label',`Page ${index+1} of ${story.spreads.length}`);
+    const folio=document.createElement('p');folio.className='story-page-folio';folio.textContent=`Page ${index+1}`;
     const label=document.createElement('label');label.htmlFor=`story-page-${index+1}`;label.textContent=`Story text for page ${index+1}`;
-    const field=document.createElement('textarea');field.id=label.htmlFor;field.rows=6;field.maxLength=1500;field.value=page.text;field.addEventListener('input',editDraft);
-    const content=document.createElement('div');content.append(label,field);panel.append(summary,content);pages.append(panel);
+    label.className='story-page-label';
+    const field=document.createElement('textarea');field.id=label.htmlFor;field.rows=10;field.maxLength=1500;field.value=page.text;field.addEventListener('input',editDraft);
+    panel.append(folio,label,field);pages.append(panel);
   });
+  turnStoryPage(state.storyPage,'instant');
   updateLive();
 }
 async function writeStory(revision=false){
@@ -145,6 +160,7 @@ async function writeStory(revision=false){
     const result=await response.json().catch(()=>({}));
     if(!response.ok||result.ok!==true||!draftValid(result.story))throw new Error(result.error||'The story did not finish. Your current draft has not changed. Please try again.');
     if(request!==storyRequest||capturedBasis!==storyBasis())throw new Error('Your details changed while we were writing. Your draft has not changed. Generate again with the latest details.');
+    if(!revision)state.storyPage=0;
     state.storyDraft=result.story;state.storyBasis=capturedBasis;state.storylineNeedsUpdate=false;invalidatePreview();renderStoryDraft();
     $('#story-changes').value='';$('#story-writing-status').textContent='Your story is ready to read and edit.';
     $('#story-editor-title').tabIndex=-1;$('#story-editor-title').focus({preventScroll:true});$('#story-editor').scrollIntoView({behavior:'smooth',block:'start'});
@@ -156,6 +172,16 @@ $('#own-idea').addEventListener('input',updateLive);
 $('#story-title').addEventListener('input',editDraft);$('#story-synopsis').addEventListener('input',editDraft);
 $('#generate-story').addEventListener('click',()=>{void writeStory();});
 $('#revise-story').addEventListener('click',()=>{void writeStory(true);});
+$('#story-previous').addEventListener('click',()=>turnStoryPage(state.storyPage-1));
+$('#story-next').addEventListener('click',()=>turnStoryPage(state.storyPage+1));
+$('#story-pages').addEventListener('scroll',()=>{const pages=$('#story-pages');if(pages.clientWidth&&state.storyDraft)updateStoryPage(Math.round(pages.scrollLeft/pages.clientWidth));},{passive:true});
+$('#story-pages').addEventListener('keydown',event=>{
+  if(event.target.matches('input,textarea,button')||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  event.preventDefault();
+  if(event.key==='Home'||event.key==='End')turnStoryPage(event.key==='Home'?0:state.storyDraft.spreads.length-1,'instant');
+  else turnStoryPage(state.storyPage+(event.key==='ArrowLeft'?-1:1));
+});
+new ResizeObserver(()=>turnStoryPage(state.storyPage,'instant')).observe($('#story-pages'));
 
 $('#names').addEventListener('input',updateLive);
 $('#second-name').addEventListener('input',updateLive);
