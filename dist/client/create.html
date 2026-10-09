@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=28">
+  <link rel="stylesheet" href="create.css?v=29">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -69,6 +69,10 @@
             </div>
           </fieldset>
 
+          <label for="personal-details">Tell us a little about them <span>Optional</span></label>
+          <textarea id="personal-details" name="personal-details" rows="4" maxlength="800" placeholder="They love Barcelona and football, fish and chips, and playing in the garden." aria-describedby="personal-details-note"></textarea>
+          <p class="privacy-line" id="personal-details-note">Favourite things, hobbies or little habits help make the story theirs. Please leave out surnames, school names and other private details.</p>
+
           <div class="error" id="step-1-error" role="alert"></div>
           <div class="step-actions step-actions-single"><button class="next" type="button" data-next="2">Choose story type <span>→</span></button></div>
         </section>
@@ -93,9 +97,9 @@
         </section>
 
         <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
-          <p class="eyebrow">Choose the story</p>
-          <h1 id="step-3-title">Choose their story.</h1>
-          <p class="intro" id="story-choice-intro">Pick one idea, or ask us for different ones.</p>
+          <p class="eyebrow">Their story</p>
+          <h1 id="step-3-title">Create their story.</h1>
+          <p class="intro" id="story-choice-intro">Choose a starting idea. We’ll write a story using the details you added.</p>
 
           <div id="ai-ideas">
             <p class="field-label">Choose a story <span>Required</span></p>
@@ -113,8 +117,27 @@
             </div>
           </div>
 
+          <div class="story-write-actions">
+            <button class="next" id="generate-story" type="button">Generate a story</button>
+            <p class="privacy-line">Their name, story choices and optional details go to OpenAI to write the story. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
+          </div>
+          <p id="story-writing-status" class="story-status" role="status" aria-live="polite"></p>
+          <p id="story-outdated" class="story-notice" hidden>You changed their details or starting idea. Your draft is still here. Update it before continuing.</p>
+          <section id="story-editor" aria-labelledby="story-editor-title" hidden>
+            <div class="story-editor-heading"><h2 id="story-editor-title">Make it their story.</h2><p>Edit any words below, or tell us what you’d like to change.</p></div>
+            <label for="story-title">Book title</label>
+            <input id="story-title" maxlength="120" autocomplete="off">
+            <label for="story-synopsis">Storyline</label>
+            <textarea id="story-synopsis" rows="3" maxlength="600" aria-describedby="story-synopsis-note"></textarea>
+            <p class="privacy-line" id="story-synopsis-note">Changing this summary won’t rewrite the pages until you choose Update story.</p>
+            <div id="story-pages" class="story-pages"></div>
+            <label for="story-changes">What would you like to change? <span>Optional</span></label>
+            <textarea id="story-changes" rows="3" maxlength="1000" placeholder="Set it in the garden. Make the football match funnier. Let them win by helping a friend."></textarea>
+            <button class="next" id="revise-story" type="button">Update story</button>
+            <p class="privacy-line">We’ll use your edited draft and changes to write a new version. If it fails, your current draft stays here.</p>
+          </section>
           <div class="error" id="step-3-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" type="button" data-next="4">Add their photo <span>→</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="use-story" type="button" data-next="4" disabled>Use this story</button></div>
         </section>
 
         <section class="step" data-step="4" aria-labelledby="step-4-title" hidden>
@@ -164,7 +187,8 @@
                 <figure class="preview-art" id="preview-art"><img id="preview-image" src="assets/storybook.webp" width="900" height="1125" alt="Sample personalised story illustration format"><img id="preview-image-second" width="900" height="1125" alt="" hidden><span>Free preview</span></figure>
                 <article class="preview-copy"><p class="chapter" id="preview-chapter">The adventure begins</p><p id="story-copy"></p></article>
               </div>
-              <div class="locked-pages" aria-label="Locked story pages"><strong>Their story continues.</strong><div id="locked-dots"></div></div>
+              <div class="locked-pages" aria-label="Story picture progress"><strong>More illustrations when orders open.</strong><div id="locked-dots"></div></div>
+              <button class="shuffle" type="button" data-back="3">Edit the story</button>
             </section>
             <div class="error" id="step-5-error" role="alert"></div>
             <div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next" id="choose-book" type="button" data-next="6" disabled>Choose your book <span>→</span></button></div>
@@ -211,6 +235,6 @@
   <script src="campaign.js?v=2" defer></script>
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=27" defer></script>
-  <script src="create.js?v=28" defer></script>
+  <script src="create.js?v=29" defer></script>
 </body>
 </html>

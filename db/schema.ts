@@ -23,6 +23,11 @@ export const previewDailyUsage=sqliteTable('preview_daily_usage',{
   day:text('day').primaryKey(),attempts:integer('attempts').notNull().default(0),
 });
 
+// Story-writing attempts have their own budget; they are never image preview receipts.
+export const storyDailyUsage=sqliteTable('story_daily_usage',{
+  day:text('day').primaryKey(),attempts:integer('attempts').notNull().default(0),
+});
+
 // Requested-preview contacts are not opted-in marketing leads or buying intent.
 export const previewContacts=sqliteTable('preview_contacts',{
   email:text('email').primaryKey(),source:text('source').notNull(),medium:text('medium').notNull(),campaign:text('campaign').notNull(),creative:text('creative').notNull(),country:text('country').notNull(),createdAt:text('created_at').notNull(),updatedAt:text('updated_at').notNull(),

@@ -1,4 +1,5 @@
 import {campaignApi,beginPreview,finishPreview} from './campaign.js';
+import {storyApi} from './story.js';
 const RATE_WINDOW_MS=60*60*1000;
 const RATE_LIMIT=3;
 const rateBuckets=new Map();
@@ -105,6 +106,7 @@ async function serveAsset(request,env){
 
 export default {async fetch(request,env){
   const url=new URL(request.url);
+  const storyResponse=await storyApi(request,env);if(storyResponse)return storyResponse;
   if(url.pathname==='/api/preview-email'&&request.method==='POST'&&rateLimited(request,signupBuckets,SIGNUP_RATE_LIMIT))return json({error:'Too many attempts. Please try again later.'},429);
   const campaignResponse=await campaignApi(request,env);if(campaignResponse)return campaignResponse;
   if(url.pathname==='/api/generate-character')return generateCharacter(request,env);

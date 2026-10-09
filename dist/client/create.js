@@ -1,4 +1,4 @@
-const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'bundle',price:49.99};
+const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'bundle',price:49.99};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const track=(event,data={})=>{const names={free_preview_created:'preview_success',free_preview_failed:'preview_error'};if(names[event])window.cqMeasurement?.record(names[event]);};
@@ -38,13 +38,15 @@ function updateLive(){
   state.secondName=$('#second-person').hidden?'':$('#second-name').value.trim();
   state.age=($('input[name="age"]:checked')||{}).value||'6-8';
   state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';
+  state.details=$('#personal-details').value.trim();
   $('#live-name').textContent=(fullNames()||'Someone special').toUpperCase();
   const ageLabels={'3-5':'Age 3–5','6-8':'Age 6–8','9-11':'Age 9–11','9-12':'Age 9–12','teen-adult':'Teen or adult'};
   $('#live-age').textContent=ageLabels[state.age]||'Reading level set';
   $('#live-mood').textContent=state.mood==='own'?'Their own idea':state.mood[0].toUpperCase()+state.mood.slice(1);
   const chosen=state.ideas[state.selected];
-  $('#live-title').textContent=state.mood==='own'?'Their own adventure':chosen?.[0]||ideaBanks[state.mood]?.[0]?.[0]||'Their own story';
+  $('#live-title').textContent=state.storyDraft?.title||(state.mood==='own'?'Their own adventure':chosen?.[0]||ideaBanks[state.mood]?.[0]?.[0]||'Their own story');
   updateCover();
+  updateStoryGate();
 }
 
 function scrollToStepTop(number){
@@ -67,24 +69,93 @@ function showStep(number){
 }
 
 function buildIdeas(){
+  const previousIdea=state.ideas[state.selected]?.[0];
+  const hadPersonalIdea=state.ideas.some(idea=>idea[0]==='A story from their favourite things');
   state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';
   const own=state.mood==='own';
-  $('#step-3-title').textContent=own?'Tell us your story.':'Choose their story.';
-  $('#story-choice-intro').textContent=own?'Describe what should happen. One or two sentences is enough.':'Pick one idea, or ask us for different ones.';
+  $('#step-3-title').textContent=own?'Start with your idea.':'Create their story.';
+  $('#story-choice-intro').textContent=own?'Describe what should happen. We’ll turn it and their favourite things into a story you can edit.':'Choose a starting idea. We’ll write a story using the details you added.';
   $('#ai-ideas').hidden=own;
   $('#own-options').hidden=!own;
   if(own){state.ideas=[];state.selected=0;updateLive();return;}
   const bank=ideaBanks[state.mood];
   state.ideas=[0,1,2].map(index=>bank[(index+ideaOffset)%bank.length]);
+  if(state.details)state.ideas.unshift(['A story from their favourite things','An original story built around their hobbies, favourite things and everyday adventures.']);
+  state.selected=state.details&&!hadPersonalIdea?0:Math.max(0,state.ideas.findIndex(idea=>idea[0]===previousIdea));
   const list=$('#idea-list');list.replaceChildren();
   state.ideas.forEach((idea,index)=>{
     const label=document.createElement('label');label.className='idea';
-    label.innerHTML=`<input type="radio" name="story-idea" value="${index}" ${index===0?'checked':''}><span><b>${idea[0]}</b><small>${idea[1]}</small></span>`;
+    label.innerHTML=`<input type="radio" name="story-idea" value="${index}" ${index===state.selected?'checked':''}><span><b>${idea[0]}</b><small>${idea[1]}</small></span>`;
     label.querySelector('input').addEventListener('change',()=>{state.selected=index;updateLive();});
     list.append(label);
   });
-  state.selected=0;updateLive();
+  updateLive();
 }
+
+let storyWriting=false,storyRequest=0;
+function storyBasis(){return JSON.stringify({names:state.names,secondName:state.secondName,age:state.age,mood:state.mood,details:state.details,idea:state.mood==='own'?$('#own-idea').value.trim():state.ideas[state.selected]?.[1]||''});}
+function draftValid(story){return Boolean(typeof story?.title==='string'&&story.title.trim()&&story.title.length<=120&&typeof story?.synopsis==='string'&&story.synopsis.trim()&&story.synopsis.length<=600&&Array.isArray(story.spreads)&&story.spreads.length===10&&story.spreads.every(page=>typeof page?.text==='string'&&page.text.trim()&&page.text.length<=1500&&typeof page?.image_scene==='string'&&page.image_scene.trim()&&page.image_scene.length<=800));}
+function updateStoryGate(){
+  const outdated=Boolean(state.storyDraft&&(state.storyBasis!==storyBasis()||state.storylineNeedsUpdate));
+  $('#story-outdated').hidden=!outdated;
+  $('#story-outdated').textContent=state.storylineNeedsUpdate?'You changed the storyline. Choose Update story to rewrite the pages before continuing.':'You changed their details or starting idea. Your draft is still here. Update it before continuing.';
+  $('#use-story').disabled=storyWriting||!draftValid(state.storyDraft)||outdated;
+  $('#generate-story').disabled=storyWriting;
+  $('#revise-story').disabled=storyWriting;
+  $('#generate-story').textContent=storyWriting?'Writing your story…':state.storyDraft?'Generate a new story':'Generate a story';
+}
+function invalidatePreview(){state.characterImages=[];state.previewId=null;$('#choose-book').disabled=true;}
+function editDraft(){
+  if(!state.storyDraft)return;
+  state.storyDraft.title=$('#story-title').value;
+  if(state.storyDraft.synopsis!==$('#story-synopsis').value)state.storylineNeedsUpdate=true;
+  state.storyDraft.synopsis=$('#story-synopsis').value;
+  $$('#story-pages textarea').forEach((field,index)=>{state.storyDraft.spreads[index].text=field.value;});
+  invalidatePreview();updateLive();
+}
+function renderStoryDraft(){
+  const story=state.storyDraft;$('#story-editor').hidden=false;
+  $('#story-title').value=story.title;$('#story-synopsis').value=story.synopsis;
+  const pages=$('#story-pages');pages.replaceChildren();
+  story.spreads.forEach((page,index)=>{
+    const panel=document.createElement('details');panel.className='story-page';panel.open=index===0;
+    const summary=document.createElement('summary');summary.textContent=`Page ${index+1}`;
+    const label=document.createElement('label');label.htmlFor=`story-page-${index+1}`;label.textContent=`Story text for page ${index+1}`;
+    const field=document.createElement('textarea');field.id=label.htmlFor;field.rows=6;field.maxLength=1500;field.value=page.text;field.addEventListener('input',editDraft);
+    const content=document.createElement('div');content.append(label,field);panel.append(summary,content);pages.append(panel);
+  });
+  updateLive();
+}
+async function writeStory(revision=false){
+  if(storyWriting)return;
+  updateLive();
+  const error=$('#step-3-error');error.textContent='';
+  const basis=JSON.parse(storyBasis());
+  if(!basis.names){error.textContent='Add their first name before generating a story.';showStep(1);$('#names').focus();return;}
+  if(!basis.idea){error.textContent='Add a starting idea before generating the story.';$('#own-idea').focus();return;}
+  if(revision&&!draftValid(state.storyDraft)){error.textContent='Keep a title, storyline and words on all ten pages before updating the story.';return;}
+  const changes=revision?$('#story-changes').value.trim():'';
+  const capturedBasis=storyBasis(),request=++storyRequest;
+  const previous=revision?JSON.parse(JSON.stringify(state.storyDraft)):null;
+  storyWriting=true;updateStoryGate();
+  $('#story-writing-status').textContent=revision?'Updating the story. Your current version stays below.':'Writing their ten-page story…';
+  $$('#story-editor input,#story-editor textarea').forEach(field=>field.disabled=true);
+  try{
+    const response=await fetch('/api/generate-story',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...basis,changes,previousStory:previous}),signal:AbortSignal.timeout(85000)});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok||result.ok!==true||!draftValid(result.story))throw new Error(result.error||'The story did not finish. Your current draft has not changed. Please try again.');
+    if(request!==storyRequest||capturedBasis!==storyBasis())throw new Error('Your details changed while we were writing. Your draft has not changed. Generate again with the latest details.');
+    state.storyDraft=result.story;state.storyBasis=capturedBasis;state.storylineNeedsUpdate=false;invalidatePreview();renderStoryDraft();
+    $('#story-changes').value='';$('#story-writing-status').textContent='Your story is ready to read and edit.';
+    $('#story-editor-title').tabIndex=-1;$('#story-editor-title').focus({preventScroll:true});$('#story-editor').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(cause){error.textContent=cause.name==='TimeoutError'?'The story took too long. Your draft has not changed. Please try again.':cause.message||'We could not write the story. Your draft has not changed.';$('#story-writing-status').textContent='';}
+  finally{storyWriting=false;$$('#story-editor input,#story-editor textarea').forEach(field=>field.disabled=false);updateStoryGate();}
+}
+$('#personal-details').addEventListener('input',updateLive);
+$('#own-idea').addEventListener('input',updateLive);
+$('#story-title').addEventListener('input',editDraft);$('#story-synopsis').addEventListener('input',editDraft);
+$('#generate-story').addEventListener('click',()=>{void writeStory();});
+$('#revise-story').addEventListener('click',()=>{void writeStory(true);});
 
 $('#names').addEventListener('input',updateLive);
 $('#second-name').addEventListener('input',updateLive);
@@ -92,7 +163,7 @@ $$('input[name="age"]').forEach(input=>input.addEventListener('change',updateLiv
 $$('input[name="mood"]').forEach(input=>input.addEventListener('change',()=>{ideaOffset=0;buildIdeas();}));
 $('#add-person').addEventListener('click',()=>{const panel=$('#second-person');const opening=panel.hidden;panel.hidden=!opening;$('#add-person').innerHTML=opening?'− Remove second person <span>Optional</span>':'+ Add another person <span>Optional</span>';if(opening)$('#second-name').focus();else{$('#second-name').value='';updateLive();}});
 $('#shuffle-ideas').addEventListener('click',()=>{ideaOffset=(ideaOffset+3)%5;buildIdeas();track('story_ideas_shuffled',{mood:state.mood});});
-$$('[data-prompt]').forEach(button=>button.addEventListener('click',()=>{$('#own-idea').value=button.dataset.prompt;$('#own-idea').focus();}));
+$$('[data-prompt]').forEach(button=>button.addEventListener('click',()=>{$('#own-idea').value=button.dataset.prompt;updateLive();$('#own-idea').focus();}));
 
 async function inspectPhoto(file){
   const allowed=['image/jpeg','image/png','image/webp'];
@@ -156,6 +227,7 @@ $('#photos').addEventListener('change',async event=>{
 });
 
 function selectedStory(){
+  if(state.storyDraft)return[state.storyDraft.title,state.storyDraft.synopsis];
   if(state.mood==='own'){
     const summary=$('#own-idea').value.trim();
     const hero=fullNames()||'The Hero';
@@ -171,6 +243,7 @@ function selectedStory(){
 }
 
 function previewText(idea){
+  if(state.storyDraft)return state.storyDraft.spreads[0].text;
   const who=fullNames()||'Our hero';
   if(state.mood==='own'){
     if(state.age==='3-5')return`${who} took one brave step. ${idea[1]} And that was where the adventure began.`;
@@ -185,7 +258,7 @@ function previewText(idea){
 let drawingProgress=null,generationBusy=false;
 async function requestCharacter(file,name){
   const idea=selectedStory();const form=new FormData();
-  form.append('photo',file,file.name||'photo.jpg');form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',idea?.[1]||'');
+  form.append('photo',file,file.name||'photo.jpg');form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',`${idea?.[1]||''} ${state.storyDraft?.spreads[0]?.text||''}`.slice(0,500));
   const data=await window.cqPreviewProgress.request(form,event=>drawingProgress?.update(event));
   state.previewId=data.previewId||null;
   return data.image;
@@ -248,9 +321,11 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     $('#step-1-error').textContent='';
   }
   if(state.step===2){
-    state.mood=$('input[name="mood"]:checked').value;$('#step-2-error').textContent='';ideaOffset=0;buildIdeas();updateLive();
+    state.mood=$('input[name="mood"]:checked').value;$('#step-2-error').textContent='';buildIdeas();updateLive();
   }
   if(state.step===3){
+    if(storyWriting||!draftValid(state.storyDraft)){$('#step-3-error').textContent='Generate their story, then read and edit it before continuing.';return;}
+    if(state.storyBasis!==storyBasis()||state.storylineNeedsUpdate){$('#step-3-error').textContent='Update the story to use the latest storyline and details before continuing.';return;}
     state.ownIdea=$('#own-idea').value.trim();
     if(state.mood==='own'&&!state.ownIdea){$('#step-3-error').textContent='Tell us what should happen, even in one sentence.';$('#own-idea').focus();return;}
     if(state.mood!=='own'&&!$('input[name="story-idea"]:checked')){$('#step-3-error').textContent='Choose one story idea.';return;}
