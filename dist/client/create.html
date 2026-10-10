@@ -20,9 +20,9 @@
     <a class="brand" href="index.html"><img src="assets/logo-mark-on-white.png" width="420" height="401" alt=""><span>Craven &amp; Quill</span></a>
     <nav class="journey" aria-label="Your progress">
       <span class="journey-step active" data-progress="1"><b>1</b><em>About them</em></span>
-      <span class="journey-step" data-progress="2"><b>2</b><em>Direction</em></span>
-      <span class="journey-step" data-progress="3"><b>3</b><em>Story</em></span>
-      <span class="journey-step" data-progress="4"><b>4</b><em>Photo</em></span>
+      <span class="journey-step" data-progress="2"><b>2</b><em>Photo</em></span>
+      <span class="journey-step" data-progress="3"><b>3</b><em>Direction</em></span>
+      <span class="journey-step" data-progress="4"><b>4</b><em>Story</em></span>
       <span class="journey-step" data-progress="5"><b>5</b><em>Preview</em></span>
       <span class="journey-step" data-progress="6"><b>6</b><em>Your book</em></span>
       <span class="journey-step" data-progress="7"><b>7</b><em>Launch list</em></span>
@@ -74,12 +74,40 @@
           <p class="privacy-line" id="personal-details-note">Favourite things, hobbies or little habits help make the story theirs. Please leave out surnames, school names and other private details.</p>
 
           <div class="error" id="step-1-error" role="alert"></div>
-          <div class="step-actions step-actions-single"><button class="next" type="button" data-next="2">Choose story type <span>→</span></button></div>
+          <div class="step-actions step-actions-single"><button class="next" type="button" data-next="2">Add a clear photo <span>→</span></button></div>
         </section>
 
         <section class="step" data-step="2" aria-labelledby="step-2-title" hidden>
+          <p class="eyebrow">Create their character</p>
+          <h1 id="step-2-title">Add a clear photo.</h1>
+          <p class="intro">Choose a well-lit photo with their whole face visible. We’ll use it to draw their character after you’ve chosen and edited the story.</p>
+
+          <div class="upload-wrap">
+            <label class="upload" for="photos"><span class="upload-icon">+</span><strong>Add a clear photo</strong><small>Face forward, both eyes clear, no sunglasses.</small></label>
+            <input id="photos" name="photos" type="file" accept="image/*,.heic,.heif,.avif" multiple required aria-label="Add a clear photo">
+          </div>
+          <div class="photo-list" id="photo-list"></div>
+          <div class="photo-check" id="photo-check" hidden aria-live="polite"></div>
+
+          <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>The face is clear</b><small>Whole face and both eyes visible.</small></span></label>
+          <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I’m allowed to use this photo</b><small>For a child, you’re their parent or guardian, or have their permission.</small></span></label>
+
+          <p class="privacy-line">Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
+
+          <div id="preview-email-wrap" hidden>
+            <label class="field-label" for="email">Your email</label>
+            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
+            <p class="privacy-line" id="preview-email-note">We save your email when you create a preview. Marketing emails are optional and asked about later.</p>
+          </div>
+
+          <div class="error" id="step-2-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" id="photo-continue" type="button" data-next="3" disabled>Choose story type <span>→</span></button></div>
+          <p class="under-button">Free. No card needed.</p>
+        </section>
+
+        <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
           <p class="eyebrow">Story direction</p>
-          <h1 id="step-2-title">What kind of story will they love?</h1>
+          <h1 id="step-3-title">What kind of story will they love?</h1>
           <p class="intro">Choose the style. We’ll show you matching story ideas next.</p>
 
           <fieldset>
@@ -92,13 +120,13 @@
             </div>
           </fieldset>
 
-          <div class="error" id="step-2-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" type="button" data-next="3">Choose a story <span>→</span></button></div>
+          <div class="error" id="step-3-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" type="button" data-next="4">Choose a story <span>→</span></button></div>
         </section>
 
-        <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
+        <section class="step" data-step="4" aria-labelledby="step-4-title" hidden>
           <p class="eyebrow">Their story</p>
-          <h1 id="step-3-title">Create their story.</h1>
+          <h1 id="step-4-title">Create their story.</h1>
           <p class="intro" id="story-choice-intro">Choose a starting idea. We’ll write a story using the details you added.</p>
 
           <div id="ai-ideas">
@@ -148,36 +176,8 @@
               <p class="privacy-line">If the rewrite fails, your current draft stays here.</p>
             </section>
           </section>
-          <div class="error" id="step-3-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="use-story" type="button" data-next="4" disabled>Use this story</button></div>
-        </section>
-
-        <section class="step" data-step="4" aria-labelledby="step-4-title" hidden>
-          <p class="eyebrow">Create their character</p>
-          <h1 id="step-4-title">Add a clear photo.</h1>
-          <p class="intro">We draw their cartoon character from it.</p>
-
-          <div class="upload-wrap">
-            <label class="upload" for="photos"><span class="upload-icon">+</span><strong>Add a photo</strong><small>Face forward, both eyes clear, no sunglasses.</small></label>
-            <input id="photos" name="photos" type="file" accept="image/*,.heic,.heif,.avif" multiple required aria-label="Add a clear photo">
-          </div>
-          <div class="photo-list" id="photo-list"></div>
-          <div class="photo-check" id="photo-check" hidden aria-live="polite"></div>
-
-          <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>The face is clear</b><small>Whole face and both eyes visible.</small></span></label>
-          <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I’m allowed to use this photo</b><small>For a child, you’re their parent or guardian, or have their permission.</small></span></label>
-
-          <p class="privacy-line">Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
-
-          <div id="preview-email-wrap" hidden>
-            <label class="field-label" for="email">Your email</label>
-            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
-            <p class="privacy-line" id="preview-email-note">We save your email when you create a preview. Marketing emails are optional and asked about later.</p>
-          </div>
-
           <div class="error" id="step-4-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next make" id="create-preview" type="button" data-next="5" disabled>Create free preview <span>→</span></button></div>
-          <p class="under-button">Free. No card needed.</p>
+          <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next" id="use-story" type="button" data-next="5" disabled>Create free preview</button></div>
         </section>
 
         <section class="step preview-step" data-step="5" aria-labelledby="step-5-title" hidden>
@@ -200,7 +200,7 @@
                 <article class="preview-copy"><p class="chapter" id="preview-chapter">The adventure begins</p><p id="story-copy"></p></article>
               </div>
               <div class="locked-pages" aria-label="Story picture progress"><strong>More illustrations when orders open.</strong><div id="locked-dots"></div></div>
-              <button class="shuffle" type="button" data-back="3">Edit the story</button>
+              <button class="shuffle" type="button" data-back="4">Edit the story</button>
             </section>
             <div class="error" id="step-5-error" role="alert"></div>
             <div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next" id="choose-book" type="button" data-next="6" disabled>Choose your book <span>→</span></button></div>
