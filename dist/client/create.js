@@ -1,4 +1,4 @@
-const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'bundle',price:49.99};
+const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a5',price:49.99};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const track=(event,data={})=>{const names={free_preview_created:'preview_success',free_preview_failed:'preview_error'};if(names[event])window.cqMeasurement?.record(names[event]);};
@@ -377,30 +377,25 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
 
 $$('[data-back]').forEach(button=>button.addEventListener('click',()=>showStep(Number(button.dataset.back))));
 
+let orderCatalog=null,orderRequest=null;
+async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('strong').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Save your approved story, then continue to secure payment. No book prints until you and our team approve the finished proof.';$('#join-launch').textContent='Save and continue to payment';}updateProduct();}catch{}}
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
-  const labels={bundle:'Digital & Hardback',hardback:'Hardback',digital:'Digital'};
-  $('#order-label').textContent=labels[state.product];$('#purchase-intent-label').textContent=`I’m interested in buying ${labels[state.product]} at £${state.price.toFixed(2)} when available.`;
-  $('#order-price').textContent=`£${Number.isInteger(state.price)?state.price:state.price.toFixed(2)}`;
+  $('#order-label').textContent=state.product==='a4'?'A4 hardback + digital PDF':'A5 hardback + digital PDF';
+  $('#order-price').textContent=`£${state.price.toFixed(2)}`;
 }
-$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{$('#purchase-intent').checked=false;updateProduct();}));
-
+$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{$('#purchase-intent').checked=false;orderRequest=null;updateProduct();}));
 $('#join-launch').addEventListener('click',async()=>{
-  const error=$('#step-7-error');const button=$('#join-launch');if(button.disabled)return;
-  const email=$('#email').value.trim().toLowerCase();
-  if(!validPreviewEmail()){showStep(2);$('#step-2-error').textContent='Enter a valid email address.';$('#email').focus();return;}
-  if(!$('#launch-consent').checked){error.textContent='Tick the email permission box to join the launch list.';$('#launch-consent').focus();return;}
-  if(!$('#purchase-intent').checked){error.textContent='Confirm your interest at the displayed price to join this list.';$('#purchase-intent').focus();return;}
-  updateProduct();button.disabled=true;button.textContent='Saving…';error.textContent='';
-  try{
-    const response=await fetch('/api/launch-signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,product:state.product,previewId:state.previewId,consent:true,purchaseIntent:true,consentVersion:'storybook-validation-2026-09-29',website:$('#website').value,...window.cqMeasurement?.context()})});
-    const result=await response.json().catch(()=>({}));
-    if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save that just now. Please try again.');
-    void window.cqMeasurement?.savedLead(result.eventId);
-    $('#launch-form').hidden=true;$('#launch-success').hidden=false;
-    $('#step-7-title').textContent='Thank you.';
-  }catch(cause){error.textContent=cause.message;button.disabled=false;button.textContent='Email me when I can order';}
+ const error=$('#step-7-error'),button=$('#join-launch');if(button.disabled)return;
+ if(!validPreviewEmail()){showStep(2);$('#step-2-error').textContent='Enter a valid email address.';return;}
+ if(!$('#purchase-intent').checked||!$('#order-permission').checked){error.textContent='Confirm the story and your permission to create this book.';return;}
+ const fields=['recipient-name','address-line1','town','postcode'];const invalid=fields.find(id=>!$('#'+id).value.trim());if(invalid){error.textContent='Complete the UK delivery address.';$('#'+invalid).focus();return;}
+ if(!draftValid(state.storyDraft)||!state.characterImages.length){error.textContent='Finish the story and character preview first.';return;}
+ updateProduct();button.disabled=true;button.textContent='Saving your book…';error.textContent='';
+ orderRequest=orderRequest||{id:crypto.randomUUID(),key:crypto.randomUUID()+crypto.randomUUID()};
+ try{const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestId:orderRequest.id,accessToken:orderRequest.key,email:$('#email').value.trim().toLowerCase(),size:state.product,story:state.storyDraft,names:fullNames(),age:state.age,previewId:state.previewId,characters:state.characterImages,approvedStory:true,photoPermission:true,dedication:$('#dedication').value.trim(),recipient:{name:$('#recipient-name').value.trim(),address:{line1:$('#address-line1').value.trim(),line2:$('#address-line2').value.trim(),townOrCity:$('#town').value.trim(),postalOrZipCode:$('#postcode').value.trim(),countryCode:'GB'}}}),signal:AbortSignal.timeout(45000)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Your book could not be saved. Please retry.');location.assign(`/order.html?id=${data.order.id}#key=${orderRequest.key}`);}catch(cause){error.textContent=cause.message||'The connection stopped. Retry to save the same book without duplicating it.';button.disabled=false;button.textContent=orderCatalog?.checkoutEnabled?'Save and continue to payment':'Save my book, no payment';}
 });
+void loadOrderCatalog();
 
 const context=document.modelContext;
 if(context?.registerTool){const lifecycle=new AbortController();try{void Promise.resolve(context.registerTool({name:'read_story_maker_state',title:'Read story maker',description:'Read the visible step and non-photo choices. Uploaded images are never exposed.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute:()=>({step:state.step,names:fullNames(),age:state.age,mood:state.mood,selectedIdea:selectedStory()?.[0]||null,product:state.product})},{signal:lifecycle.signal})).catch(()=>{});}catch{}}
