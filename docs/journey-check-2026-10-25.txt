@@ -1,0 +1,11 @@
+A5/A4 order journey verification, 25 October 2026
+
+65 automated checks passed. Two new integrated journeys exercise the production order handlers with isolated SQLite/object storage and simulated Ziina/Prodigi/Resend responses: save, server-owned price, checkout, payment verification, receipt, rendered 28-page PDF upload, proof email, customer approval, separate owner approval, explicit release, signed file retrieval, duplicate-release rejection, print notice, tracking. Both sizes pass.
+
+Browser checks using the local QA server: A5 £49.99 and A4 £59.99, proof rendering, mandatory customer checkbox, customer approval leaves awaiting_approval, three owner checks required, owner approval leaves approved, test-payment print release stays disabled. The QA server now separates customer (127.0.0.1) from simulated owner (localhost) and supports CQ_QA_SIZE=a4.
+
+Actual Resend delivery: six test-labelled emails sent to Luke using the production email renderer, receipt/proof/printer-submission for each size. All six show Delivered in Resend. These are template delivery checks, not production customer orders; no real payment or print submission occurred.
+
+Fixed customer checkout error disappearing when automatic refresh cleared the message. Refresh now completes before the original checkout error is displayed.
+
+Limits: this is not a complete live hosted purchase certification. Existing real Ziina sandbox checkout tests passed previously, but this run uses simulated payment/printing responses. AI artwork generation uses fixture art here. Real refund behaviour remains unverified due to Ziina TRANSACTION_NOT_FOUND. No production customer checkout enabled, no tax confirmation changed, no money charged or live Prodigi order created. Manual owner approval plus separate release remains mandatory.

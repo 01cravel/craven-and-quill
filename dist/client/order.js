@@ -5,6 +5,6 @@ async function refresh(){try{const r=await fetch('/api/orders/catalog');cat=awai
 async function callProofUrl(){return `/api/orders/${id}/file?proof=${encodeURIComponent(order.proof.hash)}`;}
 $('#copy-link').onclick=async()=>{try{await navigator.clipboard.writeText(privateLink);$('#message').textContent='Private link copied.';}catch{$('#message').textContent='Copy the private link shown above.';}};
 $('#refresh').onclick=refresh;
-$('#pay').onclick=async()=>{try{$('#pay').disabled=true;const r=await call('checkout',{});location.assign(r.url);}catch(e){$('#message').textContent=e.message;$('#pay').disabled=false;await refresh();}};
+$('#pay').onclick=async()=>{try{$('#pay').disabled=true;const r=await call('checkout',{});location.assign(r.url);}catch(e){$('#pay').disabled=false;await refresh();$('#message').textContent=e.message;}};
 $('#approve').onclick=async()=>{try{if(!$('#proof-confirm').checked)throw new Error('Check every page, then tick the approval box.');$('#approve').disabled=true;await call('approve-proof',{confirm:true,proofHash:order.proof.hash});await refresh();}catch(e){$('#message').textContent=e.message;$('#approve').disabled=false;}};
 (async()=>{if(!/^[a-f0-9-]{36}$/.test(id||'')){$('#message').textContent='Open the private link from your saved book.';return;}if(key){try{await call('session',{token:key});}catch(e){$('#message').textContent=e.message;return;}}await refresh();})();
