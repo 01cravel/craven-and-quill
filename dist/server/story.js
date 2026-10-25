@@ -49,29 +49,41 @@ export async function storyApi(request,env){
   let input;try{input=await readInput(request);}catch{return reply({error:'We could not read those details. Please try again.'},400);}
   if(!input)return reply({error:'Check the name, story idea and details, then try again.'},400);
   if(!env.OPENAI_API_KEY||!env.DB)return reply({error:'Story writing is temporarily unavailable. Your current draft has not changed.'},503);
+  const supplied=request.headers.get('Cookie')?.match(/(?:^|;\s*)cq_story_budget=([a-f0-9-]{36})(?:;|$)/)?.[1];
+  const budget=supplied||crypto.randomUUID();
+  const cookie=`cq_story_budget=${budget}; Path=/; Max-Age=604800; HttpOnly; Secure; SameSite=Lax`;
+  let remaining=0;
+  const respond=(body,status=200,headers={})=>reply({...body,rewritesRemaining:remaining},status,{'Set-Cookie':cookie,...headers});
+  try{
+    await env.DB.prepare('CREATE TABLE IF NOT EXISTS story_rewrite_budgets (id TEXT PRIMARY KEY, attempts INTEGER NOT NULL, allowance INTEGER NOT NULL)').run();
+    // Atomic reservation, including simultaneous requests. Cookie survives refresh; never trust a client counter.
+    const row=await env.DB.prepare('INSERT INTO story_rewrite_budgets (id,attempts,allowance) VALUES (?1,1,?2) ON CONFLICT(id) DO UPDATE SET attempts=attempts+1 WHERE attempts<allowance RETURNING attempts,allowance').bind(budget,input.previousStory?3:4).first();
+    if(!row)return respond({error:'You have used your three rewrite attempts. You can still edit every page yourself.'},429);
+    remaining=row.allowance-row.attempts;
+  }catch{return respond({error:'Story writing is temporarily unavailable. Your current draft has not changed.'},503);}
   const now=Date.now(),ip=request.headers.get('CF-Connecting-IP')||'unknown';
   if(hourly.size>2000)for(const [key,value] of hourly)if(now-value.since>=3600000)hourly.delete(key);
   const bucket=hourly.get(ip);
-  if(bucket&&now-bucket.since<3600000&&bucket.attempts>=6)return reply({error:'You have used the story tries for now. You can still edit your draft. Try again in an hour.'},429,{'Retry-After':'3600'});
+  if(bucket&&now-bucket.since<3600000&&bucket.attempts>=6)return respond({error:'You have used the story tries for now. You can still edit your draft. Try again in an hour.'},429,{'Retry-After':'3600'});
   if(!bucket||now-bucket.since>=3600000)hourly.set(ip,{since:now,attempts:1});else bucket.attempts+=1;
   const day=new Date(now).toISOString().slice(0,10);
   try{
     const row=await env.DB.prepare('INSERT INTO story_daily_usage (day, attempts) VALUES (?1, 1) ON CONFLICT(day) DO UPDATE SET attempts=attempts+1 WHERE attempts<?2 RETURNING attempts').bind(day,DAILY_LIMIT).first();
-    if(!row)return reply({error:'Today’s story-writing limit has been reached. Your draft is still here to edit. Please try again tomorrow.'},429);
-  }catch{return reply({error:'Story writing is temporarily unavailable. Your current draft has not changed.'},503);}
+    if(!row)return respond({error:'Today’s story-writing limit has been reached. Your draft is still here to edit. Please try again tomorrow.'},429);
+  }catch{return respond({error:'Story writing is temporarily unavailable. Your current draft has not changed.'},503);}
   let response,data;
   try{
     response=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini',store:false,instructions,input:[{role:'user',content:JSON.stringify(input)}],max_output_tokens:8000,text:{format:{type:'json_schema',name:'storybook',strict:true,schema}}}),signal:AbortSignal.timeout(75000)});
     data=await response.json();
-  }catch{return reply({error:'The story could not finish this time. Your draft has not changed. Try again when you’re ready.'},502);}
-  if(!response.ok)return reply({error:'The story could not be written this time. Your draft has not changed. Please try again later.'},502);
+  }catch{return respond({error:'The story could not finish this time. Your draft has not changed. Try again when you’re ready.'},502);}
+  if(!response.ok)return respond({error:'The story could not be written this time. Your draft has not changed. Please try again later.'},502);
   const content=(Array.isArray(data?.output)?data.output:[]).filter(item=>item?.type==='message').flatMap(item=>Array.isArray(item.content)?item.content:[]);
-  if(content.some(item=>item.type==='refusal'))return reply({error:'We could not write that story. Try a different idea or change the details. Your draft has not changed.'},422);
-  if(data?.status!=='completed')return reply({error:'The story did not finish. Your draft has not changed. Please try again.'},502);
+  if(content.some(item=>item.type==='refusal'))return respond({error:'We could not write that story. Try a different idea or change the details. Your draft has not changed.'},422);
+  if(data?.status!=='completed')return respond({error:'The story did not finish. Your draft has not changed. Please try again.'},502);
   const text=content.filter(item=>item.type==='output_text').map(item=>item.text||'').join('');
   let story;try{story=validStory(JSON.parse(text));}catch{}
-  if(!story)return reply({error:'The story did not come back complete. Your draft has not changed. Please try again.'},502);
+  if(!story)return respond({error:'The story did not come back complete. Your draft has not changed. Please try again.'},502);
   // The title is an editable customer choice, not something a revision may silently rename.
   if(input.previousStory)story.title=input.previousStory.title;
-  return reply({ok:true,story});
+  return respond({ok:true,story});
 }
