@@ -4283,7 +4283,7 @@ function recipient(value) {
   return result;
 }
 function checkoutReady(env2) {
-  return env2.ORDERS_ENABLED === "true" && env2.ORDER_TAX_CONFIRMED === "true" && (env2.PAYMENT_PROVIDER === "ziina" ? !!env2.ZIINA_ACCESS_TOKEN && !!env2.ZIINA_ACCOUNT_ID && !!env2.ZIINA_WEBHOOK_SECRET && ["test", "live"].includes(env2.ZIINA_MODE) : /^sk_(live|test)_/.test(env2.STRIPE_SECRET_KEY || "") && !!env2.STRIPE_WEBHOOK_SECRET) && !!env2.PRODIGI_API_KEY && !!env2.RESEND_API_KEY && !!env2.ORDER_EMAIL_FROM;
+  return env2.ORDERS_ENABLED === "true" && (env2.PAYMENT_PROVIDER === "ziina" ? !!env2.ZIINA_ACCESS_TOKEN && !!env2.ZIINA_ACCOUNT_ID && !!env2.ZIINA_WEBHOOK_SECRET && ["test", "live"].includes(env2.ZIINA_MODE) : /^sk_(live|test)_/.test(env2.STRIPE_SECRET_KEY || "") && !!env2.STRIPE_WEBHOOK_SECRET) && !!env2.PRODIGI_API_KEY && !!env2.RESEND_API_KEY && !!env2.ORDER_EMAIL_FROM;
 }
 
 // src/live-payment-test.js
@@ -52877,7 +52877,7 @@ async function ordersApi(req, env2) {
     }
     if (action === "submit") {
       if (o.status === "submitting" && Date.now() - Date.parse(o.updated_at) > 3e5) o = await save(env2, o, o.data, "supplier_unknown");
-      requireThat(env2.ORDERS_ENABLED === "true" && env2.ORDER_TAX_CONFIRMED === "true", "Live printing is not enabled.", 503);
+      requireThat(env2.ORDERS_ENABLED === "true", "Live printing is not enabled.", 503);
       requireThat(o.payment_status === "paid" && o.payment_mode === "live", "Only verified live payments may be sent to the printer.", 409);
       requireThat(["approved", "supplier_unknown"].includes(o.status) && o.data.adminApproved?.hash === o.data.proof?.hash && o.data.customerApproved?.hash === o.data.proof?.hash, "Both approvals must match the exact print file.", 409);
       requireThat(b.confirm === true && b.proofHash === o.data.proof.hash, "Confirm this exact book for paid printing.");
