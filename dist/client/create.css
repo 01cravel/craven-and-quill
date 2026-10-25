@@ -401,3 +401,13 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .size-comparison{display:flex;align-items:flex-end;gap:24px;justify-content:center;padding:28px 10px}.size-comparison>div{background:#f9f1dc;border:2px solid #143f36;border-radius:3px 10px 10px 3px;box-shadow:-5px 5px #143f36;display:flex;flex-direction:column;align-items:center;justify-content:center;font:28px Georgia;color:#143f36}.size-comparison small{font:12px Figtree,sans-serif;margin-top:10px}.size-a5{width:104px;height:148px}.size-a4{width:148px;height:210px}
 /* Keep each step immediately readable, including reduced-motion and embedded browsers. */
 .step.active{animation:none}
+
+/* Preview clarity and uncropped artwork. */
+.side-promise{grid-template-columns:1fr;gap:6px}
+.mini-cover-copy strong{max-width:100%;line-height:1.08;overflow-wrap:anywhere}
+.preview-art{display:flex;align-items:center;justify-content:center;min-width:0;background:#fbfaf6}
+.preview-art img{display:block;object-fit:contain;object-position:center;aspect-ratio:2/3;height:auto;max-width:100%;align-self:center}
+.preview-art>span{inset:auto auto auto 10px;top:10px;transform:none;display:block;font:600 .72rem/1.2 Inter,sans-serif;text-shadow:none}
+.preview-explainer{font-size:.92rem;line-height:1.55;color:var(--muted);margin:0 0 18px}
+.product del,.intro del{font-size:.8em;font-weight:400;color:var(--muted);margin-right:.3em}
+.offer-label{color:var(--ink);font-weight:700}

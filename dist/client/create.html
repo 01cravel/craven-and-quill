@@ -48,7 +48,7 @@
         <section class="step active" data-step="1" aria-labelledby="step-1-title">
           <p class="eyebrow">Start with the star</p>
           <h1 id="step-1-title">Who is the book for?</h1>
-          <p class="intro">Create a free preview. The A5 hardback is £49.99 and A4 is £59.99, including UK delivery and a digital copy.</p>
+          <p class="intro">Create a free preview. Launch offer: 20% off both sizes. The A5 hardback is <del>£49.99</del> £39.99 and A4 is <del>£59.99</del> £47.99, including UK delivery and a digital copy.</p>
 
           <label for="names">First name <span>Required</span></label>
           <input id="names" name="names" maxlength="40" autocomplete="off" placeholder="For example, Leo" required>
@@ -194,12 +194,12 @@
 
           <div id="result-state" hidden>
             <section class="first-page" aria-labelledby="first-page-title">
-              <div class="page-preview-heading"><h2 id="first-page-title">Their first page</h2><p><span id="result-story-title">The Map Beneath the Moon</span>, page 1 of 10</p></div>
-              <div class="book-preview">
+              <div class="page-preview-heading"><h2 id="first-page-title">Your free sneak peek</h2><p><span id="result-story-title">The Map Beneath the Moon</span>, page 1 of 10</p></div>
+              <p class="preview-explainer">Your free sneak peek includes their character and first page. Once you pay, we’ll create the rest of the illustrations. Each one takes time and a little creative fuel! You’ll check and approve the finished book before anything prints.</p><div class="book-preview">
                 <figure class="preview-art" id="preview-art"><img id="preview-image" src="assets/storybook.webp" width="900" height="1125" alt="Sample personalised story illustration format"><img id="preview-image-second" width="900" height="1125" alt="" hidden><span>Free preview</span></figure>
                 <article class="preview-copy"><p class="chapter" id="preview-chapter">The adventure begins</p><p id="story-copy"></p></article>
               </div>
-              <div class="locked-pages" aria-label="Story picture progress"><strong>More illustrations when orders open.</strong><div id="locked-dots"></div></div>
+              <div class="locked-pages" aria-label="Story picture progress"><strong>The rest of the illustrations are created after payment.</strong><div id="locked-dots"></div></div>
               <button class="shuffle" type="button" data-back="4">Edit the story</button>
             </section>
             <div class="error" id="step-5-error" role="alert"></div>
@@ -214,8 +214,8 @@
           <fieldset>
             <legend class="visually-hidden">Book format</legend>
             <div class="product-options size-options">
-              <label class="product"><input type="radio" name="product" value="a5" data-price="49.99" checked><span><b>A5 hardback <em class="recommended">Little keepsake</em></b><small>14.8 × 21 cm, portrait. Easy to hold and treasure.</small><strong>£49.99</strong></span></label>
-              <label class="product"><input type="radio" name="product" value="a4" data-price="59.99"><span><b>A4 hardback <em class="recommended">Big gift</em></b><small>21 × 29.7 cm, portrait. Twice the page area of A5.</small><strong>£59.99</strong></span></label>
+              <label class="product"><input type="radio" name="product" value="a5" data-price="39.99" checked><span><b>A5 hardback <em class="recommended">Little keepsake</em></b><small>14.8 × 21 cm, portrait. Easy to hold and treasure.</small><strong><del>£49.99</del> <span class="current-price">£39.99</span></strong><small class="offer-label">Launch offer · 20% off</small></span></label>
+              <label class="product"><input type="radio" name="product" value="a4" data-price="47.99"><span><b>A4 hardback <em class="recommended">Big gift</em></b><small>21 × 29.7 cm, portrait. Twice the page area of A5.</small><strong><del>£59.99</del> <span class="current-price">£47.99</span></strong><small class="offer-label">Launch offer · 20% off</small></span></label>
             </div>
             <p class="privacy-line">Both include a digital PDF, matte hardback cover, full-colour 200gsm glossy pages and UK standard delivery. The same complete story in either size.</p>
             <div class="size-comparison" aria-label="Book size comparison"><div class="size-a5">A5<small>14.8 × 21 cm</small></div><div class="size-a4">A4<small>21 × 29.7 cm</small></div></div>
@@ -229,7 +229,7 @@
           <p class="eyebrow">A keepsake worth getting right</p>
           <h1 id="step-7-title">Save their book.</h1>
           <p class="intro" id="order-availability">Payments are not open yet. Save your book and delivery details now, with no charge or commitment.</p>
-          <section class="order-total" aria-label="Your selected book"><div><span id="order-label">A5 hardback</span><small>Includes digital PDF and UK standard delivery.</small></div><strong id="order-price">£49.99</strong></section>
+          <section class="order-total" aria-label="Your selected book"><div><span id="order-label">A5 hardback</span><small>Includes digital PDF and UK standard delivery.</small></div><strong id="order-price"><del>£49.99</del> £39.99</strong></section>
           <p class="privacy-line">After payment, we prepare the complete illustrated proof. You approve it, then our team checks every page before sending it to print. Usually 7–12 working days from final proof approval to UK delivery, estimated.</p>
           <div id="launch-form">
             <div class="signup-honeypot" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" tabindex="-1" autocomplete="off"></div>

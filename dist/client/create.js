@@ -1,4 +1,4 @@
-const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a5',price:49.99};
+const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a5',price:39.99};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const track=(event,data={})=>{const names={free_preview_created:'preview_success',free_preview_failed:'preview_error'};if(names[event])window.cqMeasurement?.record(names[event]);};
@@ -40,6 +40,7 @@ function updateLive(){
   state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';
   state.details=$('#personal-details').value.trim();
   $('#live-name').textContent=(fullNames()||'Someone special').toUpperCase();
+  fitCoverName();
   const ageLabels={'3-5':'Age 3–5','6-8':'Age 6–8','9-11':'Age 9–11','9-12':'Age 9–12','teen-adult':'Teen or adult'};
   $('#live-age').textContent=ageLabels[state.age]||'Reading level set';
   $('#live-mood').textContent=state.mood==='own'?'Their own idea':state.mood[0].toUpperCase()+state.mood.slice(1);
@@ -378,7 +379,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
 $$('[data-back]').forEach(button=>button.addEventListener('click',()=>showStep(Number(button.dataset.back))));
 
 let orderCatalog=null,orderRequest=null;
-async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('strong').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Save your approved story, then continue to secure payment. No book prints until you and our team approve the finished proof.';$('#join-launch').textContent='Save and continue to payment';}updateProduct();}catch{}}
+async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Save your approved story, then continue to secure payment. No book prints until you and our team approve the finished proof.';$('#join-launch').textContent='Save and continue to payment';}updateProduct();}catch{}}
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
   $('#order-label').textContent=state.product==='a4'?'A4 hardback + digital PDF':'A5 hardback + digital PDF';
@@ -411,3 +412,7 @@ if(characterTest&&['127.0.0.1','localhost'].includes(window.location.hostname)){
     $('#names').value=state.names;updateLive();showStep(5);await preparePreview();
   })();
 }
+
+function fitCoverName(){const el=$('#live-name');if(!el)return;el.style.fontSize='';el.style.whiteSpace='nowrap';let size=parseFloat(getComputedStyle(el).fontSize);while(el.scrollWidth>el.clientWidth&&size>14){size-=1;el.style.fontSize=size+'px';}if(el.scrollWidth>el.clientWidth)el.style.whiteSpace='normal';}
+new ResizeObserver(fitCoverName).observe($('#mini-cover'));
+document.fonts.ready.then(fitCoverName);

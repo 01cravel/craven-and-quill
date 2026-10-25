@@ -1,7 +1,7 @@
-export const CATALOG_VERSION='2026-10-22';
+export const CATALOG_VERSION='2026-10-25-offer';
 export const PRODUCTS={
-  a5:{id:'a5',label:'A5 hardback',widthMm:148,heightMm:210,sku:'BOOK-FE-A5-P-HARD-G',pricePence:4999,estimatedSupplierPence:1506},
-  a4:{id:'a4',label:'A4 hardback',widthMm:210,heightMm:297,sku:'BOOK-FE-A4-P-HARD-G',pricePence:5999,estimatedSupplierPence:1676},
+  a5:{id:'a5',label:'A5 hardback',widthMm:148,heightMm:210,sku:'BOOK-FE-A5-P-HARD-G',pricePence:3999,regularPricePence:4999,discountPercent:20,estimatedSupplierPence:1506},
+  a4:{id:'a4',label:'A4 hardback',widthMm:210,heightMm:297,sku:'BOOK-FE-A4-P-HARD-G',pricePence:4799,regularPricePence:5999,discountPercent:20,estimatedSupplierPence:1676},
 };
 export const BOOK={pdfPages:28,interiorPages:26,spreads:10,paper:'200gsm gloss',cover:'Matte hardback',safeMm:10};
 export function catalogue(enabled=false){return {version:CATALOG_VERSION,products:Object.values(PRODUCTS).map(({estimatedSupplierPence,...p})=>p),book:BOOK,currency:'GBP',shippingPence:0,country:'GB',includes:['UK standard delivery','Digital PDF','Human print review'],checkoutEnabled:enabled,delivery:'Usually 7–12 working days after final proof approval. An estimate, not a guaranteed arrival date.'};}

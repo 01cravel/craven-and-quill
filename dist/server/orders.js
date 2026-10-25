@@ -4252,10 +4252,10 @@ var require_pako = __commonJS({
 });
 
 // src/catalog.js
-var CATALOG_VERSION = "2026-10-22";
+var CATALOG_VERSION = "2026-10-25-offer";
 var PRODUCTS = {
-  a5: { id: "a5", label: "A5 hardback", widthMm: 148, heightMm: 210, sku: "BOOK-FE-A5-P-HARD-G", pricePence: 4999, estimatedSupplierPence: 1506 },
-  a4: { id: "a4", label: "A4 hardback", widthMm: 210, heightMm: 297, sku: "BOOK-FE-A4-P-HARD-G", pricePence: 5999, estimatedSupplierPence: 1676 }
+  a5: { id: "a5", label: "A5 hardback", widthMm: 148, heightMm: 210, sku: "BOOK-FE-A5-P-HARD-G", pricePence: 3999, regularPricePence: 4999, discountPercent: 20, estimatedSupplierPence: 1506 },
+  a4: { id: "a4", label: "A4 hardback", widthMm: 210, heightMm: 297, sku: "BOOK-FE-A4-P-HARD-G", pricePence: 4799, regularPricePence: 5999, discountPercent: 20, estimatedSupplierPence: 1676 }
 };
 var BOOK = { pdfPages: 28, interiorPages: 26, spreads: 10, paper: "200gsm gloss", cover: "Matte hardback", safeMm: 10 };
 function catalogue(enabled = false) {
