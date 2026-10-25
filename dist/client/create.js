@@ -1,4 +1,4 @@
-const state={previewId:null,step:1,names:'',secondName:'',age:'',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a5',price:39.99};
+const state={previewId:null,step:1,storyMode:'invent',names:'',secondName:'',age:'',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a5',price:39.99};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const track=(event,data={})=>{const names={story_maker_open:'maker_start',free_preview_created:'preview_success',free_preview_failed:'preview_error'};const allowed=['maker_start','story_generated','story_edited','checkout_start','checkout_error','book_saved'];const value=names[event]||(event==='story_step_view'?'step_'+data.step:event);if(allowed.includes(value)||/^step_[124567]$/.test(value)||names[event])window.cqMeasurement?.record(value);};
@@ -38,7 +38,7 @@ function updateLive(){
   state.secondName=$('#second-person').hidden?'':$('#second-name').value.trim();
   state.age=($('input[name="age"]:checked')||{}).value||'';
   state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';
-  state.details=$('#personal-details').value.trim();
+  state.details=state.storyMode==='plot'?'':$('#personal-details').value.trim();
   $('#live-name').textContent=(fullNames()||'Someone special').toUpperCase();
   fitCoverName();
   const ageLabels={'3-5':'Age 3–5','6-8':'Age 6–8','9-11':'Age 9–11','9-12':'Age 9–12','teen-adult':'Teen or adult'};
@@ -59,17 +59,18 @@ function scrollToStepTop(number){
 }
 
 function showStep(number){
-  const order=[1,8,2,9,3,4,10,5,6,11,7];
-  if(!order.includes(number))number=1;
+  const order=[1,8,2,12,9,3,10,5,6,11,7];
+  if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
   state.step=number;
   if(number===2)updatePhotoGate();
+  if(number===9)configureBrief();
   if(number===6)window.cqMeasurement?.record('price_view');
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
-  const names={1:'Their name',8:'Reading level',2:'Their photo',9:'Favourite things',3:'Story style',4:'Story idea',10:'Your email',5:'Free preview',6:'Book size',11:'Delivery',7:'Review & pay'};
-  const visibleStep=order.indexOf(number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
+  const names={1:'Their name',8:'Reading level',2:'Their photo',12:'Story approach',9:state.storyMode==='plot'?'Your idea':'About them',3:'Story tone',4:'Story idea',10:'Your email',5:'Free preview',6:'Book size',11:'Delivery',7:'Review & pay'};
+  const visibleStep=number===4?8:order.indexOf(number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
   $('.journey').setAttribute('aria-label',`Step ${visibleStep} of ${order.length}: ${names[number]}`);
   if(number===7)$('#delivery-summary').textContent=[$('#recipient-name').value,$('#address-line1').value,$('#address-line2').value,$('#town').value,$('#postcode').value].filter(Boolean).join(', ');
   scrollToStepTop(number);
@@ -77,32 +78,25 @@ function showStep(number){
   window.dispatchEvent(new Event('cq-draft-change'));
 }
 
+function configureBrief(){
+ const own=state.storyMode==='plot';
+ $('#interests-options').hidden=own;$('#own-options').hidden=!own;
+ $('#step-9-title').textContent=own?'What should happen?':'What makes them, them?';
+ $('#brief-intro').textContent=own?'Share your plot, even in one sentence. We’ll turn it into a complete story.':'A few favourite things or little habits are enough. We’ll build the adventure around them.';
+ $('#brief-help-copy').textContent=own?'Who is the hero? What do they want? What goes wrong? For example: they score the winning goal at Wembley, but their lucky boots have gone missing.':'What do they love doing? What makes them laugh? A favourite place, food or little habit is plenty.';
+}
+function validBrief(){
+ const field=state.storyMode==='plot'?$('#own-idea'):$('#personal-details');
+ if(field.value.trim())return true;
+ showStep(9);$('#step-9-error').textContent=state.storyMode==='plot'?'Give us a sentence about what should happen.':'Tell us one thing about them so we can make it personal.';field.focus();return false;
+}
 function buildIdeas(){
-  const previousIdea=state.ideas[state.selected]?.[0];
-  const hadPersonalIdea=state.ideas.some(idea=>idea[0]==='A story from their favourite things');
-  state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';
-  const own=state.mood==='own';
-  $('#step-4-title').textContent=own?'Start with your idea.':'Create their story.';
-  $('#story-choice-intro').textContent=own?'Describe what should happen. We’ll turn it and their favourite things into a story you can edit.':'Choose a starting idea. We’ll write a story using the details you added.';
-  $('#ai-ideas').hidden=own;
-  $('#own-options').hidden=!own;
-  if(own){state.ideas=[];state.selected=0;updateLive();return;}
-  const bank=ideaBanks[state.mood];
-  state.ideas=[0,1,2].map(index=>bank[(index+ideaOffset)%bank.length]);
-  if(state.details)state.ideas.unshift(['A story from their favourite things','An original story built around their hobbies, favourite things and everyday adventures.']);
-  state.selected=state.details&&!hadPersonalIdea?0:Math.max(0,state.ideas.findIndex(idea=>idea[0]===previousIdea));
-  const list=$('#idea-list');list.replaceChildren();
-  state.ideas.forEach((idea,index)=>{
-    const label=document.createElement('label');label.className='idea';
-    label.innerHTML=`<input type="radio" name="story-idea" value="${index}" ${index===state.selected?'checked':''}><span><b>${idea[0]}</b><small>${idea[1]}</small></span>`;
-    label.querySelector('input').addEventListener('change',()=>{state.selected=index;updateLive();});
-    list.append(label);
-  });
-  updateLive();
+ state.ideas=[['Their own adventure',state.storyMode==='plot'?$('#own-idea').value.trim():'Invent an original plot driven by the supplied personality and interests. Make these details central to the adventure rather than decorations on an unrelated story.']];
+ state.selected=0;configureBrief();updateLive();
 }
 
 let storyWriting=false,storyRequest=0;
-function storyBasis(){return JSON.stringify({names:state.names,secondName:state.secondName,age:state.age,mood:state.mood,details:state.details,idea:state.mood==='own'?$('#own-idea').value.trim():state.ideas[state.selected]?.[1]||''});}
+function storyBasis(){return JSON.stringify({names:state.names,secondName:state.secondName,age:state.age,mood:state.mood,details:state.details,idea:state.storyMode==='plot'?$('#own-idea').value.trim():'Invent an original plot driven by the supplied personality and interests. Make these details central to the adventure rather than decorations on an unrelated story.'});}
 function draftValid(story){return Boolean(typeof story?.title==='string'&&story.title.trim()&&story.title.length<=120&&typeof story?.synopsis==='string'&&story.synopsis.trim()&&story.synopsis.length<=600&&Array.isArray(story.spreads)&&story.spreads.length===10&&story.spreads.every(page=>typeof page?.text==='string'&&page.text.trim()&&page.text.length<=1500&&typeof page?.image_scene==='string'&&page.image_scene.trim()&&page.image_scene.length<=800));}
 function updateStoryGate(){
   const outdated=Boolean(state.storyDraft&&(state.storyBasis!==storyBasis()||state.storylineNeedsUpdate));
@@ -154,7 +148,7 @@ function renderStoryDraft(){
 }
 async function writeStory(revision=false){
   if(storyWriting)return;
-  updateLive();
+  updateLive();if(!validBrief())return;
   const error=$('#step-4-error');error.textContent='';
   const basis=JSON.parse(storyBasis());
   if(!basis.age){showStep(8);$('#step-8-error').textContent='Choose a reading level first.';return;}
@@ -183,7 +177,7 @@ $('#personal-details').addEventListener('input',updateLive);
 $('#own-idea').addEventListener('input',updateLive);
 $('#story-title').addEventListener('input',editDraft);$('#story-synopsis').addEventListener('input',editDraft);
 $('#generate-story').addEventListener('click',()=>{
-  updateLive();
+  updateLive();if(!validBrief())return;
   if(!JSON.parse(storyBasis()).idea){$('#step-4-error').textContent='Add a starting idea first.';$('#own-idea').focus();return;}
   showStep(10);
 });
@@ -208,7 +202,7 @@ $('#second-name').addEventListener('input',updateLive);
 $$('input[name="age"]').forEach(input=>input.addEventListener('change',updateLive));
 $$('input[name="mood"]').forEach(input=>input.addEventListener('change',()=>{ideaOffset=0;buildIdeas();}));
 $('#add-person').addEventListener('click',()=>{const panel=$('#second-person');const opening=panel.hidden;panel.hidden=!opening;$('#add-person').innerHTML=opening?'− Remove second person <span>Optional</span>':'+ Add another person <span>Optional</span>';if(opening)$('#second-name').focus();else{$('#second-name').value='';updateLive();}updatePhotoGate();});
-$('#shuffle-ideas').addEventListener('click',()=>{ideaOffset=(ideaOffset+3)%5;buildIdeas();track('story_ideas_shuffled',{mood:state.mood});});
+
 $$('[data-prompt]').forEach(button=>button.addEventListener('click',()=>{$('#own-idea').value=button.dataset.prompt;updateLive();$('#own-idea').focus();}));
 
 async function inspectPhoto(file){
@@ -366,7 +360,8 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     $('#step-1-error').textContent='';
   }
   if(state.step===8&&!$('input[name="age"]:checked')){$('#step-8-error').textContent='Choose a reading level.';return;}
-  if(state.step===9){updateLive();buildIdeas();}
+  if(state.step===12){const selected=$('input[name="story-mode"]:checked');if(!selected){$('#step-12-error').textContent='Choose how you’d like us to create the story.';return;}state.storyMode=selected.value;$('#step-12-error').textContent='';buildIdeas();}
+  if(state.step===9){updateLive();const own=state.storyMode==='plot';const field=own?$('#own-idea'):$('#personal-details');if(!field.value.trim()){$('#step-9-error').textContent=own?'Give us a sentence about what should happen.':'Tell us one thing about them so we can make it personal.';field.focus();return;}$('#step-9-error').textContent='';buildIdeas();}
   if(state.step===11){
     const invalid=['recipient-name','address-line1','town','postcode'].find(id=>!$('#'+id).value.trim());
     if(invalid){$('#step-11-error').textContent='Complete the delivery address to continue.';$('#'+invalid).focus();return;}
@@ -381,7 +376,6 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(state.storyBasis!==storyBasis()||state.storylineNeedsUpdate){$('#step-4-error').textContent='Update the story to use the latest storyline and details before continuing.';return;}
     state.ownIdea=$('#own-idea').value.trim();
     if(state.mood==='own'&&!state.ownIdea){$('#step-4-error').textContent='Tell us what should happen, even in one sentence.';$('#own-idea').focus();return;}
-    if(state.mood!=='own'&&!$('input[name="story-idea"]:checked')){$('#step-4-error').textContent='Choose one story idea.';return;}
     $('#step-4-error').textContent='';updateLive();
   }
   if(state.step===2){updateLive();if(!$('#second-person').hidden&&!state.secondName){$('#step-2-error').textContent='Add the second first name or remove that option.';$('#second-name').focus();return;}}
@@ -455,7 +449,7 @@ new ResizeObserver(fitCoverName).observe($('#mini-cover'));
 document.fonts.ready.then(fitCoverName);
 
 let quickAdvanceTimer;
-for(const [name,step,next] of [['age',8,2],['mood',3,4],['product',6,11]]){
+for(const [name,step,next] of [['age',8,2],['mood',3,10],['story-mode',12,9],['product',6,11]]){
   for(const input of $$(`input[name="${name}"]`))input.addEventListener('click',()=>{
     if(state.step!==step)return;
     clearTimeout(quickAdvanceTimer);
