@@ -54,8 +54,8 @@ function scrollToStepTop(number){
   document.activeElement?.blur();
   const heading=[...document.querySelectorAll(`.step[data-step="${number}"] h1,.step[data-step="${number}"] h2`)].find(el=>el.getClientRects().length);
   if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
-  window.scrollTo({top:0,left:0,behavior:'instant'});
-  requestAnimationFrame(()=>{if(state.step===number)window.scrollTo({top:0,left:0,behavior:'instant'});});
+  const resetScroll=()=>{if(state.step!==number)return;$('.step-panel').scrollTop=0;if(!matchMedia('(max-width:780px)').matches)window.scrollTo({top:0,left:0,behavior:'instant'});};
+  resetScroll();requestAnimationFrame(resetScroll);
 }
 
 function showStep(number){

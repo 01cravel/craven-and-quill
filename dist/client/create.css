@@ -445,3 +445,21 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .step[data-step="4"] .story-write-actions{position:static;padding:0;background:transparent}
 .step [hidden]{display:none!important}
 #draft-status{font-size:.75rem;margin:0 0 4px}#forget-draft{font-size:.75rem;margin:0 0 16px;padding:0}
+
+/* The phone has one steady shell; only the form scrolls when the keyboard opens. */
+@media(max-width:780px){
+ html{height:100%;overflow:hidden;overscroll-behavior:none}
+ body{position:fixed;top:var(--app-top,0px);left:0;right:0;width:100%;height:var(--app-height,100dvh);min-height:0;overflow:hidden;display:flex;flex-direction:column;overscroll-behavior:none}
+ .app-header{position:relative;top:auto;flex:none;margin:8px 10px 12px;z-index:10}
+ .maker-shell{flex:1;min-height:0;height:auto;margin:0;padding:0 10px max(8px,env(safe-area-inset-bottom));display:flex;flex-direction:column;overflow:hidden}
+ .story-side{display:none}
+ .step-panel{flex:1;min-height:0;height:100%;width:100%;display:block;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scroll-padding-block:16px 90px;padding:20px 18px 16px;overflow-anchor:none}
+ .step-panel form{margin:0 auto;min-height:100%}
+ .step.active{min-height:0;animation-fill-mode:backwards}
+ .step-actions{position:sticky;bottom:-16px;left:auto;right:auto;margin:20px 0 0;padding:12px 0 max(12px,env(safe-area-inset-bottom));width:100%;background:#fff;z-index:5}
+ .step input:not([type=checkbox]):not([type=radio]),.step textarea,.step select{font-size:max(16px,1rem);scroll-margin-block:16px 90px}
+ .step h1:focus{outline:none}
+ .step[data-step="1"] .intro{margin-bottom:12px}
+ .quick-reassurance{margin:0 0 8px}
+ .step[data-step="1"]>.privacy-line{margin:0 0 18px}
+}
