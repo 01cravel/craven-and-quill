@@ -58,6 +58,6 @@
   banner.addEventListener('click',event=>{const choice=event.target.dataset.choice;if(!['no','site','ads'].includes(choice))return;preference=choice;try{localStorage.setItem('cq-measurement-v2',choice);if(choice==='no')sessionStorage.removeItem('cq-visit-v1');}catch{}banner.hidden=true;if(choice!=='ads')revokePixel();else void startPixel();if(siteAllowed())for(const event of pending)record(event);pending.clear();});
   document.querySelectorAll('.measurement-settings').forEach(button=>button.addEventListener('click',()=>{banner.hidden=false;}));
   window.cqMeasurement={record,context,savedLead};
-  record(location.pathname.includes('create')?'maker_start':'landing_view');
+  record(location.pathname.includes('create')?'maker_start':'landing_view');record(matchMedia('(max-width:779px)').matches?'device_mobile':'device_desktop');
   if(preference==='ads')void startPixel();
 })();

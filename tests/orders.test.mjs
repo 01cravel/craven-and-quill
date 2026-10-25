@@ -131,3 +131,16 @@ test('explicit message-length rejection may recover with short message but unkno
 test('owner launch switch enables checkout without falsely attesting tax status; printing still needs approvals',async()=>{
  const env=environment(),{id}=await create(env);ziinaConnected(env,'live');env.ORDER_TAX_CONFIRMED='false';assert.equal(checkoutReady(env),true);await paid(env,id,'live');const o=await state(env,id);const r=await request(env,'/'+id+'/submit',{revision:o.revision,confirm:true,checkedPayment:true,maxCostPence:2000},{admin:true});assert.equal(r.status,409);assert.equal(env.calls.length,0);
 });
+
+test('draft return links encrypt large artwork, require the secret, send only to the requested email, and cannot print',async()=>{
+ const env=environment();connected(env);const {body}=await create(env);const id=crypto.randomUUID();let mail;
+ env.fetch=async(url,opts)=>{assert.equal(url,'https://api.resend.com/emails');mail=JSON.parse(opts.body);return Response.json({id:'draft-email'});};
+ const draft={state:{storyDraft:story,characterImages:[dataUrl],photos:['must be removed'],photoChecks:[true]},values:{names:'Jamie'},orderRequest:{secret:'remove'}};
+ const r=await request(env,'/drafts/'+id,{draft,previewId:body.previewId,email:'qa-draft@example.test'},{method:'PUT'});assert.equal(r.status,200);assert.equal((await r.json()).sent,true);assert.deepEqual(mail.to,['qa-draft@example.test']);assert.match(mail.text,/#draft=/);
+ const recovered=await request(env,'/drafts/'+id);assert.equal(recovered.status,200);const d=await recovered.json();assert.equal(d.state.storyDraft.title,story.title);assert.deepEqual(d.state.photos,[]);assert.equal(d.orderRequest,null);
+ assert.equal((await request(env,'/drafts/'+id,null,{auth:false})).status,404);
+ assert.equal((await request(env,'/drafts/'+id,null,{headers:{Authorization:'Bearer '+crypto.randomUUID()+crypto.randomUUID()}})).status,404);
+ const object=[...env.objects.entries()].find(([k])=>k.startsWith('drafts/'))[1];assert.ok(!new TextDecoder().decode(object.bytes).includes('Jamie'));
+ assert.equal((await request(env,'/drafts/'+id,{draft,previewId:body.previewId,email:'qa-draft@example.test'},{method:'PUT'})).status,429);
+ assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM customer_orders').get().n,1);
+});
