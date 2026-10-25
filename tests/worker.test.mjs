@@ -109,3 +109,20 @@ test('exports the launch list as CSV only with the right token',async()=>{
   assert.equal(text.split('\n')[0],'email,interest,page,created_at,updated_at');
   assert.match(text,/"a@b.co","animals","\/colouring-books\/"/);
 });
+
+test('sends all three references in one drawing request for one person',async()=>{
+ const original=globalThis.fetch;let calls=0;
+ globalThis.fetch=async(_url,{body})=>{calls++;assert.equal(body.getAll('image[]').length,3);assert.match(body.get('prompt'),/SAME person/);assert.match(body.get('prompt'),/exactly one character/);return Response.json({data:[{b64_json:'dGVzdA=='}]});};
+ try{
+  const form=new FormData();for(let i=0;i<3;i++)form.append('photo',new File(['image'+i],`face${i}.jpg`,{type:'image/jpeg'}));
+  const response=await worker.fetch(new Request('https://example.com/api/generate-character',{method:'POST',headers:{'CF-Connecting-IP':'203.0.113.70'},body:form}),{DB:testDb(),OPENAI_API_KEY:'test'});
+  assert.equal(response.status,200);assert.equal(calls,1);
+ }finally{globalThis.fetch=original;}
+});
+test('rejects too many references and invalid extra photos before drawing',async()=>{
+ const original=globalThis.fetch;let calls=0;globalThis.fetch=async()=>{calls++;throw Error('unexpected');};
+ try{for(const [count,invalid] of [[4,false],[2,true]]){
+  const form=new FormData();for(let i=0;i<count;i++)form.append('photo',new File(['image'],`face${i}.jpg`,{type:invalid&&i===1?'text/plain':'image/jpeg'}));
+  const response=await worker.fetch(new Request('https://example.com/api/generate-character',{method:'POST',headers:{'CF-Connecting-IP':`203.0.113.${80+count}`},body:form}),{DB:testDb(),OPENAI_API_KEY:'test'});assert.equal(response.status,400);
+ }assert.equal(calls,0);}finally{globalThis.fetch=original;}
+});

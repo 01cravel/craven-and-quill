@@ -70,7 +70,7 @@
         <section class="step" data-step="2" aria-labelledby="step-2-title" hidden>
           <p class="eyebrow">Create their character</p>
           <h1 id="step-2-title">Add a clear photo.</h1>
-          <p class="intro">Choose a well-lit photo with their whole face visible. We’ll use it to draw their character once you’ve chosen a story idea.</p>
+          <p class="intro">One clear face photo is enough. Extra angles can help us capture their likeness.</p>
 
           <div id="second-person" hidden>
             <label for="second-name">Second first name <span>Required</span></label>
@@ -82,12 +82,13 @@
             <input id="photos" name="photos" type="file" accept="image/*,.heic,.heif,.avif" required aria-label="Add a clear photo">
           </div>
           <div class="photo-list" id="photo-list"></div>
+          <div id="extra-photo-wrap" hidden><label class="extra-photo-label" for="extra-photos">+ Add up to 2 more for a better likeness <span>Optional</span></label><input id="extra-photos" type="file" accept="image/*,.heic,.heif,.avif" multiple aria-label="Add more photos of the same person"><p class="extra-photo-help">Same person, recent photos. Try a front view and a slight side angle.</p></div>
           <div class="photo-check" id="photo-check" hidden aria-live="polite"></div>
 
-          <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>The face is clear</b><small>Whole face and both eyes visible.</small></span></label>
-          <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I’m an adult with permission to use these photos</b><small>For a child, I’m their parent or guardian, or have their permission to create and fulfil this book.</small></span></label>
+          <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>The same person is clear in every photo</b><small>No group photos, sunglasses or covered faces.</small></span></label>
+          <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I have permission to use these photos</b><small>I’m an adult, with parent or guardian permission for a child.</small></span></label>
 
-          <p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
+          <details class="optional-detail photo-privacy"><summary>How we use your photos</summary><p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p></details>
 
           <div class="error" id="step-2-error" role="alert"></div>
           <div class="step-actions"><button class="back" type="button" data-back="8">Back</button><button class="next" id="photo-continue" type="button" data-next="12" disabled>Continue <span>→</span></button></div>

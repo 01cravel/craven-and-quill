@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../dist/client/create.js',import.meta.url),'utf8');
 const gate=source.slice(source.indexOf('function validPreviewEmail(){'),source.indexOf("['#face-confirm','#photo-permission']"));
-function setup(){const nodes={'#email':{value:'',validity:{valid:true}},'#second-person':{hidden:true},'#face-confirm':{checked:false},'#photo-permission':{checked:false},'#preview-email-wrap':{},'#photo-continue':{}};const state={photos:[{}],photoChecks:[{pass:true}]};const ctx={state,$:id=>nodes[id]};vm.runInNewContext(gate,ctx);return{nodes,state,update:ctx.updatePhotoGate,validEmail:ctx.validPreviewEmail};}
+function setup(){const nodes={'#email':{value:'',validity:{valid:true}},'#second-person':{hidden:true},'#face-confirm':{checked:false},'#photo-permission':{checked:false},'#preview-email-wrap':{},'#photo-continue':{},'#extra-photo-wrap':{},'#extra-photos':{},'.extra-photo-label':{}};const state={photos:[{}],photoChecks:[{pass:true}]};const ctx={state,$:id=>nodes[id]};vm.runInNewContext(gate,ctx);return{nodes,state,update:ctx.updatePhotoGate,validEmail:ctx.validPreviewEmail};}
 test('photo step needs checked photos and permission, independently of the later email step',()=>{
  const {nodes,state,update}=setup();update();assert.equal(nodes['#photo-continue'].disabled,true);
  nodes['#face-confirm'].checked=true;update();assert.equal(nodes['#photo-continue'].disabled,true);
@@ -12,8 +12,9 @@ test('photo step needs checked photos and permission, independently of the later
  nodes['#photo-permission'].checked=false;update();assert.equal(nodes['#photo-continue'].disabled,true);
  nodes['#photo-permission'].checked=true;state.photoChecks=[];update();assert.equal(nodes['#photo-continue'].disabled,true);
  state.photoChecks=[{pass:false}];update();assert.equal(nodes['#photo-continue'].disabled,true);
- state.photoChecks=[{pass:true}];nodes['#second-person'].hidden=false;update();assert.equal(nodes['#photo-continue'].disabled,true);
- state.photos.push({});state.photoChecks.push({pass:true});update();assert.equal(nodes['#photo-continue'].disabled,false);
+ state.photoChecks=[{pass:true}];update();assert.equal(nodes['#photo-continue'].disabled,false);
+ state.photos.push({},{});state.photoChecks.push({pass:true},{pass:true});update();assert.equal(nodes['#photo-continue'].disabled,false);assert.equal(nodes['#extra-photos'].disabled,true);
+ state.photos.push({});state.photoChecks.push({pass:true});update();assert.equal(nodes['#photo-continue'].disabled,true);
 });
 test('separate email validation still rejects missing and malformed addresses',()=>{
  const {nodes,validEmail}=setup();
@@ -30,4 +31,13 @@ test('preview email is saved before drawing and save errors stop generation',asy
  ctx.fetch=async()=>({ok:false,json:async()=>({error:'Save failed'})});await assert.rejects(ctx.capturePreviewEmail(),/Save failed/);
  const prepare=source.slice(source.indexOf('async function preparePreview(){'),source.indexOf('for(let index=0;index<10;'));
  assert.ok(prepare.indexOf('await capturePreviewEmail()')<prepare.indexOf('await renderStoryArt()'));
+});
+
+test('multiple references create one character, not one character per photo',async()=>{
+ const fn=source.slice(source.indexOf('async function renderStoryArt(){'),source.indexOf('async function capturePreviewEmail(){'));
+ const nodes={'#preview-image':{},'#preview-image-second':{},'#preview-art':{classList:{toggle(){}}}};
+ const photos=[{name:'front'},{name:'side'},{name:'smile'}];let calls=0;
+ const ctx={state:{photos,names:'Leo',secondName:'',characterImages:[]},$:id=>nodes[id],drawingProgress:null,requestCharacter:async(files,name)=>{calls++;assert.equal(files.length,3);assert.equal(name,'Leo');return 'one-character';}};
+ vm.runInNewContext(fn,ctx);await ctx.renderStoryArt();assert.equal(calls,1);assert.equal(ctx.state.characterImages.length,1);assert.equal(nodes['#preview-image-second'].hidden,true);
+ await ctx.renderStoryArt();assert.equal(calls,1,'cached character is reused');
 });
