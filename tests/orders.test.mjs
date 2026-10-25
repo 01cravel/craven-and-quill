@@ -72,3 +72,18 @@ for (const size of ['a5','a4']) test(`${size}: complete Ziina order journey, ema
  r=await request(env,'/'+id+'/notify-printed',{revision:o.revision},{admin:true});assert.equal(r.status,200);assert.equal(emails.length,3);o=await r.json();
  r=await request(env,'/'+id+'/refresh',{revision:o.revision},{admin:true});assert.equal(r.status,200);o=await r.json();assert.equal(o.shipments[0].trackingNumber,'QA123');
 });
+
+test('private £1 live diagnostic is owner-only, one-time, price-pinned and isolated from book orders and Prodigi',async()=>{
+ const env=environment();ziinaConnected(env,'test');env.ORDERS_ENABLED='false';env.ORDER_TAX_CONFIRMED='false';let done=false,creates=0,refunds=0,refundBody;
+ env.fetch=async(url,opts={})=>{assert.ok(url.startsWith('https://api-v2.ziina.com/'));if(url.endsWith('/payment_intent')){creates++;const b=JSON.parse(opts.body);assert.equal(b.amount,100);assert.equal(b.test,false);assert.equal(b.allow_tips,false);return Response.json(intent(env,100));}if(url.includes('/payment_intent/'))return Response.json(intent(env,100,done?'completed':'requires_payment_instrument'));if(url.endsWith('/refund')){refunds++;refundBody=JSON.parse(opts.body);assert.equal(refundBody.test,false);return Response.json({...refundBody,status:'completed'});}if(url.includes('/refund/'))return Response.json({...refundBody,status:'completed'});throw Error('Unexpected request');};
+ assert.equal((await request(env,'/live-payment-test',null,{auth:false})).status,401);
+ assert.equal((await request(env,'/live-payment-test',{action:'create',confirm:true},{admin:true,headers:{Origin:'https://evil.test'}})).status,403);
+ let r=await request(env,'/live-payment-test',{action:'create',confirm:true,amount:9999},{admin:true});assert.equal(r.status,200);assert.equal((await r.json()).amountPence,100);
+ assert.equal((await request(env,'/live-payment-test',{action:'create',confirm:true},{admin:true})).status,200);assert.equal(creates,1);
+ assert.equal((await request(env,'/live-payment-test',{action:'refund',confirm:true},{admin:true})).status,409);done=true;
+ r=await request(env,'/live-payment-test',{action:'refresh'},{admin:true});assert.equal((await r.json()).test.status,'completed');
+ r=await request(env,'/live-payment-test',{action:'refund',confirm:true},{admin:true});assert.equal(r.status,200);assert.equal((await r.json()).test.refund.status,'completed');
+ assert.equal((await request(env,'/live-payment-test',{action:'refund',confirm:true},{admin:true})).status,409);assert.equal(refunds,1);
+ assert.equal(env.DB.sqlite.prepare('SELECT count(*) AS n FROM customer_orders').get().n,0);assert.equal(checkoutReady(env),false);
+});
+test('ambiguous private test checkout cannot create a second payment',async()=>{const env=environment();ziinaConnected(env);let count=0;env.fetch=async()=>{count++;throw Error('timeout');};assert.equal((await request(env,'/live-payment-test',{action:'create',confirm:true},{admin:true})).status,503);const r=await request(env,'/live-payment-test',{action:'create',confirm:true},{admin:true});assert.equal((await r.json()).test.status,'creation_unknown');assert.equal(count,1);});

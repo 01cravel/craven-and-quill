@@ -4286,6 +4286,97 @@ function checkoutReady(env2) {
   return env2.ORDERS_ENABLED === "true" && env2.ORDER_TAX_CONFIRMED === "true" && (env2.PAYMENT_PROVIDER === "ziina" ? !!env2.ZIINA_ACCESS_TOKEN && !!env2.ZIINA_ACCOUNT_ID && !!env2.ZIINA_WEBHOOK_SECRET && ["test", "live"].includes(env2.ZIINA_MODE) : /^sk_(live|test)_/.test(env2.STRIPE_SECRET_KEY || "") && !!env2.STRIPE_WEBHOOK_SECRET) && !!env2.PRODIGI_API_KEY && !!env2.RESEND_API_KEY && !!env2.ORDER_EMAIL_FROM;
 }
 
+// src/live-payment-test.js
+async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZiina: matchZiina2 }) {
+  requireThat(admin2(req, env2), "Sign in with the site owner\u2019s ChatGPT account.", 401);
+  requireThat(env2.DB, "Test storage unavailable.", 503);
+  const sql = (s, ...args) => env2.DB.prepare(s).bind(...args);
+  await sql("CREATE TABLE IF NOT EXISTS live_payment_test (id INTEGER PRIMARY KEY CHECK(id=1), state TEXT NOT NULL)").run();
+  const read3 = async () => {
+    const row = await sql("SELECT state FROM live_payment_test WHERE id=1").first();
+    return row ? JSON.parse(row.state) : null;
+  };
+  let persisted;
+  const write3 = async (t3) => {
+    const next = JSON.stringify(t3), changed = await sql("UPDATE live_payment_test SET state=?1 WHERE id=1 AND state=?2 RETURNING id", next, persisted).first();
+    requireThat(changed, "Test changed. Refresh before continuing.", 409);
+    persisted = next;
+  };
+  const result = (t3) => Response.json({ test: t3, amountPence: 100, currency: "GBP", printing: "Permanently excluded: this is not a book order." }, { headers: { "Cache-Control": "no-store" } });
+  let t2 = await read3();
+  persisted = t2 ? JSON.stringify(t2) : null;
+  if (req.method === "GET") return result(t2);
+  requireThat(req.method === "POST", "Use POST.", 405);
+  requireThat(req.headers.get("origin") === new URL(req.url).origin && req.headers.get("sec-fetch-site") !== "cross-site", "Cross-site request refused.", 403);
+  const text = await req.text();
+  requireThat(text.length < 1e3, "Request too large.", 413);
+  const b = JSON.parse(text);
+  requireThat(env2.ZIINA_ACCESS_TOKEN && env2.ZIINA_ACCOUNT_ID, "Ziina is not connected.", 503);
+  const payment = async () => {
+    requireThat(t2?.paymentId, "No confirmed payment reference. Check Ziina before retrying.", 409);
+    return matchZiina2(await ziina2(env2, "/payment_intent/" + encodeURIComponent(t2.paymentId)), { session_id: t2.paymentId, amount: 100, data: { payment: { accountId: t2.accountId } } });
+  };
+  if (b.action === "create") {
+    requireThat(b.confirm === true, "Confirm the \xA31 live test.");
+    if (t2) return result(t2);
+    t2 = { status: "creating", accountId: env2.ZIINA_ACCOUNT_ID, createdAt: (/* @__PURE__ */ new Date()).toISOString(), amountPence: 100, currency: "GBP" };
+    const claim = await sql("INSERT OR IGNORE INTO live_payment_test (id,state) VALUES (1,?1) RETURNING id", JSON.stringify(t2)).first();
+    requireThat(claim, "A test already exists. Refresh instead.", 409);
+    persisted = JSON.stringify(t2);
+    try {
+      const link = new URL("/payment-test.html", req.url).href, p = await ziina2(env2, "/payment_intent", { amount: 100, currency_code: "GBP", message: "Craven & Quill \xA31 live payment/refund test. No book or printing.", test: false, allow_tips: false, success_url: link, cancel_url: link, failure_url: link });
+      requireThat(typeof p.id === "string" && p.id.length < 100, "Missing payment reference.", 502);
+      t2.paymentId = p.id;
+      matchZiina2(p, { session_id: p.id, amount: 100, data: { payment: { accountId: t2.accountId } } });
+      const u = new URL(p.redirect_url);
+      requireThat(u.protocol === "https:" && (u.hostname === "ziina.com" || u.hostname.endsWith(".ziina.com")) && !u.username && !u.password, "Invalid payment link.", 502);
+      t2.url = u.href;
+      t2.status = p.status;
+      await write3(t2);
+    } catch (e) {
+      t2.status = "creation_unknown";
+      await write3(t2);
+      throw e;
+    }
+  } else if (b.action === "refresh") {
+    const p = await payment();
+    t2.status = p.status;
+    t2.checkedAt = (/* @__PURE__ */ new Date()).toISOString();
+    await write3(t2);
+  } else if (b.action === "refund") {
+    requireThat(b.confirm === true, "Confirm refund of the original \xA31 payment.");
+    requireThat(!t2?.refund, "A refund was already requested. Check its status; never repeat it.", 409);
+    const p = await payment();
+    requireThat(p.status === "completed", "The payment is not completed.", 409);
+    const prior = JSON.stringify(t2);
+    t2.status = p.status;
+    t2.refund = { id: crypto.randomUUID(), status: "requesting" };
+    const claim = await sql("UPDATE live_payment_test SET state=?1 WHERE id=1 AND state=?2 RETURNING id", JSON.stringify(t2), prior).first();
+    requireThat(claim, "Another request is running. Refresh.", 409);
+    persisted = JSON.stringify(t2);
+    try {
+      const r = await ziina2(env2, "/refund", { id: t2.refund.id, payment_intent_id: t2.paymentId, amount: 100, currency_code: "GBP", test: false });
+      checkRefund(r);
+      t2.refund.status = r.status;
+    } catch (e) {
+      t2.refund.status = "unknown";
+      await write3(t2);
+      throw e;
+    }
+    await write3(t2);
+  } else if (b.action === "refund-status") {
+    requireThat(t2?.refund?.id, "No refund exists.", 409);
+    const r = await ziina2(env2, "/refund/" + encodeURIComponent(t2.refund.id));
+    checkRefund(r);
+    t2.refund.status = r.status;
+    await write3(t2);
+  } else requireThat(false, "Unknown test action.");
+  function checkRefund(r) {
+    requireThat(r.id === t2.refund.id && r.payment_intent_id === t2.paymentId && r.amount === 100 && r.currency_code === "GBP" && ["pending", "completed", "failed"].includes(r.status), "Refund response did not match this test.", 502);
+  }
+  return result(await read3());
+}
+
 // src/order-email.js
 function orderEmail(o, kind, url) {
   const titles = { receipt: "Payment received, your book is being prepared", proof: "Your book proof is ready", shipped: "Your book has been sent to the printer" };
@@ -52526,6 +52617,7 @@ async function ordersApi(req, env2) {
   const url = new URL(req.url), path = url.pathname;
   if (!path.startsWith("/api/orders")) return null;
   try {
+    if (path === "/api/orders/live-payment-test") return await livePaymentTest(req, env2, { admin, ziina, matchZiina });
     if (path === "/api/orders/catalog" && req.method === "GET") return reply(catalogue(checkoutReady(env2)));
     requireThat(env2.DB && env2.BOOK_ASSETS, "Order storage is being connected. Your story is unchanged.", 503);
     if (path === "/api/orders/ziina-webhook" && req.method === "POST") return reply(await ziinaWebhook(req, env2));
