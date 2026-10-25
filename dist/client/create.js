@@ -1,4 +1,4 @@
-const state={previewId:null,step:1,storyMode:'invent',names:'',secondName:'',age:'',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a5',price:39.99};
+const state={previewId:null,rewritesRemaining:3,step:1,storyMode:'invent',names:'',secondName:'',age:'',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a5',price:39.99};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const track=(event,data={})=>{const names={story_maker_open:'maker_start',free_preview_created:'preview_success',free_preview_failed:'preview_error'};const allowed=['maker_start','story_generated','story_edited','checkout_start','checkout_error','book_saved'];const value=names[event]||(event==='story_step_view'?'step_'+data.step:event);if(allowed.includes(value)||/^step_[124567]$/.test(value)||names[event])window.cqMeasurement?.record(value);};
@@ -59,7 +59,7 @@ function scrollToStepTop(number){
 }
 
 function showStep(number){
-  const order=[1,8,2,12,9,3,10,5,6,11,7];
+  const order=[1,8,2,12,9,3,10,5,4,6,11,7];
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
@@ -69,10 +69,12 @@ function showStep(number){
   if(number===6)window.cqMeasurement?.record('price_view');
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
-  const names={1:'Their name',8:'Reading level',2:'Their photo',12:'Story approach',9:state.storyMode==='plot'?'Your idea':'About them',3:'Story tone',4:'Story idea',10:'Your email',5:'Free preview',6:'Book size',11:'Delivery',7:'Review & pay'};
-  const visibleStep=number===4?8:order.indexOf(number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
+  const names={1:'Their name',8:'Reading level',2:'Their photo',12:'Story approach',9:state.storyMode==='plot'?'Your idea':'About them',3:'Story tone',4:'Your story',10:'Your email',5:'Your character',6:'Book size',11:'Delivery',7:'Review & pay'};
+  const visibleStep=order.indexOf(number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
   $('.journey').setAttribute('aria-label',`Step ${visibleStep} of ${order.length}: ${names[number]}`);
   if(number===7)$('#delivery-summary').textContent=[$('#recipient-name').value,$('#address-line1').value,$('#address-line2').value,$('#town').value,$('#postcode').value].filter(Boolean).join(', ');
+  if(number===4&&state.storyDraft)requestAnimationFrame(()=>turnStoryPage(state.storyPage,'instant'));
+  if(number===5&&state.storyDraft)$('#illustration-count').textContent=`${state.storyDraft.spreads.length} story illustrations and a cover`;
   scrollToStepTop(number);
   track('story_step_view',{step:number});
   window.dispatchEvent(new Event('cq-draft-change'));
@@ -106,7 +108,8 @@ function updateStoryGate(){
   $('#use-story').hidden=!draftValid(state.storyDraft)||outdated;
   $('#generate-story').hidden=draftValid(state.storyDraft)&&!outdated;
   $('#generate-story').disabled=storyWriting;
-  $('#revise-story').disabled=storyWriting;
+  $('#revise-story').disabled=storyWriting||state.rewritesRemaining<=0;
+  $('#rewrite-label').textContent=state.rewritesRemaining>0?`Rewrite story · ${state.rewritesRemaining} left`:'No rewrites left · you can still edit';
   $('#generate-story').textContent=storyWriting?'Writing your story…':state.storyDraft?'Update my preview':'Continue';
 }
 function invalidatePreview(){state.characterImages=[];state.previewId=null;$('#choose-book').disabled=true;}
@@ -140,14 +143,16 @@ function renderStoryDraft(){
     const folio=document.createElement('p');folio.className='story-page-folio';folio.textContent=`Page ${index+1}`;
     const label=document.createElement('label');label.htmlFor=`story-page-${index+1}`;label.textContent=`Story text for page ${index+1}`;
     label.className='story-page-label';
-    const field=document.createElement('textarea');field.id=label.htmlFor;field.rows=10;field.maxLength=1500;field.value=page.text;field.addEventListener('input',editDraft);
-    panel.append(folio,label,field);pages.append(panel);
+    const field=document.createElement('textarea');field.id=label.htmlFor;field.rows=6;field.readOnly=true;field.maxLength=1500;field.value=page.text;field.addEventListener('input',editDraft);
+    const edit=document.createElement('button');edit.type='button';edit.className='edit-page';edit.textContent='Edit text';edit.addEventListener('click',()=>{field.readOnly=!field.readOnly;edit.textContent=field.readOnly?'Edit text':'Done';if(!field.readOnly)field.focus({preventScroll:true});});
+    panel.append(edit,label,field);pages.append(panel);
   });
   turnStoryPage(state.storyPage,'instant');
   updateLive();
 }
 async function writeStory(revision=false){
   if(storyWriting)return;
+  if(revision&&state.rewritesRemaining<=0)return;
   updateLive();if(!validBrief())return;
   const error=$('#step-4-error');error.textContent='';
   const basis=JSON.parse(storyBasis());
@@ -164,12 +169,14 @@ async function writeStory(revision=false){
   try{
     const response=await fetch('/api/generate-story',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...basis,changes,previousStory:previous}),signal:AbortSignal.timeout(85000)});
     const result=await response.json().catch(()=>({}));
+    if(Number.isInteger(result.rewritesRemaining))state.rewritesRemaining=result.rewritesRemaining;
+    window.dispatchEvent(new Event('cq-draft-change'));
     if(!response.ok||result.ok!==true||!draftValid(result.story))throw new Error(result.error||'The story did not finish. Your current draft has not changed. Please try again.');
     if(request!==storyRequest||capturedBasis!==storyBasis())throw new Error('Your details changed while we were writing. Your draft has not changed. Generate again with the latest details.');
     if(!revision)state.storyPage=0;
     state.storyDraft=result.story;state.storyBasis=capturedBasis;state.storylineNeedsUpdate=false;renderStoryDraft();
-    window.dispatchEvent(new Event('cq-draft-change'));$('#story-changes').value='';$('#story-writing-status').textContent='Your story is ready to read and edit.';
-    track('story_generated');if(!revision){$('#story-editor').open=false;if(!state.characterImages.length&&!state.photos.length){showStep(2);$('#step-2-error').textContent='Add your photo again to create a new preview. Your story is saved.';}else{showStep(5);void preparePreview();}}else{$('#story-editor').open=true;}
+    window.dispatchEvent(new Event('cq-draft-change'));$('#story-changes').value='';$('#story-writing-status').textContent='';
+    track('story_generated');if(!revision){$('#story-editor').open=false;if(!state.characterImages.length&&!state.photos.length){showStep(2);$('#step-2-error').textContent='Add your photo again to create a new preview. Your story is saved.';}else{showStep(5);void preparePreview();}}else{$('#story-editor').open=true;$('.rewrite-options').open=false;}
   }catch(cause){error.textContent=cause.name==='TimeoutError'?'The story took too long. Your draft has not changed. Please try again.':cause.message||'We could not write the story. Your draft has not changed.';$('#story-writing-status').textContent='';}
   finally{storyWriting=false;$$('#story-editor input,#story-editor textarea').forEach(field=>field.disabled=false);updateStoryGate();}
 }
@@ -183,7 +190,7 @@ $('#generate-story').addEventListener('click',()=>{
 });
 $('#start-preview').addEventListener('click',()=>{
   if(!validPreviewEmail()){$('#step-10-error').textContent='Enter a valid email address to keep your preview.';$('#email').focus();return;}
-  $('#step-10-error').textContent='';showStep(4);void writeStory();
+  $('#step-10-error').textContent='';if(state.storyDraft&&state.storyBasis===storyBasis()){showStep(5);void preparePreview();}else{showStep(4);void writeStory(!!state.storyDraft);}
 });
 $('#revise-story').addEventListener('click',()=>{void writeStory(true);});
 $('#story-previous').addEventListener('click',()=>turnStoryPage(state.storyPage-1));

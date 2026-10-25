@@ -58,3 +58,19 @@ test('durable daily ceiling permits attempt 50 and rejects attempt 51 without an
   globalThis.fetch=async()=>{calls++;return Response.json(result(draft()));};
   try{const env={DB,OPENAI_API_KEY:'server-only'};assert.equal((await worker.fetch(request(),env)).status,200);assert.equal((await worker.fetch(request(),env)).status,429);assert.equal(calls,1);assert.equal(DB.sqlite.prepare('SELECT attempts FROM story_daily_usage').get().attempts,50);}finally{globalThis.fetch=original;}
 });
+
+test('server cookie allows initial story plus three rewrites, including refresh and concurrent requests',async()=>{
+ const original=globalThis.fetch,DB=testDb();let calls=0;
+ globalThis.fetch=async()=>{calls++;return Response.json(result(draft()));};
+ try{
+  const env={DB,OPENAI_API_KEY:'server-only'};
+  const first=await worker.fetch(request(),env);const cookie=first.headers.get('Set-Cookie').split(';')[0];
+  assert.equal((await first.json()).rewritesRemaining,3);
+  const rewrite=()=>{const r=request({...inputs,previousStory:draft()});r.headers.set('Cookie',cookie);return worker.fetch(r,env);};
+  const responses=await Promise.all([rewrite(),rewrite(),rewrite(),rewrite()]);
+  assert.deepEqual(responses.map(r=>r.status).sort(),[200,200,200,429]);assert.equal(calls,4);
+  // Omitting previousStory does not reset the durable allowance.
+  const reset=request();reset.headers.set('Cookie',cookie);
+  assert.equal((await worker.fetch(reset,env)).status,429);assert.equal(calls,4);
+ }finally{globalThis.fetch=original;}
+});

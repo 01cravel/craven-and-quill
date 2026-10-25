@@ -27,7 +27,7 @@
       <span class="journey-step" data-progress="6"><b>6</b><em>Your book</em></span>
       <span class="journey-step" data-progress="7"><b>7</b><em>Delivery & pay</em></span>
     </nav>
-    <div class="progress-mini" aria-hidden="true"><span class="progress-label">Step <b id="progress-num">1</b> of 11<em id="progress-name">About them</em></span><span class="progress-bar"><i id="progress-fill"></i></span></div>
+    <div class="progress-mini" aria-hidden="true"><span class="progress-label">Step <b id="progress-num">1</b> of 12<em id="progress-name">About them</em></span><span class="progress-bar"><i id="progress-fill"></i></span></div>
     <a class="save-note" href="index.html">Exit</a>
   </header>
 
@@ -40,7 +40,7 @@
         <div class="mini-cover-copy"><span>A STORY FOR</span><strong id="live-name">SOMEONE SPECIAL</strong><em id="live-title">The Map Beneath the Moon</em></div>
       </div>
       <div class="side-details"><span id="live-age">Your reader</span><span id="live-mood">Adventure</span></div>
-      <div class="side-promise"><b>Free preview first</b><span>See their first page before choosing a format.</span></div>
+      <div class="side-promise"><b>Free preview first</b><span>Meet their character and read their story before choosing a format.</span></div>
     </aside>
 
     <section class="step-panel">
@@ -132,43 +132,27 @@
         </section>
 
         <section class="step" data-step="4" aria-labelledby="step-4-title" hidden>
-          <p class="eyebrow">Their story</p>
-          <h1 id="step-4-title">Your story draft.</h1>
-          <p class="intro" id="story-choice-intro">Read, edit or rewrite your story before continuing.</p>
-
-          <div class="story-write-actions">
-
-            <p class="privacy-line">Their name, story choices and optional details go to OpenAI to write the story. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
-          </div>
+          <h1 id="step-4-title">Your story.</h1>
+          <p class="intro" id="story-choice-intro">Swipe to read. Tap Edit text to make it yours.</p>
           <p id="story-writing-status" class="story-status" role="status" aria-live="polite"></p>
-          <p id="story-outdated" class="story-notice" hidden>You changed their details or starting idea. Your draft is still here. Update it before continuing.</p>
-          <details id="story-editor" hidden><summary>Read and edit the story</summary><p id="story-summary" class="privacy-line"></p>
-            <div class="story-editor-heading"><h2 id="story-editor-title">Edit it yourself.</h2><p>Tap the words to edit the title or any page. Or describe your changes below and we’ll rewrite the story for you.</p></div>
-            <label for="story-title">Book title</label>
-            <input id="story-title" maxlength="120" autocomplete="off">
-            <label for="story-synopsis">Storyline</label>
-            <textarea id="story-synopsis" rows="3" maxlength="600" aria-describedby="story-synopsis-note"></textarea>
-            <p class="privacy-line" id="story-synopsis-note">Changed the storyline? Choose Rewrite story below to update the pages.</p>
+          <p id="story-outdated" class="story-notice" hidden></p>
+          <div id="story-editor" hidden>
+            <p id="story-summary" hidden></p>
+            <details class="optional-detail title-options"><summary>Edit book title</summary><label for="story-title">Book title</label><input id="story-title" maxlength="120" autocomplete="off"></details>
+            <textarea id="story-synopsis" hidden maxlength="600"></textarea>
             <div class="story-book" role="region" aria-label="Read and edit your story" aria-roledescription="carousel">
               <div id="story-pages" class="story-pages" tabindex="0" aria-label="Story pages" aria-describedby="story-page-tip"></div>
-              <div class="story-book-controls">
-                <button id="story-previous" type="button" aria-controls="story-pages">Previous</button>
-                <p id="story-page-position" role="status" aria-live="polite">Page 1 of 10</p>
-                <button id="story-next" type="button" aria-controls="story-pages">Next</button>
-              </div>
+              <div class="story-book-controls"><button id="story-previous" type="button">Previous</button><p id="story-page-position" role="status">Page 1 of 10</p><button id="story-next" type="button">Next</button></div>
             </div>
-            <p class="privacy-line story-page-tip" id="story-page-tip">Swipe left or right, or use Previous and Next. Your edits stay in the draft as you turn the pages.</p>
-            <section class="story-rewrite" aria-labelledby="story-rewrite-title">
-              <h3 id="story-rewrite-title">Rewrite it for me.</h3>
-              <p>Want a different plot, setting or ending? Tell us what to change and we’ll rewrite all ten pages using your edited draft.</p>
-              <label for="story-changes">Describe your changes <span>Optional</span></label>
-              <textarea id="story-changes" rows="3" maxlength="1000" placeholder="Set it in the garden. Make the football match funnier. Let them win by helping a friend."></textarea>
-              <button class="next" id="revise-story" type="button">Rewrite story</button>
-              <p class="privacy-line">If the rewrite fails, your current draft stays here.</p>
-            </section>
-          </details>
+            <p id="story-page-tip" class="story-page-tip" hidden>Your text edits are saved as you turn the pages.</p>
+            <details class="optional-detail rewrite-options"><summary id="rewrite-label">Rewrite story · 3 left</summary>
+              <label for="story-changes">What would you change? <span>Optional</span></label>
+              <textarea id="story-changes" rows="2" maxlength="1000" placeholder="Make the ending funnier…"></textarea>
+              <button class="next" id="revise-story" type="button">Rewrite story</button><p class="privacy-line">Three rewrite attempts. Editing the words yourself is unlimited. Your character stays the same.</p>
+            </details>
+          </div>
           <div class="error" id="step-4-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next" id="generate-story" type="button">Continue to free preview</button><button class="next" id="use-story" type="button" data-next="5" disabled>Create free preview</button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" id="generate-story" type="button">Continue to free preview</button><button class="next" id="use-story" type="button" data-next="6" disabled>Choose your book</button></div>
         </section>
 
 <section class="step" data-step="10" aria-labelledby="step-10-title" hidden><h1 id="step-10-title">Where shall we save your preview?</h1><p class="intro">One email to keep your preview and book together. No marketing subscription.</p>          <div id="preview-email-wrap">
@@ -192,16 +176,15 @@
 
           <div id="result-state" hidden>
             <section class="first-page" aria-labelledby="first-page-title">
-              <div class="page-preview-heading"><h2 id="first-page-title">Their adventure starts here.</h2><p><span id="result-story-title">The Map Beneath the Moon</span>, page 1 of 10</p></div>
+              <div class="page-preview-heading"><h2 id="first-page-title">Meet your character.</h2><p hidden><span id="result-story-title"></span></p></div>
 <div class="book-preview">
                 <figure class="preview-art" id="preview-art"><img id="preview-image" src="assets/storybook.webp" width="900" height="1125" alt="Sample personalised story illustration format"><img id="preview-image-second" width="900" height="1125" alt="" hidden><span>Free preview</span></figure>
                 <article class="preview-copy"><p class="chapter" id="preview-chapter">The adventure begins</p><p id="story-copy"></p></article>
               </div>
-              <p class="preview-explainer">This is your free character and first-page preview. After payment, we create the remaining illustrations. You’ll approve the finished book before we print.</p><details class="optional-detail"><summary>Why create the rest after payment?</summary><p>Every illustration takes time and a little creative fuel. Your order gets the rest of the magic going.</p></details><div class="locked-pages" aria-label="Story picture progress"><strong>The rest of the illustrations are created after payment.</strong><div id="locked-dots"></div></div>
-              <button class="shuffle" type="button" data-back="4">Read or edit the story</button>
+              <p class="preview-explainer">After payment, we’ll create <strong id="illustration-count">10 story illustrations and a cover</strong> with this character. Each takes time and a little creative fuel.</p><p class="proof-reassurance">You approve the finished book before printing.</p><div id="locked-dots" hidden></div>
             </section>
-            <button type="button" class="shuffle" id="email-draft">Email my private return link</button><p id="draft-email-status" class="privacy-line" role="status"></p><div class="error" id="step-5-error" role="alert"></div>
-            <div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next" id="choose-book" type="button" data-next="6" disabled>Choose your book <span>→</span></button></div>
+<div class="error" id="step-5-error" role="alert"></div>
+            <div class="step-actions"><button class="back" type="button" data-back="10">Back</button><button class="next" id="choose-book" type="button" data-next="4" disabled>Read your story <span>→</span></button></div>
           </div>
         </section>
 
@@ -220,7 +203,7 @@
           </fieldset>
 
           <div class="error" id="step-6-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" type="button" data-next="11">Continue <span>→</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next" type="button" data-next="11">Continue <span>→</span></button></div>
         </section>
 
 <section class="step" data-step="11" aria-labelledby="step-11-title" hidden><h1 id="step-11-title">Where should we send it?</h1><p class="intro">UK standard delivery is included.</p>            <label for="recipient-name">Recipient name</label><input id="recipient-name" maxlength="100" autocomplete="shipping name" required>
@@ -246,7 +229,7 @@
             <p class="under-button">UK delivery included. Secure payment with Ziina. The seller may appear as cravenluke (Luke Craven, Craven &amp; Quill). Nothing prints without your approval.</p>
           </div>
         </section>
-      <details class="draft-options"><summary>Saved book options</summary><p id="draft-status" class="privacy-line" role="status"></p><div id="resume-draft" hidden><button type="button" class="shuffle" id="resume-button">Continue my saved draft</button></div><button type="button" class="shuffle" id="forget-draft" hidden>Start fresh</button></details>
+      <details class="draft-options"><summary>Saved book options</summary><button type="button" class="shuffle" id="email-draft">Email my private return link</button><p id="draft-email-status" class="privacy-line" role="status"></p><p id="draft-status" class="privacy-line" role="status"></p><div id="resume-draft" hidden><button type="button" class="shuffle" id="resume-button">Continue my saved draft</button></div><button type="button" class="shuffle" id="forget-draft" hidden>Start fresh</button></details>
       </form>
     </section>
   </main>
