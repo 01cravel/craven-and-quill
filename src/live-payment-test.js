@@ -17,21 +17,25 @@ export async function livePaymentTest(req,env,{admin,ziina,matchZiina}) {
  const text=await req.text();requireThat(text.length<1000,'Request too large.',413);const b=JSON.parse(text);
  requireThat(env.ZIINA_ACCESS_TOKEN&&env.ZIINA_ACCOUNT_ID,'Ziina is not connected.',503);
  const payment=async()=>{requireThat(t?.paymentId,'No confirmed payment reference. Check Ziina before retrying.',409);return matchZiina(await ziina(env,'/payment_intent/'+encodeURIComponent(t.paymentId)),{session_id:t.paymentId,amount:100,data:{payment:{accountId:t.accountId}}});};
- if(b.action==='create'){
+ if(b.action==='create'||b.action==='recover'){
   requireThat(b.confirm===true,'Confirm the £1 live test.');
-  if(t)return result(t);
+  const recovering=b.action==='recover';
+  if(recovering)requireThat(slot==='2'&&t?.status==='creation_unknown'&&!t.paymentId&&!t.url&&!t.recoveryAttempted,'Only the unlinked second checkout can be recovered once.',409);
+  else if(t)return result(t);
   if(slot==='2'){
    await sql('CREATE TABLE IF NOT EXISTS live_payment_test (id INTEGER PRIMARY KEY CHECK(id=1), state TEXT NOT NULL)').run();
    const row=await sql('SELECT state FROM live_payment_test WHERE id=1').first(),first=row?JSON.parse(row.state):null;
    requireThat(first?.status==='completed'&&first?.refund?.status==='failed'&&first?.refund?.error?.code==='INSUFFICIENT_BALANCE','The original test must have a verified insufficient-balance refund failure.',409);
   }
-  t={status:'creating',accountId:env.ZIINA_ACCOUNT_ID,createdAt:new Date().toISOString(),amountPence:100,currency:'GBP'};
-  const claim=await sql(`INSERT OR IGNORE INTO ${table} (id,state) VALUES (1,?1) RETURNING id`,JSON.stringify(t)).first();requireThat(claim,'A test already exists. Refresh instead.',409);
+  const previous=t;
+  t={...(recovering?{recoveryAttempted:true,previousAttempt:previous}:{}),status:'creating',accountId:env.ZIINA_ACCOUNT_ID,createdAt:new Date().toISOString(),amountPence:100,currency:'GBP'};
+  if(recovering)await write(t);
+  else {const claim=await sql(`INSERT OR IGNORE INTO ${table} (id,state) VALUES (1,?1) RETURNING id`,JSON.stringify(t)).first();requireThat(claim,'A test already exists. Refresh instead.',409);}
   persisted=JSON.stringify(t);try{const link=new URL('/payment-test.html?payment='+slot,req.url).href,p=await ziina(env,'/payment_intent',{amount:100,currency_code:'GBP',message:'Craven & Quill £1 live payment/refund test '+slot+'. No book or printing.',test:false,allow_tips:false,success_url:link,cancel_url:link,failure_url:link});
    requireThat(typeof p.id==='string'&&p.id.length<100,'Missing payment reference.',502);t.paymentId=p.id;
    matchZiina(p,{session_id:p.id,amount:100,data:{payment:{accountId:t.accountId}}});const u=new URL(p.redirect_url);requireThat(u.protocol==='https:'&&(u.hostname==='ziina.com'||u.hostname.endsWith('.ziina.com'))&&!u.username&&!u.password,'Invalid payment link.',502);
    t.url=u.href;t.status=p.status;await write(t);
-  }catch(e){t.status='creation_unknown';await write(t);throw e;}
+  }catch(e){t.status='creation_unknown';t.creationError=safeText(e.message,500);await write(t);throw e;}
  }else if(b.action==='refresh'){
   const p=await payment();t.status=p.status;t.checkedAt=new Date().toISOString();await write(t);
  }else if(b.action==='refund'){

@@ -4319,17 +4319,23 @@ async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZ
     requireThat(t2?.paymentId, "No confirmed payment reference. Check Ziina before retrying.", 409);
     return matchZiina2(await ziina2(env2, "/payment_intent/" + encodeURIComponent(t2.paymentId)), { session_id: t2.paymentId, amount: 100, data: { payment: { accountId: t2.accountId } } });
   };
-  if (b.action === "create") {
+  if (b.action === "create" || b.action === "recover") {
     requireThat(b.confirm === true, "Confirm the \xA31 live test.");
-    if (t2) return result(t2);
+    const recovering = b.action === "recover";
+    if (recovering) requireThat(slot === "2" && t2?.status === "creation_unknown" && !t2.paymentId && !t2.url && !t2.recoveryAttempted, "Only the unlinked second checkout can be recovered once.", 409);
+    else if (t2) return result(t2);
     if (slot === "2") {
       await sql("CREATE TABLE IF NOT EXISTS live_payment_test (id INTEGER PRIMARY KEY CHECK(id=1), state TEXT NOT NULL)").run();
       const row = await sql("SELECT state FROM live_payment_test WHERE id=1").first(), first = row ? JSON.parse(row.state) : null;
       requireThat(first?.status === "completed" && first?.refund?.status === "failed" && first?.refund?.error?.code === "INSUFFICIENT_BALANCE", "The original test must have a verified insufficient-balance refund failure.", 409);
     }
-    t2 = { status: "creating", accountId: env2.ZIINA_ACCOUNT_ID, createdAt: (/* @__PURE__ */ new Date()).toISOString(), amountPence: 100, currency: "GBP" };
-    const claim = await sql(`INSERT OR IGNORE INTO ${table9} (id,state) VALUES (1,?1) RETURNING id`, JSON.stringify(t2)).first();
-    requireThat(claim, "A test already exists. Refresh instead.", 409);
+    const previous = t2;
+    t2 = { ...recovering ? { recoveryAttempted: true, previousAttempt: previous } : {}, status: "creating", accountId: env2.ZIINA_ACCOUNT_ID, createdAt: (/* @__PURE__ */ new Date()).toISOString(), amountPence: 100, currency: "GBP" };
+    if (recovering) await write3(t2);
+    else {
+      const claim = await sql(`INSERT OR IGNORE INTO ${table9} (id,state) VALUES (1,?1) RETURNING id`, JSON.stringify(t2)).first();
+      requireThat(claim, "A test already exists. Refresh instead.", 409);
+    }
     persisted = JSON.stringify(t2);
     try {
       const link = new URL("/payment-test.html?payment=" + slot, req.url).href, p = await ziina2(env2, "/payment_intent", { amount: 100, currency_code: "GBP", message: "Craven & Quill \xA31 live payment/refund test " + slot + ". No book or printing.", test: false, allow_tips: false, success_url: link, cancel_url: link, failure_url: link });
@@ -4343,6 +4349,7 @@ async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZ
       await write3(t2);
     } catch (e) {
       t2.status = "creation_unknown";
+      t2.creationError = safeText(e.message, 500);
       await write3(t2);
       throw e;
     }

@@ -105,3 +105,17 @@ test('second £1 diagnostic requires original balance failure, stays isolated an
  assert.equal((await request(env,'/live-payment-test?payment=3',{action:'create',confirm:true},{admin:true})).status,400);
  assert.equal(env.DB.sqlite.prepare('SELECT count(*) AS n FROM customer_orders').get().n,0);assert.equal(checkoutReady(env),false);
 });
+
+test('unlinked second checkout recovery is atomic, one-time and retains failed attempt',async()=>{
+ const env=environment();ziinaConnected(env);let creates=0;
+ await request(env,'/live-payment-test?payment=2',null,{admin:true});await request(env,'/live-payment-test',null,{admin:true});
+ const original={status:'completed',refund:{status:'failed',error:{code:'INSUFFICIENT_BALANCE'}}};
+ env.DB.sqlite.prepare('INSERT INTO live_payment_test (id,state) VALUES (1,?)').run(JSON.stringify(original));
+ const failed={status:'creation_unknown',createdAt:'2026-10-25T12:18:00Z'};
+ env.DB.sqlite.prepare('INSERT INTO live_payment_test_second (id,state) VALUES (1,?)').run(JSON.stringify(failed));
+ env.fetch=async(url,opts)=>{assert.ok(url.endsWith('/payment_intent'));assert.equal(JSON.parse(opts.body).amount,100);creates++;return Response.json(intent(env,100));};
+ assert.equal((await request(env,'/live-payment-test?payment=1',{action:'recover',confirm:true},{admin:true})).status,409);
+ let r=await request(env,'/live-payment-test?payment=2',{action:'recover',confirm:true},{admin:true});assert.equal(r.status,200);let d=await r.json();assert.equal(d.test.recoveryAttempted,true);assert.deepEqual(d.test.previousAttempt,failed);
+ assert.equal((await request(env,'/live-payment-test?payment=2',{action:'recover',confirm:true},{admin:true})).status,409);assert.equal(creates,1);
+ assert.equal(env.DB.sqlite.prepare('SELECT count(*) AS n FROM customer_orders').get().n,0);
+});
