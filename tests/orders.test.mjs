@@ -113,9 +113,17 @@ test('unlinked second checkout recovery is atomic, one-time and retains failed a
  env.DB.sqlite.prepare('INSERT INTO live_payment_test (id,state) VALUES (1,?)').run(JSON.stringify(original));
  const failed={status:'creation_unknown',createdAt:'2026-10-25T12:18:00Z'};
  env.DB.sqlite.prepare('INSERT INTO live_payment_test_second (id,state) VALUES (1,?)').run(JSON.stringify(failed));
- env.fetch=async(url,opts)=>{assert.ok(url.endsWith('/payment_intent'));assert.equal(JSON.parse(opts.body).amount,100);creates++;return Response.json(intent(env,100));};
+ env.fetch=async(url,opts)=>{assert.ok(url.endsWith('/payment_intent'));assert.equal(JSON.parse(opts.body).amount,100);assert.ok(JSON.parse(opts.body).message.length<=64);creates++;return Response.json(intent(env,100));};
  assert.equal((await request(env,'/live-payment-test?payment=1',{action:'recover',confirm:true},{admin:true})).status,409);
  let r=await request(env,'/live-payment-test?payment=2',{action:'recover',confirm:true},{admin:true});assert.equal(r.status,200);let d=await r.json();assert.equal(d.test.recoveryAttempted,true);assert.deepEqual(d.test.previousAttempt,failed);
  assert.equal((await request(env,'/live-payment-test?payment=2',{action:'recover',confirm:true},{admin:true})).status,409);assert.equal(creates,1);
  assert.equal(env.DB.sqlite.prepare('SELECT count(*) AS n FROM customer_orders').get().n,0);
+});
+
+test('explicit message-length rejection may recover with short message but unknown repeated failure stays locked',async()=>{
+ const env=environment();ziinaConnected(env);await request(env,'/live-payment-test?payment=2',null,{admin:true});await request(env,'/live-payment-test',null,{admin:true});
+ env.DB.sqlite.prepare('INSERT INTO live_payment_test (id,state) VALUES (1,?)').run(JSON.stringify({status:'completed',refund:{status:'failed',error:{code:'INSUFFICIENT_BALANCE'}}}));
+ const state={status:'creation_unknown',recoveryAttempted:true,creationError:'Ziina could not confirm the request (HTTP 400, MESSAGE_LENGTH_INVALID). Keep this order on hold.'};env.DB.sqlite.prepare('INSERT INTO live_payment_test_second (id,state) VALUES (1,?)').run(JSON.stringify(state));let calls=0;
+ env.fetch=async(url,opts)=>{calls++;assert.ok(JSON.parse(opts.body).message.length<40);throw Error('timeout');};
+ assert.equal((await request(env,'/live-payment-test?payment=2',{action:'recover',confirm:true},{admin:true})).status,503);assert.equal((await request(env,'/live-payment-test?payment=2',{action:'recover',confirm:true},{admin:true})).status,409);assert.equal(calls,1);
 });

@@ -4322,7 +4322,7 @@ async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZ
   if (b.action === "create" || b.action === "recover") {
     requireThat(b.confirm === true, "Confirm the \xA31 live test.");
     const recovering = b.action === "recover";
-    if (recovering) requireThat(slot === "2" && t2?.status === "creation_unknown" && !t2.paymentId && !t2.url && !t2.recoveryAttempted, "Only the unlinked second checkout can be recovered once.", 409);
+    if (recovering) requireThat(slot === "2" && t2?.status === "creation_unknown" && !t2.paymentId && !t2.url && (!t2.recoveryAttempted || t2.creationError === "Ziina could not confirm the request (HTTP 400, MESSAGE_LENGTH_INVALID). Keep this order on hold."), "Only the unlinked second checkout can be recovered once.", 409);
     else if (t2) return result(t2);
     if (slot === "2") {
       await sql("CREATE TABLE IF NOT EXISTS live_payment_test (id INTEGER PRIMARY KEY CHECK(id=1), state TEXT NOT NULL)").run();
@@ -4338,7 +4338,7 @@ async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZ
     }
     persisted = JSON.stringify(t2);
     try {
-      const link = new URL("/payment-test.html?payment=" + slot, req.url).href, p = await ziina2(env2, "/payment_intent", { amount: 100, currency_code: "GBP", message: "Craven & Quill \xA31 live payment/refund test " + slot + ". No book or printing.", test: false, allow_tips: false, success_url: link, cancel_url: link, failure_url: link });
+      const link = new URL("/payment-test.html?payment=" + slot, req.url).href, p = await ziina2(env2, "/payment_intent", { amount: 100, currency_code: "GBP", message: "CQ GBP1 test " + slot + " - no printing", test: false, allow_tips: false, success_url: link, cancel_url: link, failure_url: link });
       requireThat(typeof p.id === "string" && p.id.length < 100, "Missing payment reference.", 502);
       t2.paymentId = p.id;
       matchZiina2(p, { session_id: p.id, amount: 100, data: { payment: { accountId: t2.accountId } } });

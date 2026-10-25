@@ -20,7 +20,7 @@ export async function livePaymentTest(req,env,{admin,ziina,matchZiina}) {
  if(b.action==='create'||b.action==='recover'){
   requireThat(b.confirm===true,'Confirm the £1 live test.');
   const recovering=b.action==='recover';
-  if(recovering)requireThat(slot==='2'&&t?.status==='creation_unknown'&&!t.paymentId&&!t.url&&!t.recoveryAttempted,'Only the unlinked second checkout can be recovered once.',409);
+  if(recovering)requireThat(slot==='2'&&t?.status==='creation_unknown'&&!t.paymentId&&!t.url&&(!t.recoveryAttempted||t.creationError==='Ziina could not confirm the request (HTTP 400, MESSAGE_LENGTH_INVALID). Keep this order on hold.'),'Only the unlinked second checkout can be recovered once.',409);
   else if(t)return result(t);
   if(slot==='2'){
    await sql('CREATE TABLE IF NOT EXISTS live_payment_test (id INTEGER PRIMARY KEY CHECK(id=1), state TEXT NOT NULL)').run();
@@ -31,7 +31,7 @@ export async function livePaymentTest(req,env,{admin,ziina,matchZiina}) {
   t={...(recovering?{recoveryAttempted:true,previousAttempt:previous}:{}),status:'creating',accountId:env.ZIINA_ACCOUNT_ID,createdAt:new Date().toISOString(),amountPence:100,currency:'GBP'};
   if(recovering)await write(t);
   else {const claim=await sql(`INSERT OR IGNORE INTO ${table} (id,state) VALUES (1,?1) RETURNING id`,JSON.stringify(t)).first();requireThat(claim,'A test already exists. Refresh instead.',409);}
-  persisted=JSON.stringify(t);try{const link=new URL('/payment-test.html?payment='+slot,req.url).href,p=await ziina(env,'/payment_intent',{amount:100,currency_code:'GBP',message:'Craven & Quill £1 live payment/refund test '+slot+'. No book or printing.',test:false,allow_tips:false,success_url:link,cancel_url:link,failure_url:link});
+  persisted=JSON.stringify(t);try{const link=new URL('/payment-test.html?payment='+slot,req.url).href,p=await ziina(env,'/payment_intent',{amount:100,currency_code:'GBP',message:'CQ GBP1 test '+slot+' - no printing',test:false,allow_tips:false,success_url:link,cancel_url:link,failure_url:link});
    requireThat(typeof p.id==='string'&&p.id.length<100,'Missing payment reference.',502);t.paymentId=p.id;
    matchZiina(p,{session_id:p.id,amount:100,data:{payment:{accountId:t.accountId}}});const u=new URL(p.redirect_url);requireThat(u.protocol==='https:'&&(u.hostname==='ziina.com'||u.hostname.endsWith('.ziina.com'))&&!u.username&&!u.password,'Invalid payment link.',502);
    t.url=u.href;t.status=p.status;await write(t);
