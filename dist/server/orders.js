@@ -4259,7 +4259,7 @@ var PRODUCTS = {
 };
 var BOOK = { pdfPages: 28, interiorPages: 26, spreads: 10, paper: "200gsm gloss", cover: "Matte hardback", safeMm: 10 };
 function catalogue(enabled = false) {
-  return { version: CATALOG_VERSION, products: Object.values(PRODUCTS).map(({ estimatedSupplierPence, ...p }) => p), book: BOOK, currency: "GBP", shippingPence: 0, country: "GB", includes: ["UK standard delivery", "Digital PDF", "Human print review"], checkoutEnabled: enabled, delivery: "Usually 7\u201312 working days after final proof approval. An estimate, not a guaranteed arrival date." };
+  return { version: CATALOG_VERSION, products: Object.values(PRODUCTS).map(({ estimatedSupplierPence, ...p }) => p), book: BOOK, currency: "GBP", shippingPence: 0, country: "GB", includes: ["UK standard delivery", "Digital PDF", "Human print review"], checkoutEnabled: enabled, proofPreparationDays: 7, delivery: "First complete illustrated proof within 7 calendar days of payment. Usually 7\u201312 working days after final proof approval. An estimate, not a guaranteed arrival date." };
 }
 var OrderError = class extends Error {
   constructor(message, status = 400) {
@@ -4398,7 +4398,7 @@ async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZ
 function orderEmail(o, kind, url) {
   const titles = { receipt: "Payment received, your book is being prepared", proof: "Your book proof is ready", shipped: "Your book has been sent to the printer" };
   if (!titles[kind]) throw Error("Unknown email type");
-  const lines = { receipt: "We have received your payment. We will prepare your book and send you a proof. Nothing prints until you approve the proof and we complete our final check.", proof: "Please open your private link and check every page. Printing stays on hold until you approve this version.", shipped: "Your approved book has been sent to the printer. This is not a dispatch confirmation. Tracking will appear on your order page when available." };
+  const lines = { receipt: "We have received your payment. We will send your first complete illustrated proof within 7 calendar days. Estimated UK delivery is 7\u201312 working days after final proof approval. Nothing prints until you approve the proof and we complete our final check.", proof: "Please open your private link and check every page. Printing stays on hold until you approve this version.", shipped: "Your approved book has been sent to the printer. This is not a dispatch confirmation. Tracking will appear on your order page when available." };
   return { subject: "Craven & Quill: " + titles[kind], text: `${titles[kind]}
 
 ${PRODUCTS[o.size].label} \xB7 \xA3${(o.amount / 100).toFixed(2)} including UK standard delivery
@@ -52406,7 +52406,9 @@ async function privateKey(env2, value, decrypt = false) {
   const iv = crypto.getRandomValues(new Uint8Array(12)), encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key2, new TextEncoder().encode(value))), all = new Uint8Array(12 + encrypted.length);
   all.set(iv);
   all.set(encrypted, 12);
-  return btoa(String.fromCharCode(...all));
+  let binary = "";
+  for (let i4 = 0; i4 < all.length; i4 += 8192) binary += String.fromCharCode(...all.subarray(i4, i4 + 8192));
+  return btoa(binary);
 }
 async function body(req, max2 = 65536) {
   const reader = req.body?.getReader();
@@ -52498,7 +52500,21 @@ async function quoteOrder(env2, size) {
   return { totalPence: cost, itemsPence: Math.round(Number(quote.costSummary.items.amount) * 100), shippingPence: Math.round(Number(quote.costSummary.shipping.amount) * 100), taxPence: tax, currency: "GBP", quotedAt: now(), sku: PRODUCTS[size].sku, pageCount: BOOK.pdfPages };
 }
 var notify = sendOrderEmail;
+function measurementContext(m, req) {
+  if (m?.measurementConsent !== true || !/^[a-f0-9-]{36}$/.test(m.visitId || "")) return null;
+  const code2 = (v2, f) => typeof v2 === "string" && /^[a-zA-Z0-9_.-]{1,100}$/.test(v2) ? v2 : f;
+  return { visitId: m.visitId, source: code2(m.source, "direct"), medium: code2(m.medium, "none"), campaign: code2(m.campaign, "organic"), creative: code2(m.creative, "none"), country: code2(req.headers.get("cf-ipcountry"), "unknown") };
+}
+async function measurePaid(env2, o) {
+  const m = o.data.measurement;
+  if (o.payment_status !== "paid" || o.payment_mode !== "live" || !m) return;
+  try {
+    await q(env2, "INSERT INTO campaign_events (id,visit_id,event,source,medium,campaign,creative,country,created_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9) ON CONFLICT(id) DO NOTHING", o.id + ":purchase", m.visitId, "purchase_confirmed", m.source, m.medium, m.campaign, m.creative, m.country, now()).run();
+  } catch {
+  }
+}
 async function receiptEmail(env2, o, kind = "receipt") {
+  await measurePaid(env2, o);
   if (o.payment_status !== "paid" || o.payment_mode !== "live" || o.data.emails?.[kind]?.sent) return o;
   const link = `https://cravenandquill.com/order.html?id=${o.id}#key=${await privateKey(env2, o.data.privateKey, true)}`;
   const result = await notify(env2, o, kind, link);
@@ -52651,6 +52667,50 @@ async function ordersApi(req, env2) {
       requireThat(req.headers.get("origin") === url.origin, "Reload this page before saving.", 403);
       requireThat(req.headers.get("sec-fetch-site") !== "cross-site", "Cross-site request refused.", 403);
     }
+    const draftRoute = path.match(/^\/api\/orders\/drafts\/([a-f0-9-]{36})$/);
+    if (draftRoute) {
+      const token = req.headers.get("authorization")?.replace(/^Bearer /, "") || "";
+      requireThat(/^[a-f0-9-]{64,80}$/.test(token), "Private draft link not found.", 404);
+      const key2 = "drafts/" + draftRoute[1] + "/" + await sha(token);
+      const object = await env2.BOOK_ASSETS.get(key2);
+      let saved = object ? JSON.parse(await privateKey(env2, new TextDecoder().decode(await object.arrayBuffer()), true)) : null;
+      if (saved && saved.expires < Date.now()) {
+        await env2.BOOK_ASSETS.delete(key2);
+        saved = null;
+      }
+      if (req.method === "GET") {
+        requireThat(saved, "This draft link has expired or is unavailable.", 404);
+        return reply(saved.draft);
+      }
+      requireThat(req.method === "PUT", "Method not allowed.", 405);
+      const b2 = await input(req, 95e5);
+      requireThat(typeof b2.email === "string" && b2.email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b2.email), "Enter a valid email.");
+      const preview = await q(env2, "SELECT id FROM preview_receipts WHERE id=?1 AND status='succeeded'", b2.previewId || "").first();
+      requireThat(preview, "Finish a successful preview first.");
+      requireThat(validStory(b2.draft?.state?.storyDraft) && Array.isArray(b2.draft.state.characterImages) && b2.draft.state.characterImages.length > 0 && b2.draft.state.characterImages.length <= 2 && b2.draft.state.characterImages.every((x) => typeof x === "string" && x.length < 45e5 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x)), "Finish your story and character preview.");
+      const claim = "draft-claims/" + b2.previewId;
+      const existingClaim = await env2.BOOK_ASSETS.get(claim);
+      if (existingClaim) {
+        const claimed = new TextDecoder().decode(await existingClaim.arrayBuffer());
+        requireThat(claimed === key2, "Use the original private draft link.", 409);
+      } else await env2.BOOK_ASSETS.put(claim, new TextEncoder().encode(key2), { httpMetadata: { contentType: "text/plain" } });
+      if (saved?.emailedAt) requireThat(Date.now() - saved.emailedAt > 6e4, "Please wait a minute before sending another link.", 429);
+      b2.draft.state.photos = [];
+      b2.draft.state.photoChecks = [];
+      b2.draft.orderRequest = null;
+      b2.draft.expires = saved?.expires || Date.now() + 7 * 864e5;
+      const stored = { draft: b2.draft, expires: b2.draft.expires, emailedAt: Date.now() };
+      await env2.BOOK_ASSETS.put(key2, new TextEncoder().encode(await privateKey(env2, JSON.stringify(stored))), { httpMetadata: { contentType: "text/plain" } });
+      let sent = false;
+      if (env2.RESEND_API_KEY && env2.ORDER_EMAIL_FROM) {
+        try {
+          const r = await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + env2.RESEND_API_KEY, "Content-Type": "application/json", "Idempotency-Key": "draft-" + draftRoute[1] + "-" + Math.floor(Date.now() / 6e4) }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, to: [b2.email], subject: "Your Craven & Quill preview is saved", text: "Continue your book using this private link. It expires in 7 days. Keep it private: anyone with it can see your story and character preview. Original uploaded photos are not included.\n\nhttps://cravenandquill.com/create#draft=" + draftRoute[1] + "&key=" + token }), signal: AbortSignal.timeout(15e3) });
+          sent = r.ok;
+        } catch {
+        }
+      }
+      return reply({ sent });
+    }
     if (path === "/api/orders/admin" && req.method === "GET") {
       requireThat(admin(req, env2), "Sign in with the site owner\u2019s ChatGPT account.", 401);
       const rows = (await q(env2, "SELECT * FROM customer_orders ORDER BY created_at DESC LIMIT 100").all()).results || [];
@@ -52689,7 +52749,7 @@ async function ordersApi(req, env2) {
         requireThat(bytes[0] === 255 && bytes[1] === 216, "Invalid character image.");
         characters.push(await assetPut(env2, o2, bytes, "image/jpeg", "character"));
       }
-      const data2 = { privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, names: safeText(b2.names, 85), age: safeText(b2.age, 20), story, recipient: recipient(b2.recipient), dedication: safeText(b2.dedication, 300), characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now(), storyApprovedAt: now() };
+      const data2 = { measurement: measurementContext(b2.measurement, req), privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, names: safeText(b2.names, 85), age: safeText(b2.age, 20), story, recipient: recipient(b2.recipient), dedication: safeText(b2.dedication, 300), characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now(), storyApprovedAt: now() };
       requireThat(data2.names, "Add the main character name.");
       const date = now();
       await q(env2, "INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,'saved','unpaid',1,?6,?7,?7)", o2.id, await sha(token), b2.email.toLowerCase(), b2.size, PRODUCTS[b2.size].pricePence, JSON.stringify(data2), date).run();

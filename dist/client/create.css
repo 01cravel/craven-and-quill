@@ -411,3 +411,7 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .preview-explainer{font-size:.92rem;line-height:1.55;color:var(--muted);margin:0 0 18px}
 .product del,.intro del{font-size:.8em;font-weight:400;color:var(--muted);margin-right:.3em}
 .offer-label{color:var(--ink);font-weight:700}
+
+/* Keep the existing visual system, reduce the work visible at once. */
+.optional-detail{margin:16px 0}.optional-detail summary,#story-editor>summary{cursor:pointer;font-weight:700;padding:12px 0;color:inherit}.optional-detail summary span{font-weight:400;font-size:.85em}#story-editor>summary{font-size:1.2rem}#story-summary{margin:0 0 18px}.preview-explainer{margin:18px 0}.step[data-step="4"] .mood-grid{margin-bottom:20px}#draft-status:empty{display:none}#mini-cover-art{object-fit:contain}#cover-caption{font-size:13px}#resume-draft{padding:12px;border-radius:16px;background:#f3f5f1;margin-bottom:16px}
+@media(min-width:780px){.step-actions{position:sticky;bottom:0;z-index:5;background:#fff;padding-top:16px;padding-bottom:16px}.step-panel{overflow:visible}.step h1{font-size:clamp(2.4rem,4vw,4rem)}.step-panel{padding-top:32px}.step[data-step="4"] .story-write-actions{position:sticky;bottom:80px;background:#fff;z-index:4;padding:12px 0}}

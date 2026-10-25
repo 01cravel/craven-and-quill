@@ -1,7 +1,7 @@
 export const CONSENT_VERSION='storybook-validation-2026-09-29';
 export const CONSENT_TEXT='Email me when Craven & Quill storybooks are ready to order. I can unsubscribe at any time.';
 const PRODUCTS={digital:1900,hardback:3500,bundle:4999};
-const EVENTS=new Set(['landing_view','maker_start','preview_start','preview_success','preview_error','price_view']);
+const EVENTS=new Set(['landing_view','maker_start','preview_start','preview_success','preview_error','price_view','step_1','step_2','step_4','step_5','step_6','step_7','story_generated','story_edited','checkout_start','checkout_error','book_saved','device_mobile','device_desktop']);
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
 const code=(value,fallback='')=>typeof value==='string'&&/^[a-zA-Z0-9_.-]{1,100}$/.test(value)?value:fallback;

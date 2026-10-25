@@ -1,7 +1,7 @@
 const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a5',price:39.99};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
-const track=(event,data={})=>{const names={free_preview_created:'preview_success',free_preview_failed:'preview_error'};if(names[event])window.cqMeasurement?.record(names[event]);};
+const track=(event,data={})=>{const names={story_maker_open:'maker_start',free_preview_created:'preview_success',free_preview_failed:'preview_error'};const allowed=['maker_start','story_generated','story_edited','checkout_start','checkout_error','book_saved'];const value=names[event]||(event==='story_step_view'?'step_'+data.step:event);if(allowed.includes(value)||/^step_[124567]$/.test(value)||names[event])window.cqMeasurement?.record(value);};
 track('story_maker_open',{offer:'one_page_free'});
 
 const ideaBanks={
@@ -32,7 +32,7 @@ let photoUrls=[];
 
 function fullNames(){return[state.names,state.secondName].filter(Boolean).join(' and ');}
 function getBookSlug(){const value=fullNames().toLowerCase();if(value.includes('luke')||state.mood==='funny')return'luke';if(value.includes('noah')||state.age==='3-5'||state.mood==='classic')return'noah';return'amara';}
-function updateCover(){$('#mini-cover-art').src='assets/storybook.webp';$('#mini-cover-art').alt=`Sample ${state.mood==='own'?'personalised':state.mood} story cover`;}
+function updateCover(){$('#mini-cover-art').src=state.characterImages[0]||'assets/storybook.webp';$('#cover-caption').textContent=state.characterImages[0]?'Your character, cover design follows after payment':'Example book, your story takes shape here';$('#mini-cover-art').alt=`Sample ${state.mood==='own'?'personalised':state.mood} story cover`;}
 function updateLive(){
   state.names=$('#names').value.trim();
   state.secondName=$('#second-person').hidden?'':$('#second-name').value.trim();
@@ -52,19 +52,20 @@ function updateLive(){
 
 function scrollToStepTop(number){
   document.activeElement?.blur();
-  const heading=document.querySelector(`.step[data-step="${number}"] h1`);
+  const heading=[...document.querySelectorAll(`.step[data-step="${number}"] h1,.step[data-step="${number}"] h2`)].find(el=>el.getClientRects().length);
   if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
   window.scrollTo({top:0,left:0,behavior:'instant'});
   requestAnimationFrame(()=>{if(state.step===number)window.scrollTo({top:0,left:0,behavior:'instant'});});
 }
 
 function showStep(number){
+  if(number===3)number=4;
   state.step=number;
   if(number===2)updatePhotoGate();
   if(number===6)window.cqMeasurement?.record('price_view');
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
-  const current=document.querySelector(`.journey-step[data-progress="${number}"] em`);$('#progress-num').textContent=number;$('#progress-name').textContent=current?current.textContent:'';$('#progress-fill').style.width=`${number/7*100}%`;
+  const current=document.querySelector(`.journey-step[data-progress="${number}"] em`);const visibleStep=number>3?number-1:number;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=current?current.textContent:'';$('#progress-fill').style.width=`${visibleStep/6*100}%`;
   scrollToStepTop(number);
   track('story_step_view',{step:number});
 }
@@ -112,7 +113,7 @@ function editDraft(){
   if(state.storyDraft.synopsis!==$('#story-synopsis').value)state.storylineNeedsUpdate=true;
   state.storyDraft.synopsis=$('#story-synopsis').value;
   $$('#story-pages textarea').forEach((field,index)=>{state.storyDraft.spreads[index].text=field.value;});
-  invalidatePreview();updateLive();
+  track('story_edited');updateLive();
 }
 function updateStoryPage(index){
   const total=state.storyDraft?.spreads.length||0;
@@ -128,7 +129,7 @@ function turnStoryPage(index,behavior){
   pages.scrollTo({left:state.storyPage*pages.clientWidth,behavior:behavior||(matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth')});
 }
 function renderStoryDraft(){
-  const story=state.storyDraft;$('#story-editor').hidden=false;
+  const story=state.storyDraft;$('#story-editor').hidden=false;$('#story-summary').textContent=story.synopsis;
   $('#story-title').value=story.title;$('#story-synopsis').value=story.synopsis;
   const pages=$('#story-pages');pages.replaceChildren();
   story.spreads.forEach((page,index)=>{
@@ -162,9 +163,9 @@ async function writeStory(revision=false){
     if(!response.ok||result.ok!==true||!draftValid(result.story))throw new Error(result.error||'The story did not finish. Your current draft has not changed. Please try again.');
     if(request!==storyRequest||capturedBasis!==storyBasis())throw new Error('Your details changed while we were writing. Your draft has not changed. Generate again with the latest details.');
     if(!revision)state.storyPage=0;
-    state.storyDraft=result.story;state.storyBasis=capturedBasis;state.storylineNeedsUpdate=false;invalidatePreview();renderStoryDraft();
-    $('#story-changes').value='';$('#story-writing-status').textContent='Your story is ready to read and edit.';
-    $('#story-editor-title').tabIndex=-1;$('#story-editor-title').focus({preventScroll:true});$('#story-editor').scrollIntoView({behavior:'smooth',block:'start'});
+    state.storyDraft=result.story;state.storyBasis=capturedBasis;state.storylineNeedsUpdate=false;renderStoryDraft();
+    window.dispatchEvent(new Event('cq-draft-change'));$('#story-changes').value='';$('#story-writing-status').textContent='Your story is ready to read and edit.';
+    track('story_generated');if(!revision){$('#story-editor').open=false;if(!state.characterImages.length&&!state.photos.length){showStep(2);$('#step-2-error').textContent='Add your photo again to create a new preview. Your story is saved.';}else{showStep(5);void preparePreview();}}else{$('#story-editor').open=true;}
   }catch(cause){error.textContent=cause.name==='TimeoutError'?'The story took too long. Your draft has not changed. Please try again.':cause.message||'We could not write the story. Your draft has not changed.';$('#story-writing-status').textContent='';}
   finally{storyWriting=false;$$('#story-editor input,#story-editor textarea').forEach(field=>field.disabled=false);updateStoryGate();}
 }
@@ -250,7 +251,7 @@ $('#photos').addEventListener('change',async event=>{
   check.innerHTML=countProblem?`<strong>Add ${requiredCount===2?'two photos':'one photo'}</strong><span>Use one separate photo for each person.</span>`:failed?`<strong>Use another photo</strong><span>${failed.message}</span>`:`<strong>${requiredCount===2?'Both photos look good':'Photo looks good'}</strong><span>Tick below to confirm the face is clear.</span>`;
   $('#face-confirm-wrap').hidden=Boolean(failed||countProblem);$('#step-2-error').textContent='';
   updatePhotoGate();
-  track('photos_checked',{count:files.length,passed:!failed&&!countProblem});
+  track('photos_checked',{count:files.length,passed:!failed&&!countProblem});window.dispatchEvent(new Event('cq-draft-change'));
 });
 
 function selectedStory(){
@@ -324,7 +325,7 @@ async function preparePreview(){
     await renderStoryArt();
     await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
     drawingProgress.stop(true);
-    $('#making-state').hidden=true;$('#result-state').hidden=false;$('#choose-book').disabled=false;track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});
+    $('#making-state').hidden=true;$('#result-state').hidden=false;$('#choose-book').disabled=false;updateCover();window.dispatchEvent(new Event('cq-draft-change'));track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});
   }catch(error){
     drawingProgress.stop(false);
     $('#generation-error-copy').textContent=error.message||'The character could not be drawn. Please try again.';$('#generation-error').hidden=false;
@@ -358,7 +359,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(state.mood!=='own'&&!$('input[name="story-idea"]:checked')){$('#step-4-error').textContent='Choose one story idea.';return;}
     $('#step-4-error').textContent='';updateLive();
   }
-  if(state.step===2||state.step===4){
+  if(state.step===2||(state.step===4&&!state.characterImages.length)){
     const photoReady=state.photos.length===($('#second-person').hidden?1:2)&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#face-confirm').checked&&$('#photo-permission').checked&&validPreviewEmail();
     if(state.step===4&&!photoReady)showStep(2);
     const requiredCount=$('#second-person').hidden?1:2;
@@ -371,15 +372,16 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(!validPreviewEmail()){$('#step-2-error').textContent='Enter a valid email address.';$('#email').focus();return;}
     $('#step-2-error').textContent='';if(state.step===4)void preparePreview();
   }
+  if(state.step===4&&state.characterImages.length){$('#story-copy').textContent=previewText(selectedStory());}
   if(state.step===5&&!state.characterImages[0]){$('#step-5-error').textContent='Wait for the first page to finish before choosing your book.';return;}
   if(state.step===6)updateProduct();
   showStep(next);
 }));
 
-$$('[data-back]').forEach(button=>button.addEventListener('click',()=>showStep(Number(button.dataset.back))));
+$$('[data-back]').forEach(button=>button.addEventListener('click',()=>{if(state.step===5&&button.dataset.back==='4')$('#story-editor').open=true;showStep(Number(button.dataset.back));}));
 
 let orderCatalog=null,orderRequest=null;
-async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Save your approved story, then continue to secure payment. No book prints until you and our team approve the finished proof.';$('#join-launch').textContent='Continue to payment';}updateProduct();}catch{}}
+async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Secure payment, then we create the rest of your illustrations. You and our team approve the finished proof before printing.';$('#join-launch').textContent='Continue to payment';}updateProduct();}catch{}}
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
   $('#order-label').textContent=state.product==='a4'?'A4 hardback + digital PDF':'A5 hardback + digital PDF';
@@ -389,12 +391,21 @@ $$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{
 $('#join-launch').addEventListener('click',async()=>{
  const error=$('#step-7-error'),button=$('#join-launch');if(button.disabled)return;
  if(!validPreviewEmail()){showStep(2);$('#step-2-error').textContent='Enter a valid email address.';return;}
- if(!$('#purchase-intent').checked||!$('#order-permission').checked){error.textContent='Confirm the story and your permission to create this book.';return;}
+ if(!$('#purchase-intent').checked||!$('#photo-permission').checked){error.textContent='Confirm the story and your permission to create this book.';return;}
  const fields=['recipient-name','address-line1','town','postcode'];const invalid=fields.find(id=>!$('#'+id).value.trim());if(invalid){error.textContent='Complete the UK delivery address.';$('#'+invalid).focus();return;}
  if(!draftValid(state.storyDraft)||!state.characterImages.length){error.textContent='Finish the story and character preview first.';return;}
  updateProduct();button.disabled=true;button.textContent='Saving your book…';error.textContent='';
  orderRequest=orderRequest||{id:crypto.randomUUID(),key:crypto.randomUUID()+crypto.randomUUID()};
- try{const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestId:orderRequest.id,accessToken:orderRequest.key,email:$('#email').value.trim().toLowerCase(),size:state.product,story:state.storyDraft,names:fullNames(),age:state.age,previewId:state.previewId,characters:state.characterImages,approvedStory:true,photoPermission:true,dedication:$('#dedication').value.trim(),recipient:{name:$('#recipient-name').value.trim(),address:{line1:$('#address-line1').value.trim(),line2:$('#address-line2').value.trim(),townOrCity:$('#town').value.trim(),postalOrZipCode:$('#postcode').value.trim(),countryCode:'GB'}}}),signal:AbortSignal.timeout(45000)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Your book could not be saved. Please retry.');location.assign(`/order.html?id=${data.order.id}#key=${orderRequest.key}`);}catch(cause){error.textContent=cause.message||'The connection stopped. Retry to save the same book without duplicating it.';button.disabled=false;button.textContent=orderCatalog?.checkoutEnabled?'Continue to payment':'Save my book, no payment';}
+ try{await window.cqSaveDraft?.();const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({measurement:window.cqMeasurement?.context(),requestId:orderRequest.id,accessToken:orderRequest.key,email:$('#email').value.trim().toLowerCase(),size:state.product,story:state.storyDraft,names:fullNames(),age:state.age,previewId:state.previewId,characters:state.characterImages,approvedStory:true,photoPermission:true,dedication:$('#dedication').value.trim(),recipient:{name:$('#recipient-name').value.trim(),address:{line1:$('#address-line1').value.trim(),line2:$('#address-line2').value.trim(),townOrCity:$('#town').value.trim(),postalOrZipCode:$('#postcode').value.trim(),countryCode:'GB'}}}),signal:AbortSignal.timeout(45000)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Your book could not be saved. Please retry.');track('book_saved');const privateUrl=`/order.html?id=${data.order.id}#key=${orderRequest.key}`;
+ if(orderCatalog?.checkoutEnabled){
+ const headers={'Content-Type':'application/json',Authorization:'Bearer '+orderRequest.key};
+ const session=await fetch(`/api/orders/${data.order.id}/session`,{method:'POST',headers,body:JSON.stringify({token:orderRequest.key})});if(!session.ok)throw Error('Your book is saved. Please retry to open secure payment.');
+ track('checkout_start');button.textContent='Opening secure payment…';
+ const checkout=await fetch(`/api/orders/${data.order.id}/checkout`,{method:'POST',headers,body:JSON.stringify({revision:data.order.revision}),signal:AbortSignal.timeout(30000)});const payment=await checkout.json();
+ if(!checkout.ok){track('checkout_error');location.assign(privateUrl);return;}
+ const destination=new URL(payment.url);if(destination.protocol!=='https:'||!(destination.hostname==='ziina.com'||destination.hostname.endsWith('.ziina.com')||destination.hostname==='checkout.stripe.com'))throw Error('Payment address could not be verified. Your book is saved.');
+ location.assign(destination.href);
+ }else location.assign(privateUrl);}catch(cause){error.textContent=cause.message||'The connection stopped. Retry to save the same book without duplicating it.';button.disabled=false;button.textContent=orderCatalog?.checkoutEnabled?'Continue to payment':'Save my book, no payment';}
 });
 void loadOrderCatalog();
 
