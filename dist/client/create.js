@@ -64,7 +64,7 @@ function showStep(number){
   const previous=state.step;
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
   state.step=number;
-  if(number===2)updatePhotoGate();
+  if(number===2){updatePhotoGate();renderPhotoThumbnails(state.photos);}
   if(number===9)configureBrief();
   if(number===6)window.cqMeasurement?.record('price_view');
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
@@ -236,26 +236,33 @@ function validPreviewEmail(){
   const email=$('#email').value.trim();
   return email.length<=254&&/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)&&$('#email').validity.valid;
 }
+function validPhotoCount(){return state.secondName?state.photos.length===2:state.photos.length>=1&&state.photos.length<=3;}
 function updatePhotoGate(){
   const requiredCount=$('#second-person').hidden?1:2;
-  const ready=state.photos.length===requiredCount&&state.photoChecks.length===requiredCount&&state.photoChecks.every(check=>check.pass)&&$('#face-confirm').checked&&$('#photo-permission').checked;
+  const ready=validPhotoCount()&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#face-confirm').checked&&$('#photo-permission').checked;
   $('#photo-continue').disabled=!ready;
+  $('#extra-photo-wrap').hidden=!state.photos.length||!!state.secondName;$('#extra-photos').disabled=state.photos.length>=3;
+  $('.extra-photo-label').textContent=state.photos.length>=3?'Three reference photos added':`+ Add ${3-state.photos.length} more for a better likeness (optional)`;
 }
 ['#face-confirm','#photo-permission'].forEach(selector=>$(selector).addEventListener('change',updatePhotoGate));
 $('#email').addEventListener('input',()=>{updatePhotoGate();$('#step-2-error').textContent='';});
 $('#email').addEventListener('change',updatePhotoGate);
 
+function renderPhotoThumbnails(files){
+  photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];$('#photo-list').replaceChildren();
+  files.forEach((file,index)=>{const url=URL.createObjectURL(file);photoUrls.push(url);const thumb=document.createElement('img');thumb.src=url;thumb.alt=`Selected photo ${index+1}`;const item=document.createElement('div');item.className='photo-reference';const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.setAttribute('aria-label',`Remove photo ${index+1}`);remove.addEventListener('click',()=>void selectPhotos(state.photos.filter((_,i)=>i!==index)));item.append(thumb,remove);$('#photo-list').append(item);});
+  $('.upload-wrap').classList.toggle('has-photo',files.length>0);$('.upload strong').textContent=files.length?(files.length>1?'Photos added':'Photo added'):'Add a clear photo';$('.upload small').textContent=files.length?'Tap to change':'Face forward, both eyes clear, no sunglasses.';$('.upload-icon').style.backgroundImage=files.length?`url(${photoUrls[0]})`:'';
+}
 let photoSelection=0;
-$('#photos').addEventListener('change',async event=>{
+async function selectPhotos(files){
   const selection=++photoSelection;
   photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];
   const requiredCount=$('#second-person').hidden?1:2;
-  const files=[...event.target.files].slice(0,requiredCount);
+  files=files.slice(0,state.secondName?2:3);
   state.photos=files;state.previewId=null;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;$('#face-confirm-wrap').hidden=true;$('#step-2-error').textContent='';updatePhotoGate();
   const check=$('#photo-check');check.hidden=false;check.className='photo-check';check.innerHTML='<strong>Checking the photo…</strong>';
-  files.forEach((file,index)=>{const url=URL.createObjectURL(file);photoUrls.push(url);const thumb=document.createElement('img');thumb.src=url;thumb.alt=`Selected photo ${index+1}`;$('#photo-list').append(thumb);});
-  $('.upload-wrap').classList.toggle('has-photo',files.length>0);$('.upload strong').textContent=files.length?(files.length>1?'Photos added':'Photo added'):'Add a clear photo';$('.upload small').textContent=files.length?'Tap to change':'Face forward, both eyes clear, no sunglasses.';$('.upload-icon').style.backgroundImage=files.length?`url(${photoUrls[0]})`:'';
-  if(!files.length){check.hidden=true;$('#face-confirm-wrap').hidden=true;return;}
+  renderPhotoThumbnails(files);
+  if(!files.length){check.hidden=true;$('#face-confirm-wrap').hidden=true;window.dispatchEvent(new Event('cq-draft-change'));return;}
   const results=await Promise.all(files.map(async file=>{
     try{const prepared=await window.cqPhotoUpload.prepare(file);return{file:prepared,check:await inspectPhoto(prepared)};}
     catch(error){return{file,check:{pass:false,message:error.message||'This photo could not be read. Try a screenshot instead.'}};}
@@ -263,13 +270,15 @@ $('#photos').addEventListener('change',async event=>{
   if(selection!==photoSelection)return;
   state.photos=results.map(result=>result.file);state.photoChecks=results.map(result=>result.check);
   const failed=state.photoChecks.find(item=>!item.pass);
-  const countProblem=files.length!==requiredCount;
+  const countProblem=!validPhotoCount();
   check.classList.add(failed||countProblem?'fail':'pass');
-  check.innerHTML=countProblem?`<strong>Add ${requiredCount===2?'two photos':'one photo'}</strong><span>Use one separate photo for each person.</span>`:failed?`<strong>Use another photo</strong><span>${failed.message}</span>`:`<strong>${requiredCount===2?'Both photos look good':'Photo looks good'}</strong><span>Tick below to confirm the face is clear.</span>`;
+  check.innerHTML=countProblem?`<strong>Add ${requiredCount===2?'two photos':'one photo'}</strong><span>Use one separate photo for each person.</span>`:failed?`<strong>Use another photo</strong><span>${failed.message}</span>`:`<strong>${files.length>1?'Photos look good':'Photo looks good'}</strong><span>Tick below to confirm the face is clear.</span>`;
   $('#face-confirm-wrap').hidden=Boolean(failed||countProblem);$('#step-2-error').textContent='';
   updatePhotoGate();
   track('photos_checked',{count:files.length,passed:!failed&&!countProblem});window.dispatchEvent(new Event('cq-draft-change'));
-});
+}
+$('#photos').addEventListener('change',event=>void selectPhotos([...event.target.files]));
+$('#extra-photos').addEventListener('change',event=>{const added=[...event.target.files];event.target.value='';if(state.photos.length+added.length>3){$('#step-2-error').textContent='Choose up to three photos in total.';return;}void selectPhotos([...state.photos,...added]);});
 
 function selectedStory(){
   if(state.storyDraft)return[state.storyDraft.title,state.storyDraft.synopsis];
@@ -303,16 +312,17 @@ function previewText(idea){
 let drawingProgress=null,generationBusy=false;
 async function requestCharacter(file,name){
   const idea=selectedStory();const form=new FormData();
-  form.append('photo',file,file.name||'photo.jpg');form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',`${idea?.[1]||''} ${state.storyDraft?.spreads[0]?.text||''}`.slice(0,500));
+  for(const photo of (Array.isArray(file)?file:[file]))form.append('photo',photo,photo.name||'photo.jpg');form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',`${idea?.[1]||''} ${state.storyDraft?.spreads[0]?.text||''}`.slice(0,500));
   const data=await window.cqPreviewProgress.request(form,event=>drawingProgress?.update(event));
   state.previewId=data.previewId||null;
   return data.image;
 }
 
 async function renderStoryArt(){
-  for(let index=0;index<state.photos.length;index+=1){
-    const file=state.photos[index];const name=index===0?state.names:state.secondName;
-    drawingProgress?.person(index,state.photos.length);
+  const groups=state.secondName?state.photos.map(photo=>[photo]):[state.photos];
+  for(let index=0;index<groups.length;index+=1){
+    const file=groups[index];const name=index===0?state.names:state.secondName;
+    drawingProgress?.person(index,groups.length);
     state.characterImages[index]=state.characterImages[index]||await requestCharacter(file,name);
   }
   $('#preview-image').src=state.characterImages[0];$('#preview-image').alt=`Illustrated ${state.names} on the first story page`;
@@ -386,10 +396,10 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   }
   if(state.step===2){updateLive();if(!$('#second-person').hidden&&!state.secondName){$('#step-2-error').textContent='Add the second first name or remove that option.';$('#second-name').focus();return;}}
   if(state.step===2||(state.step===4&&!state.characterImages.length)){
-    const photoReady=state.photos.length===($('#second-person').hidden?1:2)&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#face-confirm').checked&&$('#photo-permission').checked&&validPreviewEmail();
+    const photoReady=validPhotoCount()&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#face-confirm').checked&&$('#photo-permission').checked&&validPreviewEmail();
     if(state.step===4&&!photoReady)showStep(2);
     const requiredCount=$('#second-person').hidden?1:2;
-    if(state.photos.length!==requiredCount){$('#step-2-error').textContent=`Add ${requiredCount===2?'one clear photo for each person':'one clear photo'} to continue.`;return;}
+    if(!validPhotoCount()){$('#step-2-error').textContent=`Add ${requiredCount===2?'one clear photo for each person':'one clear photo'} to continue.`;return;}
     if(state.photoChecks.length!==state.photos.length){$('#step-2-error').textContent='Wait for the photo check to finish.';return;}
     const failedPhoto=state.photoChecks.find(item=>!item.pass);
     if(failedPhoto){$('#step-2-error').textContent=failedPhoto.message;$('#photo-check').scrollIntoView({behavior:'smooth',block:'center'});return;}
