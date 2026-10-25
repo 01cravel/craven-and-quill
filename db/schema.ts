@@ -23,7 +23,22 @@ export const previewDailyUsage=sqliteTable('preview_daily_usage',{
   day:text('day').primaryKey(),attempts:integer('attempts').notNull().default(0),
 });
 
+// Story-writing attempts have their own budget; they are never image preview receipts.
+export const storyDailyUsage=sqliteTable('story_daily_usage',{
+  day:text('day').primaryKey(),attempts:integer('attempts').notNull().default(0),
+});
+
 // Requested-preview contacts are not opted-in marketing leads or buying intent.
 export const previewContacts=sqliteTable('preview_contacts',{
   email:text('email').primaryKey(),source:text('source').notNull(),medium:text('medium').notNull(),campaign:text('campaign').notNull(),creative:text('creative').notNull(),country:text('country').notNull(),createdAt:text('created_at').notNull(),updatedAt:text('updated_at').notNull(),
 },t=>[index('preview_contacts_campaign_created_idx').on(t.campaign,t.createdAt)]);
+
+// Paid pilot orders, separate from marketing contacts. No automatic supplier release.
+export const customerOrders=sqliteTable('customer_orders',{
+ id:text('id').primaryKey(),tokenHash:text('token_hash').notNull(),email:text('email').notNull(),size:text('size').notNull(),amount:integer('amount').notNull(),
+ status:text('status').notNull(),paymentStatus:text('payment_status').notNull(),paymentMode:text('payment_mode'),sessionId:text('session_id'),
+ revision:integer('revision').notNull().default(1),state:text('state').notNull(),createdAt:text('created_at').notNull(),updatedAt:text('updated_at').notNull(),
+},t=>[index('customer_orders_status_idx').on(t.status,t.createdAt)]);
+export const orderAudit=sqliteTable('order_audit',{
+ id:text('id').primaryKey(),orderId:text('order_id').notNull(),kind:text('kind').notNull(),actor:text('actor').notNull(),details:text('details').notNull(),createdAt:text('created_at').notNull(),
+});

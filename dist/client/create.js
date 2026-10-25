@@ -1,4 +1,4 @@
-const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'bundle',price:49.99};
+const state={previewId:null,step:1,names:'',secondName:'',age:'6-8',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a5',price:39.99};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const track=(event,data={})=>{const names={free_preview_created:'preview_success',free_preview_failed:'preview_error'};if(names[event])window.cqMeasurement?.record(names[event]);};
@@ -38,13 +38,16 @@ function updateLive(){
   state.secondName=$('#second-person').hidden?'':$('#second-name').value.trim();
   state.age=($('input[name="age"]:checked')||{}).value||'6-8';
   state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';
+  state.details=$('#personal-details').value.trim();
   $('#live-name').textContent=(fullNames()||'Someone special').toUpperCase();
+  fitCoverName();
   const ageLabels={'3-5':'Age 3–5','6-8':'Age 6–8','9-11':'Age 9–11','9-12':'Age 9–12','teen-adult':'Teen or adult'};
   $('#live-age').textContent=ageLabels[state.age]||'Reading level set';
   $('#live-mood').textContent=state.mood==='own'?'Their own idea':state.mood[0].toUpperCase()+state.mood.slice(1);
   const chosen=state.ideas[state.selected];
-  $('#live-title').textContent=state.mood==='own'?'Their own adventure':chosen?.[0]||ideaBanks[state.mood]?.[0]?.[0]||'Their own story';
+  $('#live-title').textContent=state.storyDraft?.title||(state.mood==='own'?'Their own adventure':chosen?.[0]||ideaBanks[state.mood]?.[0]?.[0]||'Their own story');
   updateCover();
+  updateStoryGate();
 }
 
 function scrollToStepTop(number){
@@ -57,7 +60,7 @@ function scrollToStepTop(number){
 
 function showStep(number){
   state.step=number;
-  if(number===4)updatePhotoGate();
+  if(number===2)updatePhotoGate();
   if(number===6)window.cqMeasurement?.record('price_view');
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
@@ -67,24 +70,119 @@ function showStep(number){
 }
 
 function buildIdeas(){
+  const previousIdea=state.ideas[state.selected]?.[0];
+  const hadPersonalIdea=state.ideas.some(idea=>idea[0]==='A story from their favourite things');
   state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';
   const own=state.mood==='own';
-  $('#step-3-title').textContent=own?'Tell us your story.':'Choose their story.';
-  $('#story-choice-intro').textContent=own?'Describe what should happen. One or two sentences is enough.':'Pick one idea, or ask us for different ones.';
+  $('#step-4-title').textContent=own?'Start with your idea.':'Create their story.';
+  $('#story-choice-intro').textContent=own?'Describe what should happen. We’ll turn it and their favourite things into a story you can edit.':'Choose a starting idea. We’ll write a story using the details you added.';
   $('#ai-ideas').hidden=own;
   $('#own-options').hidden=!own;
   if(own){state.ideas=[];state.selected=0;updateLive();return;}
   const bank=ideaBanks[state.mood];
   state.ideas=[0,1,2].map(index=>bank[(index+ideaOffset)%bank.length]);
+  if(state.details)state.ideas.unshift(['A story from their favourite things','An original story built around their hobbies, favourite things and everyday adventures.']);
+  state.selected=state.details&&!hadPersonalIdea?0:Math.max(0,state.ideas.findIndex(idea=>idea[0]===previousIdea));
   const list=$('#idea-list');list.replaceChildren();
   state.ideas.forEach((idea,index)=>{
     const label=document.createElement('label');label.className='idea';
-    label.innerHTML=`<input type="radio" name="story-idea" value="${index}" ${index===0?'checked':''}><span><b>${idea[0]}</b><small>${idea[1]}</small></span>`;
+    label.innerHTML=`<input type="radio" name="story-idea" value="${index}" ${index===state.selected?'checked':''}><span><b>${idea[0]}</b><small>${idea[1]}</small></span>`;
     label.querySelector('input').addEventListener('change',()=>{state.selected=index;updateLive();});
     list.append(label);
   });
-  state.selected=0;updateLive();
+  updateLive();
 }
+
+let storyWriting=false,storyRequest=0;
+function storyBasis(){return JSON.stringify({names:state.names,secondName:state.secondName,age:state.age,mood:state.mood,details:state.details,idea:state.mood==='own'?$('#own-idea').value.trim():state.ideas[state.selected]?.[1]||''});}
+function draftValid(story){return Boolean(typeof story?.title==='string'&&story.title.trim()&&story.title.length<=120&&typeof story?.synopsis==='string'&&story.synopsis.trim()&&story.synopsis.length<=600&&Array.isArray(story.spreads)&&story.spreads.length===10&&story.spreads.every(page=>typeof page?.text==='string'&&page.text.trim()&&page.text.length<=1500&&typeof page?.image_scene==='string'&&page.image_scene.trim()&&page.image_scene.length<=800));}
+function updateStoryGate(){
+  const outdated=Boolean(state.storyDraft&&(state.storyBasis!==storyBasis()||state.storylineNeedsUpdate));
+  $('#story-outdated').hidden=!outdated;
+  $('#story-outdated').textContent=state.storylineNeedsUpdate?'You changed the storyline. Choose Rewrite story to update the pages before continuing.':'You changed their details or starting idea. Your draft is still here. Choose Rewrite story before continuing.';
+  $('#use-story').disabled=storyWriting||!draftValid(state.storyDraft)||outdated;
+  $('#generate-story').disabled=storyWriting;
+  $('#revise-story').disabled=storyWriting;
+  $('#generate-story').textContent=storyWriting?'Writing your story…':state.storyDraft?'Generate a new story':'Generate a story';
+}
+function invalidatePreview(){state.characterImages=[];state.previewId=null;$('#choose-book').disabled=true;}
+function editDraft(){
+  if(!state.storyDraft)return;
+  state.storyDraft.title=$('#story-title').value;
+  if(state.storyDraft.synopsis!==$('#story-synopsis').value)state.storylineNeedsUpdate=true;
+  state.storyDraft.synopsis=$('#story-synopsis').value;
+  $$('#story-pages textarea').forEach((field,index)=>{state.storyDraft.spreads[index].text=field.value;});
+  invalidatePreview();updateLive();
+}
+function updateStoryPage(index){
+  const total=state.storyDraft?.spreads.length||0;
+  state.storyPage=Math.max(0,Math.min(index,total-1));
+  $('#story-page-position').textContent=`Page ${state.storyPage+1} of ${total}`;
+  $('#story-previous').disabled=state.storyPage===0;
+  $('#story-next').disabled=state.storyPage>=total-1;
+  $$('#story-pages .story-page').forEach((page,i)=>{page.inert=i!==state.storyPage;page.setAttribute('aria-hidden',String(i!==state.storyPage));});
+}
+function turnStoryPage(index,behavior){
+  const pages=$('#story-pages');if(!state.storyDraft||!pages.clientWidth)return;
+  updateStoryPage(index);
+  pages.scrollTo({left:state.storyPage*pages.clientWidth,behavior:behavior||(matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth')});
+}
+function renderStoryDraft(){
+  const story=state.storyDraft;$('#story-editor').hidden=false;
+  $('#story-title').value=story.title;$('#story-synopsis').value=story.synopsis;
+  const pages=$('#story-pages');pages.replaceChildren();
+  story.spreads.forEach((page,index)=>{
+    const panel=document.createElement('article');panel.className='story-page';panel.setAttribute('role','group');panel.setAttribute('aria-roledescription','page');panel.setAttribute('aria-label',`Page ${index+1} of ${story.spreads.length}`);
+    const folio=document.createElement('p');folio.className='story-page-folio';folio.textContent=`Page ${index+1}`;
+    const label=document.createElement('label');label.htmlFor=`story-page-${index+1}`;label.textContent=`Story text for page ${index+1}`;
+    label.className='story-page-label';
+    const field=document.createElement('textarea');field.id=label.htmlFor;field.rows=10;field.maxLength=1500;field.value=page.text;field.addEventListener('input',editDraft);
+    panel.append(folio,label,field);pages.append(panel);
+  });
+  turnStoryPage(state.storyPage,'instant');
+  updateLive();
+}
+async function writeStory(revision=false){
+  if(storyWriting)return;
+  updateLive();
+  const error=$('#step-4-error');error.textContent='';
+  const basis=JSON.parse(storyBasis());
+  if(!basis.names){error.textContent='Add their first name before generating a story.';showStep(1);$('#names').focus();return;}
+  if(!basis.idea){error.textContent='Add a starting idea before generating the story.';$('#own-idea').focus();return;}
+  if(revision&&!draftValid(state.storyDraft)){error.textContent='Keep a title, storyline and words on all ten pages before updating the story.';return;}
+  const changes=revision?$('#story-changes').value.trim():'';
+  const capturedBasis=storyBasis(),request=++storyRequest;
+  const previous=revision?JSON.parse(JSON.stringify(state.storyDraft)):null;
+  storyWriting=true;updateStoryGate();
+  $('#story-writing-status').textContent=revision?'Updating the story. Your current version stays below.':'Writing their ten-page story…';
+  $$('#story-editor input,#story-editor textarea').forEach(field=>field.disabled=true);
+  try{
+    const response=await fetch('/api/generate-story',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...basis,changes,previousStory:previous}),signal:AbortSignal.timeout(85000)});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok||result.ok!==true||!draftValid(result.story))throw new Error(result.error||'The story did not finish. Your current draft has not changed. Please try again.');
+    if(request!==storyRequest||capturedBasis!==storyBasis())throw new Error('Your details changed while we were writing. Your draft has not changed. Generate again with the latest details.');
+    if(!revision)state.storyPage=0;
+    state.storyDraft=result.story;state.storyBasis=capturedBasis;state.storylineNeedsUpdate=false;invalidatePreview();renderStoryDraft();
+    $('#story-changes').value='';$('#story-writing-status').textContent='Your story is ready to read and edit.';
+    $('#story-editor-title').tabIndex=-1;$('#story-editor-title').focus({preventScroll:true});$('#story-editor').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(cause){error.textContent=cause.name==='TimeoutError'?'The story took too long. Your draft has not changed. Please try again.':cause.message||'We could not write the story. Your draft has not changed.';$('#story-writing-status').textContent='';}
+  finally{storyWriting=false;$$('#story-editor input,#story-editor textarea').forEach(field=>field.disabled=false);updateStoryGate();}
+}
+$('#personal-details').addEventListener('input',updateLive);
+$('#own-idea').addEventListener('input',updateLive);
+$('#story-title').addEventListener('input',editDraft);$('#story-synopsis').addEventListener('input',editDraft);
+$('#generate-story').addEventListener('click',()=>{void writeStory();});
+$('#revise-story').addEventListener('click',()=>{void writeStory(true);});
+$('#story-previous').addEventListener('click',()=>turnStoryPage(state.storyPage-1));
+$('#story-next').addEventListener('click',()=>turnStoryPage(state.storyPage+1));
+$('#story-pages').addEventListener('scroll',()=>{const pages=$('#story-pages');if(pages.clientWidth&&state.storyDraft)updateStoryPage(Math.round(pages.scrollLeft/pages.clientWidth));},{passive:true});
+$('#story-pages').addEventListener('keydown',event=>{
+  if(event.target.matches('input,textarea,button')||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+  event.preventDefault();
+  if(event.key==='Home'||event.key==='End')turnStoryPage(event.key==='Home'?0:state.storyDraft.spreads.length-1,'instant');
+  else turnStoryPage(state.storyPage+(event.key==='ArrowLeft'?-1:1));
+});
+new ResizeObserver(()=>turnStoryPage(state.storyPage,'instant')).observe($('#story-pages'));
 
 $('#names').addEventListener('input',updateLive);
 $('#second-name').addEventListener('input',updateLive);
@@ -92,7 +190,7 @@ $$('input[name="age"]').forEach(input=>input.addEventListener('change',updateLiv
 $$('input[name="mood"]').forEach(input=>input.addEventListener('change',()=>{ideaOffset=0;buildIdeas();}));
 $('#add-person').addEventListener('click',()=>{const panel=$('#second-person');const opening=panel.hidden;panel.hidden=!opening;$('#add-person').innerHTML=opening?'− Remove second person <span>Optional</span>':'+ Add another person <span>Optional</span>';if(opening)$('#second-name').focus();else{$('#second-name').value='';updateLive();}});
 $('#shuffle-ideas').addEventListener('click',()=>{ideaOffset=(ideaOffset+3)%5;buildIdeas();track('story_ideas_shuffled',{mood:state.mood});});
-$$('[data-prompt]').forEach(button=>button.addEventListener('click',()=>{$('#own-idea').value=button.dataset.prompt;$('#own-idea').focus();}));
+$$('[data-prompt]').forEach(button=>button.addEventListener('click',()=>{$('#own-idea').value=button.dataset.prompt;updateLive();$('#own-idea').focus();}));
 
 async function inspectPhoto(file){
   const allowed=['image/jpeg','image/png','image/webp'];
@@ -123,10 +221,10 @@ function updatePhotoGate(){
   const requiredCount=$('#second-person').hidden?1:2;
   const ready=state.photos.length===requiredCount&&state.photoChecks.length===requiredCount&&state.photoChecks.every(check=>check.pass)&&$('#face-confirm').checked&&$('#photo-permission').checked;
   $('#preview-email-wrap').hidden=!ready;
-  $('#create-preview').disabled=!ready||!validPreviewEmail();
+  $('#photo-continue').disabled=!ready||!validPreviewEmail();
 }
 ['#face-confirm','#photo-permission'].forEach(selector=>$(selector).addEventListener('change',updatePhotoGate));
-$('#email').addEventListener('input',()=>{updatePhotoGate();$('#step-4-error').textContent='';});
+$('#email').addEventListener('input',()=>{updatePhotoGate();$('#step-2-error').textContent='';});
 $('#email').addEventListener('change',updatePhotoGate);
 
 let photoSelection=0;
@@ -135,10 +233,10 @@ $('#photos').addEventListener('change',async event=>{
   photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];
   const requiredCount=$('#second-person').hidden?1:2;
   const files=[...event.target.files].slice(0,requiredCount);
-  state.photos=files;state.previewId=null;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;$('#face-confirm-wrap').hidden=true;$('#step-4-error').textContent='';updatePhotoGate();
+  state.photos=files;state.previewId=null;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;$('#face-confirm-wrap').hidden=true;$('#step-2-error').textContent='';updatePhotoGate();
   const check=$('#photo-check');check.hidden=false;check.className='photo-check';check.innerHTML='<strong>Checking the photo…</strong>';
   files.forEach((file,index)=>{const url=URL.createObjectURL(file);photoUrls.push(url);const thumb=document.createElement('img');thumb.src=url;thumb.alt=`Selected photo ${index+1}`;$('#photo-list').append(thumb);});
-  $('.upload-wrap').classList.toggle('has-photo',files.length>0);$('.upload strong').textContent=files.length?(files.length>1?'Photos added':'Photo added'):'Add a photo';$('.upload small').textContent=files.length?'Tap to change':'Face forward, both eyes clear, no sunglasses.';$('.upload-icon').style.backgroundImage=files.length?`url(${photoUrls[0]})`:'';
+  $('.upload-wrap').classList.toggle('has-photo',files.length>0);$('.upload strong').textContent=files.length?(files.length>1?'Photos added':'Photo added'):'Add a clear photo';$('.upload small').textContent=files.length?'Tap to change':'Face forward, both eyes clear, no sunglasses.';$('.upload-icon').style.backgroundImage=files.length?`url(${photoUrls[0]})`:'';
   if(!files.length){check.hidden=true;$('#face-confirm-wrap').hidden=true;return;}
   const results=await Promise.all(files.map(async file=>{
     try{const prepared=await window.cqPhotoUpload.prepare(file);return{file:prepared,check:await inspectPhoto(prepared)};}
@@ -150,12 +248,13 @@ $('#photos').addEventListener('change',async event=>{
   const countProblem=files.length!==requiredCount;
   check.classList.add(failed||countProblem?'fail':'pass');
   check.innerHTML=countProblem?`<strong>Add ${requiredCount===2?'two photos':'one photo'}</strong><span>Use one separate photo for each person.</span>`:failed?`<strong>Use another photo</strong><span>${failed.message}</span>`:`<strong>${requiredCount===2?'Both photos look good':'Photo looks good'}</strong><span>Tick below to confirm the face is clear.</span>`;
-  $('#face-confirm-wrap').hidden=Boolean(failed||countProblem);$('#step-4-error').textContent='';
+  $('#face-confirm-wrap').hidden=Boolean(failed||countProblem);$('#step-2-error').textContent='';
   updatePhotoGate();
   track('photos_checked',{count:files.length,passed:!failed&&!countProblem});
 });
 
 function selectedStory(){
+  if(state.storyDraft)return[state.storyDraft.title,state.storyDraft.synopsis];
   if(state.mood==='own'){
     const summary=$('#own-idea').value.trim();
     const hero=fullNames()||'The Hero';
@@ -171,6 +270,7 @@ function selectedStory(){
 }
 
 function previewText(idea){
+  if(state.storyDraft)return state.storyDraft.spreads[0].text;
   const who=fullNames()||'Our hero';
   if(state.mood==='own'){
     if(state.age==='3-5')return`${who} took one brave step. ${idea[1]} And that was where the adventure began.`;
@@ -185,7 +285,7 @@ function previewText(idea){
 let drawingProgress=null,generationBusy=false;
 async function requestCharacter(file,name){
   const idea=selectedStory();const form=new FormData();
-  form.append('photo',file,file.name||'photo.jpg');form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',idea?.[1]||'');
+  form.append('photo',file,file.name||'photo.jpg');form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',`${idea?.[1]||''} ${state.storyDraft?.spreads[0]?.text||''}`.slice(0,500));
   const data=await window.cqPreviewProgress.request(form,event=>drawingProgress?.update(event));
   state.previewId=data.previewId||null;
   return data.image;
@@ -236,8 +336,8 @@ async function preparePreview(){
 for(let index=0;index<10;index+=1){const marker=document.createElement('span');marker.setAttribute('aria-hidden','true');$('#locked-dots').append(marker);}
 
 $('#retry-generation').addEventListener('click',()=>{void preparePreview();});
-$('#change-photo').addEventListener('click',()=>showStep(4));
-$('#change-story').addEventListener('click',()=>{state.characterImages=[];showStep(3);});
+$('#change-photo').addEventListener('click',()=>showStep(2));
+$('#change-story').addEventListener('click',()=>{state.characterImages=[];showStep(4);});
 
 $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   const next=Number(button.dataset.next);
@@ -247,25 +347,29 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(!$('#second-person').hidden&&!state.secondName){$('#step-1-error').textContent='Add the second person’s first name or remove that option.';$('#second-name').focus();return;}
     $('#step-1-error').textContent='';
   }
-  if(state.step===2){
-    state.mood=$('input[name="mood"]:checked').value;$('#step-2-error').textContent='';ideaOffset=0;buildIdeas();updateLive();
-  }
   if(state.step===3){
-    state.ownIdea=$('#own-idea').value.trim();
-    if(state.mood==='own'&&!state.ownIdea){$('#step-3-error').textContent='Tell us what should happen, even in one sentence.';$('#own-idea').focus();return;}
-    if(state.mood!=='own'&&!$('input[name="story-idea"]:checked')){$('#step-3-error').textContent='Choose one story idea.';return;}
-    $('#step-3-error').textContent='';updateLive();
+    state.mood=$('input[name="mood"]:checked').value;$('#step-3-error').textContent='';buildIdeas();updateLive();
   }
   if(state.step===4){
+    if(storyWriting||!draftValid(state.storyDraft)){$('#step-4-error').textContent='Generate their story, then read and edit it before continuing.';return;}
+    if(state.storyBasis!==storyBasis()||state.storylineNeedsUpdate){$('#step-4-error').textContent='Update the story to use the latest storyline and details before continuing.';return;}
+    state.ownIdea=$('#own-idea').value.trim();
+    if(state.mood==='own'&&!state.ownIdea){$('#step-4-error').textContent='Tell us what should happen, even in one sentence.';$('#own-idea').focus();return;}
+    if(state.mood!=='own'&&!$('input[name="story-idea"]:checked')){$('#step-4-error').textContent='Choose one story idea.';return;}
+    $('#step-4-error').textContent='';updateLive();
+  }
+  if(state.step===2||state.step===4){
+    const photoReady=state.photos.length===($('#second-person').hidden?1:2)&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#face-confirm').checked&&$('#photo-permission').checked&&validPreviewEmail();
+    if(state.step===4&&!photoReady)showStep(2);
     const requiredCount=$('#second-person').hidden?1:2;
-    if(state.photos.length!==requiredCount){$('#step-4-error').textContent=`Add ${requiredCount===2?'one clear photo for each person':'one clear photo'} to continue.`;return;}
-    if(state.photoChecks.length!==state.photos.length){$('#step-4-error').textContent='Wait for the photo check to finish.';return;}
+    if(state.photos.length!==requiredCount){$('#step-2-error').textContent=`Add ${requiredCount===2?'one clear photo for each person':'one clear photo'} to continue.`;return;}
+    if(state.photoChecks.length!==state.photos.length){$('#step-2-error').textContent='Wait for the photo check to finish.';return;}
     const failedPhoto=state.photoChecks.find(item=>!item.pass);
-    if(failedPhoto){$('#step-4-error').textContent=failedPhoto.message;$('#photo-check').scrollIntoView({behavior:'smooth',block:'center'});return;}
-    if(!$('#face-confirm').checked){$('#step-4-error').textContent='Confirm that every face is clearly recognisable.';$('#face-confirm').focus();return;}
-    if(!$('#photo-permission').checked){$('#step-4-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
-    if(!validPreviewEmail()){$('#step-4-error').textContent='Enter a valid email address.';$('#email').focus();return;}
-    $('#step-4-error').textContent='';void preparePreview();
+    if(failedPhoto){$('#step-2-error').textContent=failedPhoto.message;$('#photo-check').scrollIntoView({behavior:'smooth',block:'center'});return;}
+    if(!$('#face-confirm').checked){$('#step-2-error').textContent='Confirm that every face is clearly recognisable.';$('#face-confirm').focus();return;}
+    if(!$('#photo-permission').checked){$('#step-2-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
+    if(!validPreviewEmail()){$('#step-2-error').textContent='Enter a valid email address.';$('#email').focus();return;}
+    $('#step-2-error').textContent='';if(state.step===4)void preparePreview();
   }
   if(state.step===5&&!state.characterImages[0]){$('#step-5-error').textContent='Wait for the first page to finish before choosing your book.';return;}
   if(state.step===6)updateProduct();
@@ -274,30 +378,25 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
 
 $$('[data-back]').forEach(button=>button.addEventListener('click',()=>showStep(Number(button.dataset.back))));
 
+let orderCatalog=null,orderRequest=null;
+async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Save your approved story, then continue to secure payment. No book prints until you and our team approve the finished proof.';$('#join-launch').textContent='Continue to payment';}updateProduct();}catch{}}
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
-  const labels={bundle:'Digital & Hardback',hardback:'Hardback',digital:'Digital'};
-  $('#order-label').textContent=labels[state.product];$('#purchase-intent-label').textContent=`I’m interested in buying ${labels[state.product]} at £${state.price.toFixed(2)} when available.`;
-  $('#order-price').textContent=`£${Number.isInteger(state.price)?state.price:state.price.toFixed(2)}`;
+  $('#order-label').textContent=state.product==='a4'?'A4 hardback + digital PDF':'A5 hardback + digital PDF';
+  $('#order-price').textContent=`£${state.price.toFixed(2)}`;
 }
-$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{$('#purchase-intent').checked=false;updateProduct();}));
-
+$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{$('#purchase-intent').checked=false;orderRequest=null;updateProduct();}));
 $('#join-launch').addEventListener('click',async()=>{
-  const error=$('#step-7-error');const button=$('#join-launch');if(button.disabled)return;
-  const email=$('#email').value.trim().toLowerCase();
-  if(!validPreviewEmail()){showStep(4);$('#step-4-error').textContent='Enter a valid email address.';$('#email').focus();return;}
-  if(!$('#launch-consent').checked){error.textContent='Tick the email permission box to join the launch list.';$('#launch-consent').focus();return;}
-  if(!$('#purchase-intent').checked){error.textContent='Confirm your interest at the displayed price to join this list.';$('#purchase-intent').focus();return;}
-  updateProduct();button.disabled=true;button.textContent='Saving…';error.textContent='';
-  try{
-    const response=await fetch('/api/launch-signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,product:state.product,previewId:state.previewId,consent:true,purchaseIntent:true,consentVersion:'storybook-validation-2026-09-29',website:$('#website').value,...window.cqMeasurement?.context()})});
-    const result=await response.json().catch(()=>({}));
-    if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save that just now. Please try again.');
-    void window.cqMeasurement?.savedLead(result.eventId);
-    $('#launch-form').hidden=true;$('#launch-success').hidden=false;
-    $('#step-7-title').textContent='Thank you.';
-  }catch(cause){error.textContent=cause.message;button.disabled=false;button.textContent='Continue';}
+ const error=$('#step-7-error'),button=$('#join-launch');if(button.disabled)return;
+ if(!validPreviewEmail()){showStep(2);$('#step-2-error').textContent='Enter a valid email address.';return;}
+ if(!$('#purchase-intent').checked||!$('#order-permission').checked){error.textContent='Confirm the story and your permission to create this book.';return;}
+ const fields=['recipient-name','address-line1','town','postcode'];const invalid=fields.find(id=>!$('#'+id).value.trim());if(invalid){error.textContent='Complete the UK delivery address.';$('#'+invalid).focus();return;}
+ if(!draftValid(state.storyDraft)||!state.characterImages.length){error.textContent='Finish the story and character preview first.';return;}
+ updateProduct();button.disabled=true;button.textContent='Saving your book…';error.textContent='';
+ orderRequest=orderRequest||{id:crypto.randomUUID(),key:crypto.randomUUID()+crypto.randomUUID()};
+ try{const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestId:orderRequest.id,accessToken:orderRequest.key,email:$('#email').value.trim().toLowerCase(),size:state.product,story:state.storyDraft,names:fullNames(),age:state.age,previewId:state.previewId,characters:state.characterImages,approvedStory:true,photoPermission:true,dedication:$('#dedication').value.trim(),recipient:{name:$('#recipient-name').value.trim(),address:{line1:$('#address-line1').value.trim(),line2:$('#address-line2').value.trim(),townOrCity:$('#town').value.trim(),postalOrZipCode:$('#postcode').value.trim(),countryCode:'GB'}}}),signal:AbortSignal.timeout(45000)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Your book could not be saved. Please retry.');location.assign(`/order.html?id=${data.order.id}#key=${orderRequest.key}`);}catch(cause){error.textContent=cause.message||'The connection stopped. Retry to save the same book without duplicating it.';button.disabled=false;button.textContent=orderCatalog?.checkoutEnabled?'Continue to payment':'Save my book, no payment';}
 });
+void loadOrderCatalog();
 
 const context=document.modelContext;
 if(context?.registerTool){const lifecycle=new AbortController();try{void Promise.resolve(context.registerTool({name:'read_story_maker_state',title:'Read story maker',description:'Read the visible step and non-photo choices. Uploaded images are never exposed.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute:()=>({step:state.step,names:fullNames(),age:state.age,mood:state.mood,selectedIdea:selectedStory()?.[0]||null,product:state.product})},{signal:lifecycle.signal})).catch(()=>{});}catch{}}
@@ -313,3 +412,7 @@ if(characterTest&&['127.0.0.1','localhost'].includes(window.location.hostname)){
     $('#names').value=state.names;updateLive();showStep(5);await preparePreview();
   })();
 }
+
+function fitCoverName(){const el=$('#live-name');if(!el)return;el.style.fontSize='';el.style.whiteSpace='nowrap';let size=parseFloat(getComputedStyle(el).fontSize);while(el.scrollWidth>el.clientWidth&&size>14){size-=1;el.style.fontSize=size+'px';}if(el.scrollWidth>el.clientWidth)el.style.whiteSpace='normal';}
+new ResizeObserver(fitCoverName).observe($('#mini-cover'));
+document.fonts.ready.then(fitCoverName);

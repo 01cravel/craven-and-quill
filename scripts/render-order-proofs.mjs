@@ -1,0 +1,6 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {printBook} from '../src/print-book.js';
+const story={title:'Jamie and the Missing Sandwich',synopsis:'A little garden picnic becomes an adventure, with a very hungry robin and a happy ending.',spreads:Array.from({length:10},(_,i)=>({text:'Jamie followed the breadcrumbs across the garden. “I have found the thief!” Jamie said. The robin looked surprised. Everyone laughed and shared the picnic.',image_scene:'Jamie at the garden picnic, scene '+i}))};
+const root='dist/client/assets/',image=await readFile(root+'amara-book-portrait/page-01.jpg'),font=await readFile(root+'story-serif.ttf'),logo=await readFile(root+'logo-mark-on-white.png');
+const out='/Users/luke/Documents/Codex/2026-09-29/craven-quill-ad-performance/outputs/fulfilment-2026-10-22';await mkdir(out,{recursive:true});
+for(const size of ['a5','a4']){const result=await printBook({size,names:'Jamie',story,dedication:'For Jamie, with love.',art:{cover:'qa',scenes:Array(10).fill('qa')}},async()=>({bytes:image,type:'image/jpeg'}),font,logo);await writeFile(out+'/'+size+'-layout-qa.pdf',result.bytes);await writeFile(out+'/'+size+'-preflight.json',JSON.stringify(result.preflight,null,2));}

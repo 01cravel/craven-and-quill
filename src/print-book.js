@@ -1,0 +1,29 @@
+import {PDFDocument,rgb} from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
+import {BOOK,PRODUCTS,requireThat} from './catalog.js';
+const mm=n=>n*72/25.4;
+export async function printBook(order,read,fontBytes,logoBytes){
+ const spec=PRODUCTS[order.size],pdf=await PDFDocument.create();pdf.registerFontkit(fontkit);
+ const font=await pdf.embedFont(fontBytes,{subset:true});const logo=await pdf.embedPng(logoBytes);
+ const W=mm(spec.widthMm),H=mm(spec.heightMm),M=mm(12),ink=rgb(.04,.22,.18),cream=rgb(.99,.97,.91),images=[];
+ pdf.setTitle(order.story.title);pdf.setAuthor('Craven & Quill');
+ const page=()=>{const p=pdf.addPage([W,H]);p.drawRectangle({x:0,y:0,width:W,height:H,color:cream});return p;};
+ function lines(text,size,width){const out=[];for(const para of text.split('\n')){let line='';for(const word of para.split(/\s+/)){requireThat(font.widthOfTextAtSize(word,size)<=width,'A word is too long for this page. Edit the story before printing.');const next=line?line+' '+word:word;if(font.widthOfTextAtSize(next,size)>width){out.push(line);line=word;}else line=next;}out.push(line);}return out;}
+ function words(p,text,{size=spec.id==='a5'?14:19,y=H-M,center=false}={}){const ls=lines(text,size,W-2*M);requireThat(y-ls.length*size*1.45>=mm(15),'Story text overflows this size. Shorten it before making a print file.');for(const line of ls){p.drawText(line,{x:center?(W-font.widthOfTextAtSize(line,size))/2:M,y,size,font,color:ink});y-=size*1.45;}return y;}
+ async function art(p,key,top=H-M,bottom=M){const {bytes,type}=await read(key);const image=type==='image/png'?await pdf.embedPng(bytes):await pdf.embedJpg(bytes);const scale=Math.min((W-M*2)/image.width,(top-bottom)/image.height,72/300);const w=image.width*scale,h=image.height*scale;p.drawImage(image,{x:(W-w)/2,y:bottom+(top-bottom-h)/2,width:w,height:h});images.push({dpi:Math.round(72/scale),widthPx:image.width,heightPx:image.height});}
+ function brand(p){const w=mm(12),h=w*logo.height/logo.width;p.drawImage(logo,{x:M,y:M,width:w,height:h});p.drawText('Craven & Quill',{x:M+w+mm(2),y:M+mm(3),size:spec.id==='a5'?8:11,font,color:ink});}
+ const cover=page();const titleBottom=words(cover,order.story.title,{size:spec.id==='a5'?22:30,y:H-mm(24),center:true});await art(cover,order.art.cover,Math.min(H-mm(60),titleBottom-mm(8)),mm(35));brand(cover);
+ const title=page();words(title,order.story.title,{size:spec.id==='a5'?22:30,y:H*.69,center:true});words(title,'A story for '+order.names,{y:H*.40,center:true});
+ const dedication=page();words(dedication,order.dedication||'For '+order.names,{y:H*.65,center:true});
+ const opening=page();words(opening,'Let the story begin',{y:H*.55,center:true});
+ // Interior page 4 is left, so art on the left faces its matching text on the right.
+ for(let i=0;i<BOOK.spreads;i++){await art(page(),order.art.scenes[i]);const textPage=page(),size=spec.id==='a5'?14:19,count=lines(order.story.spreads[i].text,size,W-M*2).length;words(textPage,order.story.spreads[i].text,{size,y:Math.min(H-mm(30),H/2+count*size*1.45/2)});}
+ words(page(),'The End',{size:spec.id==='a5'?26:34,y:H*.55,center:true});
+ const keepsake=page();words(keepsake,'One story. Entirely theirs.',{y:H*.60,center:true});brand(keepsake);
+ const end=page();words(end,'Made especially for '+order.names,{y:H*.60,center:true});brand(end);
+ const back=page();words(back,order.story.synopsis,{y:H*.70});brand(back);
+ requireThat(pdf.getPageCount()===BOOK.pdfPages,'Unexpected print page count.');
+ return {bytes:await pdf.save(),preflight:{pageCount:BOOK.pdfPages,interiorPages:BOOK.interiorPages,widthMm:spec.widthMm,heightMm:spec.heightMm,safeMm:12,fontsEmbedded:true,images,allImages300dpi:images.every(x=>x.dpi>=300),pdfX4:false,notes:['Artwork is inset at native 300dpi, never enlarged.','PDF/X-4 certification is not performed. Human inspection of every page remains required.']}};
+}
+export async function validatePdf(bytes,spec){const pdf=await PDFDocument.load(bytes);requireThat(pdf.getPageCount()===BOOK.pdfPages,`Use a ${BOOK.pdfPages}-page PDF, including front and back covers.`);requireThat(pdf.getPages().every(p=>Math.abs(p.getWidth()-mm(spec.widthMm))<1&&Math.abs(p.getHeight()-mm(spec.heightMm))<1),'PDF page dimensions do not match the selected book size.');return {pageCount:BOOK.pdfPages,widthMm:spec.widthMm,heightMm:spec.heightMm};}
+export async function makeSpine(widthMm,heightMm){const pdf=await PDFDocument.create();pdf.addPage([mm(widthMm),mm(heightMm)]).drawRectangle({x:0,y:0,width:mm(widthMm),height:mm(heightMm),color:rgb(.04,.22,.18)});return pdf.save();}

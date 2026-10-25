@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=27">
+  <link rel="stylesheet" href="create.css?v=34">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -20,12 +20,12 @@
     <a class="brand" href="index.html"><img src="assets/logo-mark-on-white.png" width="420" height="401" alt=""><span>Craven &amp; Quill</span></a>
     <nav class="journey" aria-label="Your progress">
       <span class="journey-step active" data-progress="1"><b>1</b><em>About them</em></span>
-      <span class="journey-step" data-progress="2"><b>2</b><em>Direction</em></span>
-      <span class="journey-step" data-progress="3"><b>3</b><em>Story</em></span>
-      <span class="journey-step" data-progress="4"><b>4</b><em>Photo</em></span>
+      <span class="journey-step" data-progress="2"><b>2</b><em>Photo</em></span>
+      <span class="journey-step" data-progress="3"><b>3</b><em>Direction</em></span>
+      <span class="journey-step" data-progress="4"><b>4</b><em>Story</em></span>
       <span class="journey-step" data-progress="5"><b>5</b><em>Preview</em></span>
       <span class="journey-step" data-progress="6"><b>6</b><em>Your book</em></span>
-      <span class="journey-step" data-progress="7"><b>7</b><em>Launch list</em></span>
+      <span class="journey-step" data-progress="7"><b>7</b><em>Save & order</em></span>
     </nav>
     <div class="progress-mini" aria-hidden="true"><span class="progress-label">Step <b id="progress-num">1</b> of 7<em id="progress-name">About them</em></span><span class="progress-bar"><i id="progress-fill"></i></span></div>
     <a class="save-note" href="index.html">Exit</a>
@@ -48,7 +48,7 @@
         <section class="step active" data-step="1" aria-labelledby="step-1-title">
           <p class="eyebrow">Start with the star</p>
           <h1 id="step-1-title">Who is the book for?</h1>
-          <p class="intro">Add their first name and choose how the story should be written.</p>
+          <p class="intro">Create a free preview. Launch offer: 20% off both sizes. The A5 hardback is <del>£49.99</del> £39.99 and A4 is <del>£59.99</del> £47.99, including UK delivery and a digital copy.</p>
 
           <label for="names">First name <span>Required</span></label>
           <input id="names" name="names" maxlength="40" autocomplete="off" placeholder="For example, Leo" required>
@@ -69,13 +69,45 @@
             </div>
           </fieldset>
 
+          <label for="personal-details">Tell us a little about them <span>Optional</span></label>
+          <textarea id="personal-details" name="personal-details" rows="4" maxlength="800" placeholder="They love Barcelona and football, fish and chips, and playing in the garden." aria-describedby="personal-details-note"></textarea>
+          <p class="privacy-line" id="personal-details-note">Favourite things, hobbies or little habits help make the story theirs. Please leave out surnames, school names and other private details.</p>
+
           <div class="error" id="step-1-error" role="alert"></div>
-          <div class="step-actions step-actions-single"><button class="next" type="button" data-next="2">Choose story type <span>→</span></button></div>
+          <div class="step-actions step-actions-single"><button class="next" type="button" data-next="2">Add a clear photo <span>→</span></button></div>
         </section>
 
         <section class="step" data-step="2" aria-labelledby="step-2-title" hidden>
+          <p class="eyebrow">Create their character</p>
+          <h1 id="step-2-title">Add a clear photo.</h1>
+          <p class="intro">Choose a well-lit photo with their whole face visible. We’ll use it to draw their character after you’ve chosen and edited the story.</p>
+
+          <div class="upload-wrap">
+            <label class="upload" for="photos"><span class="upload-icon">+</span><strong>Add a clear photo</strong><small>Face forward, both eyes clear, no sunglasses.</small></label>
+            <input id="photos" name="photos" type="file" accept="image/*,.heic,.heif,.avif" multiple required aria-label="Add a clear photo">
+          </div>
+          <div class="photo-list" id="photo-list"></div>
+          <div class="photo-check" id="photo-check" hidden aria-live="polite"></div>
+
+          <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>The face is clear</b><small>Whole face and both eyes visible.</small></span></label>
+          <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I’m allowed to use this photo</b><small>For a child, you’re their parent or guardian, or have their permission.</small></span></label>
+
+          <p class="privacy-line">Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
+
+          <div id="preview-email-wrap" hidden>
+            <label class="field-label" for="email">Your email</label>
+            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
+            <p class="privacy-line" id="preview-email-note">We save your email when you create a preview. Marketing emails are optional and asked about later.</p>
+          </div>
+
+          <div class="error" id="step-2-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" id="photo-continue" type="button" data-next="3" disabled>Choose story type <span>→</span></button></div>
+          <p class="under-button">Free. No card needed.</p>
+        </section>
+
+        <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
           <p class="eyebrow">Story direction</p>
-          <h1 id="step-2-title">What kind of story will they love?</h1>
+          <h1 id="step-3-title">What kind of story will they love?</h1>
           <p class="intro">Choose the style. We’ll show you matching story ideas next.</p>
 
           <fieldset>
@@ -88,14 +120,14 @@
             </div>
           </fieldset>
 
-          <div class="error" id="step-2-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" type="button" data-next="3">Choose a story <span>→</span></button></div>
+          <div class="error" id="step-3-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" type="button" data-next="4">Choose a story <span>→</span></button></div>
         </section>
 
-        <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
-          <p class="eyebrow">Choose the story</p>
-          <h1 id="step-3-title">Choose their story.</h1>
-          <p class="intro" id="story-choice-intro">Pick one idea, or ask us for different ones.</p>
+        <section class="step" data-step="4" aria-labelledby="step-4-title" hidden>
+          <p class="eyebrow">Their story</p>
+          <h1 id="step-4-title">Create their story.</h1>
+          <p class="intro" id="story-choice-intro">Choose a starting idea. We’ll write a story using the details you added.</p>
 
           <div id="ai-ideas">
             <p class="field-label">Choose a story <span>Required</span></p>
@@ -113,36 +145,39 @@
             </div>
           </div>
 
-          <div class="error" id="step-3-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" type="button" data-next="4">Add their photo <span>→</span></button></div>
-        </section>
-
-        <section class="step" data-step="4" aria-labelledby="step-4-title" hidden>
-          <p class="eyebrow">Create their character</p>
-          <h1 id="step-4-title">Add a clear photo.</h1>
-          <p class="intro">We draw their cartoon character from it.</p>
-
-          <div class="upload-wrap">
-            <label class="upload" for="photos"><span class="upload-icon">+</span><strong>Add a photo</strong><small>Face forward, both eyes clear, no sunglasses.</small></label>
-            <input id="photos" name="photos" type="file" accept="image/*,.heic,.heif,.avif" multiple required aria-label="Add a clear photo">
+          <div class="story-write-actions">
+            <button class="next" id="generate-story" type="button">Generate a story</button>
+            <p class="privacy-line">Their name, story choices and optional details go to OpenAI to write the story. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
           </div>
-          <div class="photo-list" id="photo-list"></div>
-          <div class="photo-check" id="photo-check" hidden aria-live="polite"></div>
-
-          <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>The face is clear</b><small>Whole face and both eyes visible.</small></span></label>
-          <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I’m allowed to use this photo</b><small>For a child, you’re their parent or guardian, or have their permission.</small></span></label>
-
-          <p class="privacy-line">Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
-
-          <div id="preview-email-wrap" hidden>
-            <label class="field-label" for="email">Your email</label>
-            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
-            <p class="privacy-line" id="preview-email-note">We save your email when you create a preview. Marketing emails are optional and asked about later.</p>
-          </div>
-
+          <p id="story-writing-status" class="story-status" role="status" aria-live="polite"></p>
+          <p id="story-outdated" class="story-notice" hidden>You changed their details or starting idea. Your draft is still here. Update it before continuing.</p>
+          <section id="story-editor" aria-labelledby="story-editor-title" hidden>
+            <div class="story-editor-heading"><h2 id="story-editor-title">Edit it yourself.</h2><p>Tap the words to edit the title or any page. Or describe your changes below and we’ll rewrite the story for you.</p></div>
+            <label for="story-title">Book title</label>
+            <input id="story-title" maxlength="120" autocomplete="off">
+            <label for="story-synopsis">Storyline</label>
+            <textarea id="story-synopsis" rows="3" maxlength="600" aria-describedby="story-synopsis-note"></textarea>
+            <p class="privacy-line" id="story-synopsis-note">Changed the storyline? Choose Rewrite story below to update the pages.</p>
+            <div class="story-book" role="region" aria-label="Read and edit your story" aria-roledescription="carousel">
+              <div id="story-pages" class="story-pages" tabindex="0" aria-label="Story pages" aria-describedby="story-page-tip"></div>
+              <div class="story-book-controls">
+                <button id="story-previous" type="button" aria-controls="story-pages">Previous</button>
+                <p id="story-page-position" role="status" aria-live="polite">Page 1 of 10</p>
+                <button id="story-next" type="button" aria-controls="story-pages">Next</button>
+              </div>
+            </div>
+            <p class="privacy-line story-page-tip" id="story-page-tip">Swipe left or right, or use Previous and Next. Your edits stay in the draft as you turn the pages.</p>
+            <section class="story-rewrite" aria-labelledby="story-rewrite-title">
+              <h3 id="story-rewrite-title">Rewrite it for me.</h3>
+              <p>Want a different plot, setting or ending? Tell us what to change and we’ll rewrite all ten pages using your edited draft.</p>
+              <label for="story-changes">Describe your changes <span>Optional</span></label>
+              <textarea id="story-changes" rows="3" maxlength="1000" placeholder="Set it in the garden. Make the football match funnier. Let them win by helping a friend."></textarea>
+              <button class="next" id="revise-story" type="button">Rewrite story</button>
+              <p class="privacy-line">If the rewrite fails, your current draft stays here.</p>
+            </section>
+          </section>
           <div class="error" id="step-4-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next make" id="create-preview" type="button" data-next="5" disabled>Create free preview <span>→</span></button></div>
-          <p class="under-button">Free. No card needed.</p>
+          <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next" id="use-story" type="button" data-next="5" disabled>Create free preview</button></div>
         </section>
 
         <section class="step preview-step" data-step="5" aria-labelledby="step-5-title" hidden>
@@ -159,12 +194,13 @@
 
           <div id="result-state" hidden>
             <section class="first-page" aria-labelledby="first-page-title">
-              <div class="page-preview-heading"><h2 id="first-page-title">Their first page</h2><p><span id="result-story-title">The Map Beneath the Moon</span>, page 1 of 10</p></div>
-              <div class="book-preview">
+              <div class="page-preview-heading"><h2 id="first-page-title">Your free sneak peek</h2><p><span id="result-story-title">The Map Beneath the Moon</span>, page 1 of 10</p></div>
+              <p class="preview-explainer">Your free sneak peek includes their character and first page. Once you pay, we’ll create the rest of the illustrations. Every illustration takes time and costs us money to create, so your order gets the rest of the magic going! You’ll check and approve the finished book before anything prints.</p><div class="book-preview">
                 <figure class="preview-art" id="preview-art"><img id="preview-image" src="assets/storybook.webp" width="900" height="1125" alt="Sample personalised story illustration format"><img id="preview-image-second" width="900" height="1125" alt="" hidden><span>Free preview</span></figure>
                 <article class="preview-copy"><p class="chapter" id="preview-chapter">The adventure begins</p><p id="story-copy"></p></article>
               </div>
-              <div class="locked-pages" aria-label="Locked story pages"><strong>Their story continues.</strong><div id="locked-dots"></div></div>
+              <div class="locked-pages" aria-label="Story picture progress"><strong>The rest of the illustrations are created after payment.</strong><div id="locked-dots"></div></div>
+              <button class="shuffle" type="button" data-back="4">Edit the story</button>
             </section>
             <div class="error" id="step-5-error" role="alert"></div>
             <div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next" id="choose-book" type="button" data-next="6" disabled>Choose your book <span>→</span></button></div>
@@ -177,11 +213,12 @@
 
           <fieldset>
             <legend class="visually-hidden">Book format</legend>
-            <div class="product-options">
-              <label class="product"><input type="radio" name="product" value="bundle" data-price="49.99" checked><span><b>Digital &amp; Hardback <em class="recommended">Recommended</em></b><small>Digital story plus a printed keepsake</small><strong>£49.99</strong></span></label>
-              <label class="product"><input type="radio" name="product" value="hardback" data-price="35"><span><b>Hardback</b><small>A printed book posted to you</small><strong>£35</strong></span></label>
-              <label class="product"><input type="radio" name="product" value="digital" data-price="19"><span><b>Digital</b><small>Read and watch on any device</small><strong>£19</strong></span></label>
+            <div class="product-options size-options">
+              <label class="product"><input type="radio" name="product" value="a5" data-price="39.99" checked><span><b>A5 hardback <em class="recommended">Little keepsake</em></b><small>14.8 × 21 cm, portrait. Easy to hold and treasure.</small><strong><del>£49.99</del> <span class="current-price">£39.99</span></strong><small class="offer-label">Launch offer · 20% off</small></span></label>
+              <label class="product"><input type="radio" name="product" value="a4" data-price="47.99"><span><b>A4 hardback <em class="recommended">Big gift</em></b><small>21 × 29.7 cm, portrait. Twice the page area of A5.</small><strong><del>£59.99</del> <span class="current-price">£47.99</span></strong><small class="offer-label">Launch offer · 20% off</small></span></label>
             </div>
+            <p class="privacy-line">Both include a digital PDF, matte hardback cover, full-colour 200gsm glossy pages and UK standard delivery. The same complete story in either size.</p>
+            <div class="size-comparison" aria-label="Book size comparison"><div class="size-a5">A5<small>14.8 × 21 cm</small></div><div class="size-a4">A4<small>21 × 29.7 cm</small></div></div>
           </fieldset>
 
           <div class="error" id="step-6-error" role="alert"></div>
@@ -189,28 +226,35 @@
         </section>
 
         <section class="step pay-step" data-step="7" aria-labelledby="step-7-title" hidden>
-          <h1 id="step-7-title">Be first to hear.</h1>
-          <p class="intro">We’re testing interest in these books. Join the list to hear when you can order. This is not an order and no payment is taken.</p>
-          <section class="order-total" aria-label="Your preferred book"><div><span id="order-label">Digital &amp; Hardback</span><small>Your selected price. No payment today.</small></div><strong id="order-price">£49.99</strong></section>
+          <p class="eyebrow">A keepsake worth getting right</p>
+          <h1 id="step-7-title">Save their book.</h1>
+          <p class="intro" id="order-availability">Payments are not open yet. Save your book and delivery details now, with no charge or commitment.</p>
+          <section class="order-total" aria-label="Your selected book"><div><span id="order-label">A5 hardback</span><small>Includes digital PDF and UK standard delivery.</small></div><strong id="order-price"><del>£49.99</del> £39.99</strong></section>
+          <p class="privacy-line">After payment, we prepare the complete illustrated proof. You approve it, then our team checks every page before sending it to print. Usually 7–12 working days from final proof approval to UK delivery, estimated.</p>
           <div id="launch-form">
-            <div class="signup-honeypot" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
-            <label class="launch-consent"><input id="purchase-intent" type="checkbox"><span id="purchase-intent-label">I’m interested in buying Digital &amp; Hardback at £49.99 when available.</span></label>
-            <label class="launch-consent"><input id="launch-consent" type="checkbox"><span>Email me when Craven &amp; Quill storybooks are ready to order. I can unsubscribe at any time.</span></label>
-            <p class="privacy-line">We save your email, chosen format and which ad brought you here. <a href="privacy.html" target="_blank" rel="noopener">Privacy details</a></p>
+            <div class="signup-honeypot" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" tabindex="-1" autocomplete="off"></div>
+            <label for="recipient-name">Recipient name</label><input id="recipient-name" maxlength="100" autocomplete="shipping name" required>
+            <label for="address-line1">Address</label><input id="address-line1" maxlength="200" autocomplete="shipping address-line1" required>
+            <label for="address-line2">Address line 2 <span>Optional</span></label><input id="address-line2" maxlength="200" autocomplete="shipping address-line2">
+            <label for="town">Town or city</label><input id="town" maxlength="100" autocomplete="shipping address-level2" required>
+            <label for="postcode">UK postcode</label><input id="postcode" maxlength="12" autocomplete="shipping postal-code" required>
+            <label for="dedication">A message inside their book <span>Optional</span></label><textarea id="dedication" maxlength="300" rows="3" placeholder="For Leo, with love from Grandma and Grandad."></textarea>
+            <label class="launch-consent"><input id="purchase-intent" type="checkbox"><span id="purchase-intent-label">I’ve checked the story, names and character preview. I understand I’ll approve the finished proof before printing.</span></label>
+            <label class="launch-consent"><input id="order-permission" type="checkbox"><span>I’m an adult with permission to use these images and details to create and fulfil this book.</span></label>
+            <p class="privacy-line">We save this book, illustrated character, email and delivery details privately. We use your email for this book, not a marketing subscription. <a href="privacy.html" target="_blank" rel="noopener">Privacy details</a> · <a href="ordering.html" target="_blank" rel="noopener">Ordering and delivery</a></p>
             <div class="error" id="step-7-error" role="alert"></div>
-            <div class="step-actions"><button class="back" type="button" data-back="6">Back</button><button class="next checkout-button" id="join-launch" type="button">Continue</button></div>
-            <p class="under-button">No card. No reservation. No commitment.</p>
+            <div class="step-actions"><button class="back" type="button" data-back="6">Back</button><button class="next checkout-button" id="join-launch" type="button">Save my book, no payment</button></div>
+            <p class="under-button">Your private order page shows exactly what happens next.</p>
           </div>
-          <section id="launch-success" class="launch-success" role="status" hidden><h2>You’re on the list.</h2><p>We’ll email you when books are ready to order. You haven’t placed an order or paid anything.</p><a class="next" href="index.html">Back to Craven &amp; Quill</a></section>
         </section>
       </form>
     </section>
   </main>
 
-  <footer><span>Photos are used only to create your preview.</span><a href="privacy.html">Privacy</a><button type="button" class="measurement-settings">Measurement settings</button></footer>
+  <footer><span>Images are used to create your preview and, if you save a book, to prepare its artwork.</span><a href="privacy.html">Privacy</a><button type="button" class="measurement-settings">Measurement settings</button></footer>
   <script src="campaign.js?v=2" defer></script>
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=27" defer></script>
-  <script src="create.js?v=27" defer></script>
+  <script src="create.js?v=34" defer></script>
 </body>
 </html>

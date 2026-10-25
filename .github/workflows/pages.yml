@@ -1,31 +1,24 @@
-name: Publish website
+name: Validate website source
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
-  publish:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/setup-node@v4
         with:
-          path: dist
-      - name: Publish
-        id: deployment
-        uses: actions/deploy-pages@v4
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check:release
+# Production runs on Sites with server-side payments and storage.
+# GitHub Pages cannot host these routes; source pushes must not deploy a static copy.
