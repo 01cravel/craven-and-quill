@@ -4283,7 +4283,7 @@ function recipient(value) {
   return result;
 }
 function checkoutReady(env2) {
-  return env2.ORDERS_ENABLED === "true" && env2.ORDER_TAX_CONFIRMED === "true" && /^sk_(live|test)_/.test(env2.STRIPE_SECRET_KEY || "") && !!env2.STRIPE_WEBHOOK_SECRET && !!env2.PRODIGI_API_KEY && !!env2.RESEND_API_KEY && !!env2.ORDER_EMAIL_FROM;
+  return env2.ORDERS_ENABLED === "true" && env2.ORDER_TAX_CONFIRMED === "true" && (env2.PAYMENT_PROVIDER === "ziina" ? !!env2.ZIINA_ACCESS_TOKEN && !!env2.ZIINA_ACCOUNT_ID && !!env2.ZIINA_WEBHOOK_SECRET && ["test", "live"].includes(env2.ZIINA_MODE) : /^sk_(live|test)_/.test(env2.STRIPE_SECRET_KEY || "") && !!env2.STRIPE_WEBHOOK_SECRET) && !!env2.PRODIGI_API_KEY && !!env2.RESEND_API_KEY && !!env2.ORDER_EMAIL_FROM;
 }
 
 // node_modules/tslib/tslib.es6.js
@@ -52325,7 +52325,7 @@ async function authorise(req, env2, o) {
 }
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, ...isAdmin ? { email: o.email, art: d.art, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [] } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, ...isAdmin ? { email: o.email, art: d.art, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [] } : {} };
 }
 async function assetPut(env2, o, bytes, type, kind) {
   const key2 = uid();
@@ -52398,6 +52398,76 @@ async function verifyPayment(req, env2) {
   await audit(env2, o.id, "payment_confirmed", "stripe", { event: e.id, mode: live ? "live" : "test" });
   return { ok: true };
 }
+async function ziina(env2, path, data2) {
+  requireThat(env2.ZIINA_ACCESS_TOKEN, "Ziina is not connected.", 503);
+  const r = await (env2.fetch || fetch)("https://api-v2.ziina.com/api" + path, { method: data2 ? "POST" : "GET", headers: { Authorization: `Bearer ${env2.ZIINA_ACCESS_TOKEN}`, "Content-Type": "application/json" }, ...data2 ? { body: JSON.stringify(data2) } : {}, signal: AbortSignal.timeout(2e4) });
+  requireThat(r.ok, "Ziina could not confirm the request. Keep this order on hold.", 502);
+  return r.json();
+}
+function matchZiina(p, o) {
+  requireThat(p.id === o.session_id && p.account_id === o.data.payment.accountId && p.amount === o.amount && p.currency_code === "GBP" && p.tip_amount === 0 && p.vat_amount === 0, "Ziina payment does not match this order.", 409);
+  return p;
+}
+function ziinaUrl(p) {
+  const u = new URL(p.redirect_url);
+  requireThat(u.protocol === "https:" && (u.hostname === "ziina.com" || u.hostname.endsWith(".ziina.com")) && !u.username && !u.password, "Unconfirmed Ziina checkout.", 502);
+  return u.href;
+}
+async function ziinaSync(env2, o) {
+  return matchZiina(await ziina(env2, "/payment_intent/" + encodeURIComponent(o.session_id)), o);
+}
+async function ziinaConfirm(env2, o) {
+  const p = await ziinaSync(env2, o);
+  if (p.status === "completed" && o.payment_status === "unpaid" && o.status === "awaiting_payment") {
+    await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 AND payment_status='unpaid'", o.data.payment.mode, now(), o.id, o.revision).run();
+    await audit(env2, o.id, "payment_confirmed", "ziina", { mode: o.data.payment.mode });
+  }
+  return get(env2, o.id);
+}
+async function ziinaWebhook(req, env2) {
+  requireThat(env2.ZIINA_WEBHOOK_SECRET, "Ziina confirmations are not configured.", 503);
+  requireThat(["3.29.184.186", "3.29.190.95", "20.233.47.127", "13.202.161.181"].includes(req.headers.get("cf-connecting-ip")), "Unknown webhook source.", 403);
+  const raw = new TextDecoder().decode(await body(req));
+  requireThat(equal(await hmac(env2.ZIINA_WEBHOOK_SECRET, raw), req.headers.get("x-hmac-signature") || ""), "Invalid Ziina signature.", 403);
+  const e = JSON.parse(raw);
+  if (!["payment_intent.status.updated", "refund.status.updated"].includes(e.event)) return { ignored: true };
+  const paymentId = e.event === "refund.status.updated" ? e.data?.payment_intent_id : e.data?.id;
+  requireThat(typeof paymentId === "string", "Missing payment reference.");
+  const row = await q(env2, "SELECT * FROM customer_orders WHERE session_id=?1", paymentId).first();
+  if (!row) return { ignored: true };
+  let o = { ...row, data: JSON.parse(row.state) };
+  if (o.data.payment?.provider !== "ziina") return { ignored: true };
+  if (e.event === "refund.status.updated") {
+    o.data.payment.refundReported = true;
+    o.data.holdReason = "Ziina reported a refund. Check the payment and any printer order before continuing.";
+    await save(env2, o, o.data, ["submitting", "supplier_unknown", "submitted"].includes(o.status) ? o.status : "on_hold");
+    await audit(env2, o.id, "refund_reported", "ziina");
+  } else await ziinaConfirm(env2, o);
+  return { ok: true };
+}
+async function ziinaCheckout(env2, o, origin) {
+  if (o.session_id) {
+    requireThat(o.data.payment?.provider === "ziina", "Use the original payment provider for this order.", 409);
+    const p = await ziinaSync(env2, o);
+    requireThat(["requires_payment_instrument", "requires_user_action"].includes(p.status), "Payment is processing or checkout has ended. Refresh or contact us.", 409);
+    return { url: ziinaUrl(p) };
+  }
+  requireThat(!o.data.payment, "Checkout needs owner reconciliation before another attempt.", 409);
+  o.data.payment = { provider: "ziina", mode: env2.ZIINA_MODE, accountId: env2.ZIINA_ACCOUNT_ID, startedAt: now() };
+  o = await save(env2, o, o.data, "checkout_pending");
+  const link = origin + "/order.html?id=" + o.id;
+  try {
+    const p = await ziina(env2, "/payment_intent", { amount: o.amount, currency_code: "GBP", message: PRODUCTS[o.size].label + " + digital PDF and UK delivery. Order " + o.id, success_url: link, cancel_url: link, failure_url: link, test: o.data.payment.mode !== "live", allow_tips: false });
+    requireThat(typeof p.id === "string" && p.id.length < 100, "Missing Ziina payment reference.", 502);
+    matchZiina(p, { ...o, session_id: p.id });
+    const redirect = ziinaUrl(p);
+    const updated = await q(env2, "UPDATE customer_orders SET session_id=?1,status='awaiting_payment',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 RETURNING id", p.id, now(), o.id, o.revision).first();
+    requireThat(updated, "Checkout needs reconciliation.", 409);
+    return { url: redirect };
+  } catch {
+    throw new OrderError("Checkout could not be confirmed. Your book is saved. Contact us before trying another payment; we will check Ziina first.", 502);
+  }
+}
 async function syncPayment(env2, o) {
   requireThat(o.session_id, "No checkout exists.", 409);
   const r = await (env2.fetch || fetch)("https://api.stripe.com/v1/checkout/sessions/" + encodeURIComponent(o.session_id), { headers: { Authorization: `Bearer ${env2.STRIPE_SECRET_KEY}` }, signal: AbortSignal.timeout(15e3) });
@@ -52431,6 +52501,7 @@ async function ordersApi(req, env2) {
   try {
     if (path === "/api/orders/catalog" && req.method === "GET") return reply(catalogue(checkoutReady(env2)));
     requireThat(env2.DB && env2.BOOK_ASSETS, "Order storage is being connected. Your story is unchanged.", 503);
+    if (path === "/api/orders/ziina-webhook" && req.method === "POST") return reply(await ziinaWebhook(req, env2));
     if (path === "/api/orders/payment-webhook" && req.method === "POST") return reply(await verifyPayment(req, env2));
     if (!["GET", "HEAD"].includes(req.method)) {
       requireThat(req.headers.get("origin") === url.origin, "Reload this page before saving.", 403);
@@ -52439,7 +52510,7 @@ async function ordersApi(req, env2) {
     if (path === "/api/orders/admin" && req.method === "GET") {
       requireThat(admin(req, env2), "Sign in with the site owner\u2019s ChatGPT account.", 401);
       const rows = (await q(env2, "SELECT * FROM customer_orders ORDER BY created_at DESC LIMIT 100").all()).results || [];
-      return reply({ orders: rows.map((x) => publicOrder({ ...x, data: JSON.parse(x.state) }, true)), connections: { payments: checkoutReady(env2), stripe: !!env2.STRIPE_SECRET_KEY, webhook: !!env2.STRIPE_WEBHOOK_SECRET, printer: !!env2.PRODIGI_API_KEY, email: !!env2.RESEND_API_KEY && !!env2.ORDER_EMAIL_FROM, taxConfirmed: env2.ORDER_TAX_CONFIRMED === "true", enabled: env2.ORDERS_ENABLED === "true" }, policy: "Payment never releases an order. Final customer proof approval and a separate owner approval are required." });
+      return reply({ orders: rows.map((x) => publicOrder({ ...x, data: JSON.parse(x.state) }, true)), connections: { payments: checkoutReady(env2), gateway: env2.PAYMENT_PROVIDER === "ziina" ? !!env2.ZIINA_ACCESS_TOKEN && !!env2.ZIINA_ACCOUNT_ID : !!env2.STRIPE_SECRET_KEY, webhook: env2.PAYMENT_PROVIDER === "ziina" ? !!env2.ZIINA_WEBHOOK_SECRET : !!env2.STRIPE_WEBHOOK_SECRET, printer: !!env2.PRODIGI_API_KEY, email: !!env2.RESEND_API_KEY && !!env2.ORDER_EMAIL_FROM, taxConfirmed: env2.ORDER_TAX_CONFIRMED === "true", enabled: env2.ORDERS_ENABLED === "true" }, policy: "Payment never releases an order. Final customer proof approval and a separate owner approval are required." });
     }
     if (path === "/api/orders" && req.method === "POST") {
       const b2 = await input(req, 95e5);
@@ -52521,9 +52592,14 @@ async function ordersApi(req, env2) {
     }
     const b = await input(req);
     requireThat(b.revision === o.revision, "This order changed. Reload before continuing.", 409);
+    if (action === "check-payment") {
+      requireThat(o.data.payment?.provider === "ziina" && o.session_id, "No Ziina checkout to check.", 409);
+      return reply(publicOrder(await ziinaConfirm(env2, o), isAdmin));
+    }
     if (action === "checkout") {
       requireThat(checkoutReady(env2), "Payments are not open yet. Your book is saved and nothing has been charged.", 503);
       requireThat(o.payment_status === "unpaid" && ["saved", "awaiting_payment"].includes(o.status), "This book is already paid or on hold.", 409);
+      if (o.data.payment?.provider === "ziina" || !o.session_id && env2.PAYMENT_PROVIDER === "ziina") return reply(await ziinaCheckout(env2, o, url.origin));
       const link = `${url.origin}/order.html?id=${id}`;
       if (o.session_id) {
         const s2 = await syncPayment(env2, o);
@@ -52626,11 +52702,18 @@ async function ordersApi(req, env2) {
       requireThat(o.payment_status === "paid" && o.payment_mode === "live", "Only verified live payments may be sent to the printer.", 409);
       requireThat(["approved", "supplier_unknown"].includes(o.status) && o.data.adminApproved?.hash === o.data.proof?.hash && o.data.customerApproved?.hash === o.data.proof?.hash, "Both approvals must match the exact print file.", 409);
       requireThat(b.confirm === true && b.proofHash === o.data.proof.hash, "Confirm this exact book for paid printing.");
-      const payment = await syncPayment(env2, o);
-      requireThat(payment.payment_status === "paid" && payment.livemode === true && typeof payment.payment_intent === "string", "Live payment could not be reverified.", 409);
-      const intentResponse = await (env2.fetch || fetch)("https://api.stripe.com/v1/payment_intents/" + encodeURIComponent(payment.payment_intent) + "?expand%5B%5D=latest_charge", { headers: { Authorization: `Bearer ${env2.STRIPE_SECRET_KEY}` }, signal: AbortSignal.timeout(15e3) });
-      const intent = await intentResponse.json();
-      requireThat(intentResponse.ok && intent.status === "succeeded" && intent.amount_received === o.amount && intent.currency === "gbp" && intent.metadata?.cq_order_id === id && intent.latest_charge && typeof intent.latest_charge === "object" && !intent.latest_charge.refunded && !intent.latest_charge.disputed && Number(intent.latest_charge.amount_refunded) === 0, "Payment is refunded, disputed or unconfirmed. Do not print this order.", 409);
+      if (o.data.payment?.provider === "ziina") {
+        requireThat(!o.data.payment.refundReported && b.checkedPayment === true, "Check Ziina for refunds and disputes before releasing this book.", 409);
+        const payment = await ziinaSync(env2, o);
+        requireThat(payment.status === "completed" && o.data.payment.mode === "live", "Live Ziina payment is not confirmed.", 409);
+        await audit(env2, id, "payment_dashboard_checked", actor);
+      } else {
+        const payment = await syncPayment(env2, o);
+        requireThat(payment.payment_status === "paid" && payment.livemode === true && typeof payment.payment_intent === "string", "Live payment could not be reverified.", 409);
+        const intentResponse = await (env2.fetch || fetch)("https://api.stripe.com/v1/payment_intents/" + encodeURIComponent(payment.payment_intent) + "?expand%5B%5D=latest_charge", { headers: { Authorization: `Bearer ${env2.STRIPE_SECRET_KEY}` }, signal: AbortSignal.timeout(15e3) });
+        const intent = await intentResponse.json();
+        requireThat(intentResponse.ok && intent.status === "succeeded" && intent.amount_received === o.amount && intent.currency === "gbp" && intent.metadata?.cq_order_id === id && intent.latest_charge && typeof intent.latest_charge === "object" && !intent.latest_charge.refunded && !intent.latest_charge.disputed && Number(intent.latest_charge.amount_refunded) === 0, "Payment is refunded, disputed or unconfirmed. Do not print this order.", 409);
+      }
       const quote = await quoteOrder(env2, o.size);
       requireThat(Number.isSafeInteger(b.maxCostPence) && b.maxCostPence >= quote.totalPence && b.maxCostPence <= o.amount, "Printer cost exceeds your approved limit. Refresh the quote.", 409);
       if (!o.data.spine) {
@@ -52675,9 +52758,12 @@ async function ordersApi(req, env2) {
   }
 }
 export {
+  matchZiina,
   ordersApi,
   quoteOrder,
-  verifyPayment
+  verifyPayment,
+  ziina,
+  ziinaWebhook
 };
 /*! Bundled license information:
 
