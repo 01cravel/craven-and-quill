@@ -88,7 +88,7 @@
           <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>The face is clear</b><small>Whole face and both eyes visible.</small></span></label>
           <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I’m an adult with permission to use these photos</b><small>For a child, I’m their parent or guardian, or have their permission to create and fulfil this book.</small></span></label>
 
-          <p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. You can remove it in Saved book options below. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
+          <p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
 
           <div class="error" id="step-2-error" role="alert"></div>
           <div class="step-actions"><button class="back" type="button" data-back="8">Back</button><button class="next" id="photo-continue" type="button" data-next="12" disabled>Continue <span>→</span></button></div>
@@ -158,7 +158,7 @@
 <section class="step" data-step="10" aria-labelledby="step-10-title" hidden><h1 id="step-10-title">Where shall we save your preview?</h1><p class="intro">One email to keep your preview and book together. No marketing subscription.</p>          <div id="preview-email-wrap">
             <label class="field-label" for="email">Your email</label>
             <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
-            <p class="privacy-line" id="preview-email-note">You can email yourself a private return link once your preview is ready.</p>
+            <p class="privacy-line" id="preview-email-note">We use your email for this book, not a marketing subscription.</p>
           </div>
 
 <div class="error" id="step-10-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next" type="button" id="start-preview">Create my free preview <span>→</span></button></div></section>
@@ -229,7 +229,7 @@
             <p class="under-button">UK delivery included. Secure payment with Ziina. The seller may appear as cravenluke (Luke Craven, Craven &amp; Quill). Nothing prints without your approval.</p>
           </div>
         </section>
-      <details class="draft-options"><summary>Saved book options</summary><button type="button" class="shuffle" id="email-draft">Email my private return link</button><p id="draft-email-status" class="privacy-line" role="status"></p><p id="draft-status" class="privacy-line" role="status"></p><div id="resume-draft" hidden><button type="button" class="shuffle" id="resume-button">Continue my saved draft</button></div><button type="button" class="shuffle" id="forget-draft" hidden>Start fresh</button></details>
+      <div hidden class="draft-storage-controls"><button type="button" class="shuffle" id="email-draft">Email my private return link</button><p id="draft-email-status" class="privacy-line" role="status"></p><p id="draft-status" class="privacy-line" role="status"></p><div id="resume-draft" hidden><button type="button" class="shuffle" id="resume-button">Continue my saved draft</button></div><button type="button" class="shuffle" id="forget-draft" hidden>Start fresh</button></div>
       </form>
     </section>
   </main>
