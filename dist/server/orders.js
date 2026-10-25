@@ -4358,6 +4358,7 @@ async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZ
       const r = await ziina2(env2, "/refund", { id: t2.refund.id, payment_intent_id: t2.paymentId, amount: 100, currency_code: "GBP", test: false });
       checkRefund(r);
       t2.refund.status = r.status;
+      t2.refund.error = r.error ? { code: safeText(r.error.code, 100), message: safeText(r.error.message, 500) } : null;
     } catch (e) {
       t2.refund.status = "unknown";
       await write3(t2);
@@ -4369,6 +4370,7 @@ async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZ
     const r = await ziina2(env2, "/refund/" + encodeURIComponent(t2.refund.id));
     checkRefund(r);
     t2.refund.status = r.status;
+    t2.refund.error = r.error ? { code: safeText(r.error.code, 100), message: safeText(r.error.message, 500) } : null;
     await write3(t2);
   } else requireThat(false, "Unknown test action.");
   function checkRefund(r) {

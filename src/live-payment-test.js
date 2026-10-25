@@ -1,4 +1,4 @@
-import {requireThat} from './catalog.js';
+import {requireThat,safeText} from './catalog.js';
 // Owner-only, one £1 diagnostic payment. Never creates a customer_order or calls Prodigi.
 export async function livePaymentTest(req,env,{admin,ziina,matchZiina}) {
  requireThat(admin(req,env),'Sign in with the site owner’s ChatGPT account.',401);
@@ -31,9 +31,9 @@ export async function livePaymentTest(req,env,{admin,ziina,matchZiina}) {
   const p=await payment();requireThat(p.status==='completed','The payment is not completed.',409);
   const prior=JSON.stringify(t);t.status=p.status;t.refund={id:crypto.randomUUID(),status:'requesting'};
   const claim=await sql('UPDATE live_payment_test SET state=?1 WHERE id=1 AND state=?2 RETURNING id',JSON.stringify(t),prior).first();requireThat(claim,'Another request is running. Refresh.',409);
-  persisted=JSON.stringify(t);try{const r=await ziina(env,'/refund',{id:t.refund.id,payment_intent_id:t.paymentId,amount:100,currency_code:'GBP',test:false});checkRefund(r);t.refund.status=r.status;}catch(e){t.refund.status='unknown';await write(t);throw e;}await write(t);
+  persisted=JSON.stringify(t);try{const r=await ziina(env,'/refund',{id:t.refund.id,payment_intent_id:t.paymentId,amount:100,currency_code:'GBP',test:false});checkRefund(r);t.refund.status=r.status;t.refund.error=r.error?{code:safeText(r.error.code,100),message:safeText(r.error.message,500)}:null;}catch(e){t.refund.status='unknown';await write(t);throw e;}await write(t);
  }else if(b.action==='refund-status'){
-  requireThat(t?.refund?.id,'No refund exists.',409);const r=await ziina(env,'/refund/'+encodeURIComponent(t.refund.id));checkRefund(r);t.refund.status=r.status;await write(t);
+  requireThat(t?.refund?.id,'No refund exists.',409);const r=await ziina(env,'/refund/'+encodeURIComponent(t.refund.id));checkRefund(r);t.refund.status=r.status;t.refund.error=r.error?{code:safeText(r.error.code,100),message:safeText(r.error.message,500)}:null;await write(t);
  }else requireThat(false,'Unknown test action.');
  function checkRefund(r){requireThat(r.id===t.refund.id&&r.payment_intent_id===t.paymentId&&r.amount===100&&r.currency_code==='GBP'&&['pending','completed','failed'].includes(r.status),'Refund response did not match this test.',502);}
  return result(await read());
