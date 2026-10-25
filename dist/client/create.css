@@ -463,3 +463,15 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
  .quick-reassurance{margin:0 0 8px}
  .step[data-step="1"]>.privacy-line{margin:0 0 18px}
 }
+
+/* Keep recovery controls out of the main step and the first mobile view. */
+.draft-options{margin:20px 0 0;font-size:.78rem;color:var(--muted)}
+.draft-options>summary{cursor:pointer;padding:8px 0}
+.draft-options #draft-status{margin:8px 0}
+.draft-options #forget-draft{margin:8px 0}
+@media(max-width:780px){
+ .step[data-step="8"] h1,.step[data-step="3"] h1{font-size:clamp(1.8rem,7.3vw,2.2rem)}
+ .step[data-step="8"] .intro,.step[data-step="3"] .intro{margin-bottom:12px;font-size:.9rem}
+ .step[data-step="8"] .choice span,.step[data-step="3"] .choice span{padding:10px 14px}
+ .step[data-step="8"] .choice-grid,.step[data-step="3"] .choice-grid{gap:8px}
+}
