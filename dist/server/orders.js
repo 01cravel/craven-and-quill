@@ -52529,7 +52529,15 @@ async function verifyPayment(req, env2) {
 async function ziina(env2, path, data2) {
   requireThat(env2.ZIINA_ACCESS_TOKEN, "Ziina is not connected.", 503);
   const r = await (env2.fetch || fetch)("https://api-v2.ziina.com/api" + path, { method: data2 ? "POST" : "GET", headers: { Authorization: `Bearer ${env2.ZIINA_ACCESS_TOKEN}`, "Content-Type": "application/json" }, ...data2 ? { body: JSON.stringify(data2) } : {}, signal: AbortSignal.timeout(2e4) });
-  requireThat(r.ok, "Ziina could not confirm the request. Keep this order on hold.", 502);
+  if (!r.ok) {
+    let d;
+    try {
+      d = await r.json();
+    } catch {
+    }
+    const code2 = String(d?.code || d?.error?.code || "").replace(/[^A-Z0-9_]/g, "").slice(0, 80);
+    throw new OrderError("Ziina could not confirm the request (HTTP " + r.status + (code2 ? ", " + code2 : "") + "). Keep this order on hold.", 502);
+  }
   return r.json();
 }
 function matchZiina(p, o) {
