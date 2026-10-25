@@ -72,7 +72,6 @@
           <h1 id="step-2-title">Add a clear photo.</h1>
           <p class="intro">Choose a well-lit photo with their whole face visible. We’ll use it to draw their character once you’ve chosen a story idea.</p>
 
-          <button class="add-person" id="add-person" type="button">+ Add another person <span>Optional</span></button>
           <div id="second-person" hidden>
             <label for="second-name">Second first name <span>Required</span></label>
             <input id="second-name" name="second-name" maxlength="40" autocomplete="off" placeholder="For example, Maya">
@@ -80,7 +79,7 @@
 
           <div class="upload-wrap">
             <label class="upload" for="photos"><span class="upload-icon">+</span><strong>Add a clear photo</strong><small>Face forward, both eyes clear, no sunglasses.</small></label>
-            <input id="photos" name="photos" type="file" accept="image/*,.heic,.heif,.avif" multiple required aria-label="Add a clear photo">
+            <input id="photos" name="photos" type="file" accept="image/*,.heic,.heif,.avif" required aria-label="Add a clear photo">
           </div>
           <div class="photo-list" id="photo-list"></div>
           <div class="photo-check" id="photo-check" hidden aria-live="polite"></div>
