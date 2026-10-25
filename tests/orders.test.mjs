@@ -91,3 +91,17 @@ test('ambiguous private test checkout cannot create a second payment',async()=>{
 test('live test retains provider failure details without retrying a refund',async()=>{const env=environment();ziinaConnected(env);let refund;
 env.fetch=async(url,opts={})=>{if(url.endsWith('/payment_intent'))return Response.json(intent(env,100));if(url.includes('/payment_intent/'))return Response.json(intent(env,100,'completed'));if(url.endsWith('/refund')){refund=JSON.parse(opts.body);return Response.json({...refund,status:'pending'});}return Response.json({...refund,status:'failed',error:{code:'EXAMPLE_FAILURE',message:'Provider explanation'}});};
 await request(env,'/live-payment-test',{action:'create',confirm:true},{admin:true});await request(env,'/live-payment-test',{action:'refund',confirm:true},{admin:true});const r=await request(env,'/live-payment-test',{action:'refund-status'},{admin:true});assert.equal(r.status,200);const d=await r.json();assert.equal(d.test.refund.status,'failed');assert.equal(d.test.refund.error.code,'EXAMPLE_FAILURE');assert.equal((await request(env,'/live-payment-test',{action:'refund',confirm:true},{admin:true})).status,409);});
+
+test('second £1 diagnostic requires original balance failure, stays isolated and cannot create a third charge',async()=>{
+ const env=environment();ziinaConnected(env);env.ORDERS_ENABLED='false';let creates=0;
+ env.fetch=async(url,opts)=>{assert.ok(url.startsWith('https://api-v2.ziina.com/'));assert.ok(url.endsWith('/payment_intent'));creates++;const body=JSON.parse(opts.body);assert.equal(body.amount,100);assert.equal(body.currency_code,'GBP');assert.equal(body.test,false);assert.match(body.success_url,/payment=2/);return Response.json({...intent(env,100),id:'second-payment'});};
+ assert.equal((await request(env,'/live-payment-test?payment=2',{action:'create',confirm:true},{admin:true})).status,409);
+ const original={status:'completed',paymentId:'original-payment',refund:{id:'original-refund',status:'failed',error:{code:'INSUFFICIENT_BALANCE'}}};
+ env.DB.sqlite.prepare('INSERT INTO live_payment_test (id,state) VALUES (1,?)').run(JSON.stringify(original));
+ assert.equal((await request(env,'/live-payment-test?payment=2',{action:'create',confirm:true},{auth:false})).status,401);
+ for(let i=0;i<2;i++){const r=await request(env,'/live-payment-test?payment=2',{action:'create',confirm:true,amount:200},{admin:true});assert.equal(r.status,200);assert.equal((await r.json()).test.paymentId,'second-payment');}
+ assert.equal(creates,1);
+ assert.deepEqual((await (await request(env,'/live-payment-test',null,{admin:true})).json()).test,original);
+ assert.equal((await request(env,'/live-payment-test?payment=3',{action:'create',confirm:true},{admin:true})).status,400);
+ assert.equal(env.DB.sqlite.prepare('SELECT count(*) AS n FROM customer_orders').get().n,0);assert.equal(checkoutReady(env),false);
+});

@@ -4290,15 +4290,18 @@ function checkoutReady(env2) {
 async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZiina: matchZiina2 }) {
   requireThat(admin2(req, env2), "Sign in with the site owner\u2019s ChatGPT account.", 401);
   requireThat(env2.DB, "Test storage unavailable.", 503);
+  const slot = new URL(req.url).searchParams.get("payment") || "1";
+  requireThat(["1", "2"].includes(slot), "Only the two authorised tests are available.");
+  const table9 = slot === "2" ? "live_payment_test_second" : "live_payment_test";
   const sql = (s, ...args) => env2.DB.prepare(s).bind(...args);
-  await sql("CREATE TABLE IF NOT EXISTS live_payment_test (id INTEGER PRIMARY KEY CHECK(id=1), state TEXT NOT NULL)").run();
+  await sql(`CREATE TABLE IF NOT EXISTS ${table9} (id INTEGER PRIMARY KEY CHECK(id=1), state TEXT NOT NULL)`).run();
   const read3 = async () => {
-    const row = await sql("SELECT state FROM live_payment_test WHERE id=1").first();
+    const row = await sql(`SELECT state FROM ${table9} WHERE id=1`).first();
     return row ? JSON.parse(row.state) : null;
   };
   let persisted;
   const write3 = async (t3) => {
-    const next = JSON.stringify(t3), changed = await sql("UPDATE live_payment_test SET state=?1 WHERE id=1 AND state=?2 RETURNING id", next, persisted).first();
+    const next = JSON.stringify(t3), changed = await sql(`UPDATE ${table9} SET state=?1 WHERE id=1 AND state=?2 RETURNING id`, next, persisted).first();
     requireThat(changed, "Test changed. Refresh before continuing.", 409);
     persisted = next;
   };
@@ -4319,12 +4322,17 @@ async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZ
   if (b.action === "create") {
     requireThat(b.confirm === true, "Confirm the \xA31 live test.");
     if (t2) return result(t2);
+    if (slot === "2") {
+      await sql("CREATE TABLE IF NOT EXISTS live_payment_test (id INTEGER PRIMARY KEY CHECK(id=1), state TEXT NOT NULL)").run();
+      const row = await sql("SELECT state FROM live_payment_test WHERE id=1").first(), first = row ? JSON.parse(row.state) : null;
+      requireThat(first?.status === "completed" && first?.refund?.status === "failed" && first?.refund?.error?.code === "INSUFFICIENT_BALANCE", "The original test must have a verified insufficient-balance refund failure.", 409);
+    }
     t2 = { status: "creating", accountId: env2.ZIINA_ACCOUNT_ID, createdAt: (/* @__PURE__ */ new Date()).toISOString(), amountPence: 100, currency: "GBP" };
-    const claim = await sql("INSERT OR IGNORE INTO live_payment_test (id,state) VALUES (1,?1) RETURNING id", JSON.stringify(t2)).first();
+    const claim = await sql(`INSERT OR IGNORE INTO ${table9} (id,state) VALUES (1,?1) RETURNING id`, JSON.stringify(t2)).first();
     requireThat(claim, "A test already exists. Refresh instead.", 409);
     persisted = JSON.stringify(t2);
     try {
-      const link = new URL("/payment-test.html", req.url).href, p = await ziina2(env2, "/payment_intent", { amount: 100, currency_code: "GBP", message: "Craven & Quill \xA31 live payment/refund test. No book or printing.", test: false, allow_tips: false, success_url: link, cancel_url: link, failure_url: link });
+      const link = new URL("/payment-test.html?payment=" + slot, req.url).href, p = await ziina2(env2, "/payment_intent", { amount: 100, currency_code: "GBP", message: "Craven & Quill \xA31 live payment/refund test " + slot + ". No book or printing.", test: false, allow_tips: false, success_url: link, cancel_url: link, failure_url: link });
       requireThat(typeof p.id === "string" && p.id.length < 100, "Missing payment reference.", 502);
       t2.paymentId = p.id;
       matchZiina2(p, { session_id: p.id, amount: 100, data: { payment: { accountId: t2.accountId } } });
@@ -4344,14 +4352,14 @@ async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZ
     t2.checkedAt = (/* @__PURE__ */ new Date()).toISOString();
     await write3(t2);
   } else if (b.action === "refund") {
-    requireThat(b.confirm === true, "Confirm refund of the original \xA31 payment.");
+    requireThat(b.confirm === true, "Confirm refund of this \xA31 payment.");
     requireThat(!t2?.refund, "A refund was already requested. Check its status; never repeat it.", 409);
     const p = await payment();
     requireThat(p.status === "completed", "The payment is not completed.", 409);
     const prior = JSON.stringify(t2);
     t2.status = p.status;
     t2.refund = { id: crypto.randomUUID(), status: "requesting" };
-    const claim = await sql("UPDATE live_payment_test SET state=?1 WHERE id=1 AND state=?2 RETURNING id", JSON.stringify(t2), prior).first();
+    const claim = await sql(`UPDATE ${table9} SET state=?1 WHERE id=1 AND state=?2 RETURNING id`, JSON.stringify(t2), prior).first();
     requireThat(claim, "Another request is running. Refresh.", 409);
     persisted = JSON.stringify(t2);
     try {
