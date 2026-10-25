@@ -4286,6 +4286,35 @@ function checkoutReady(env2) {
   return env2.ORDERS_ENABLED === "true" && env2.ORDER_TAX_CONFIRMED === "true" && (env2.PAYMENT_PROVIDER === "ziina" ? !!env2.ZIINA_ACCESS_TOKEN && !!env2.ZIINA_ACCOUNT_ID && !!env2.ZIINA_WEBHOOK_SECRET && ["test", "live"].includes(env2.ZIINA_MODE) : /^sk_(live|test)_/.test(env2.STRIPE_SECRET_KEY || "") && !!env2.STRIPE_WEBHOOK_SECRET) && !!env2.PRODIGI_API_KEY && !!env2.RESEND_API_KEY && !!env2.ORDER_EMAIL_FROM;
 }
 
+// src/order-email.js
+function orderEmail(o, kind, url) {
+  const titles = { receipt: "Payment received, your book is being prepared", proof: "Your book proof is ready", shipped: "Your book has been sent to the printer" };
+  if (!titles[kind]) throw Error("Unknown email type");
+  const lines = { receipt: "We have received your payment. We will prepare your book and send you a proof. Nothing prints until you approve the proof and we complete our final check.", proof: "Please open your private link and check every page. Printing stays on hold until you approve this version.", shipped: "Your approved book has been sent to the printer. This is not a dispatch confirmation. Tracking will appear on your order page when available." };
+  return { subject: "Craven & Quill: " + titles[kind], text: `${titles[kind]}
+
+${PRODUCTS[o.size].label} \xB7 \xA3${(o.amount / 100).toFixed(2)} including UK standard delivery
+Order: ${o.id}
+
+${lines[kind]}
+
+${url}
+
+Keep this private link safe. It gives access to your book.
+Questions? Reply to this email.`, key: `${o.id}:${kind}:${kind === "proof" ? o.data.proof?.hash : "1"}` };
+}
+async function sendOrderEmail(env2, o, kind, url) {
+  if (!env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { sent: false, message: "Order email is not connected. Use your private order link." };
+  const message = orderEmail(o, kind, url);
+  try {
+    const r = await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${env2.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": message.key }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, reply_to: env2.ORDER_EMAIL_REPLY_TO || "cravenluke@gmail.com", to: [o.email], subject: message.subject, text: message.text }), signal: AbortSignal.timeout(15e3) });
+    const d = await r.json();
+    return { sent: !!(r.ok && d.id), providerId: r.ok ? d.id : null, kind, proofHash: kind === "proof" ? o.data.proof?.hash : null, message: r.ok && d.id ? "Email accepted by provider; inbox delivery not yet confirmed." : "Email was not accepted. Retry from the order desk." };
+  } catch {
+    return { sent: false, kind, message: "Email could not be confirmed. Retry from the order desk." };
+  }
+}
+
 // node_modules/tslib/tslib.es6.js
 var extendStatics = function(d, b) {
   extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
@@ -52325,7 +52354,7 @@ async function authorise(req, env2, o) {
 }
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, ...isAdmin ? { email: o.email, art: d.art, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [] } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, ...isAdmin ? { email: o.email, art: d.art, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null } : {} };
 }
 async function assetPut(env2, o, bytes, type, kind) {
   const key2 = uid();
@@ -52360,17 +52389,15 @@ async function quoteOrder(env2, size) {
   requireThat(Number.isSafeInteger(cost) && cost > 0 && Number.isSafeInteger(tax) && quote.shipments?.every((s) => s.fulfillmentLocation?.countryCode === "GB"), "UK printing and total cost could not be confirmed.", 502);
   return { totalPence: cost, itemsPence: Math.round(Number(quote.costSummary.items.amount) * 100), shippingPence: Math.round(Number(quote.costSummary.shipping.amount) * 100), taxPence: tax, currency: "GBP", quotedAt: now(), sku: PRODUCTS[size].sku, pageCount: BOOK.pdfPages };
 }
-async function notify(env2, o, kind, url) {
-  if (!env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { sent: false, message: "Email is not connected. Keep your private order link." };
-  try {
-    const r = await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${env2.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": `${o.id}:${kind}` }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, to: [o.email], subject: kind === "proof" ? "Your book proof is ready" : "Your Craven & Quill order", text: `${kind === "proof" ? "Your book proof is ready to check. Nothing prints until you approve it and our team releases it." : "Your book is saved. Check payment, proof and delivery status here."}
-${url}
-Keep this private link safe. It gives access to your book.` }), signal: AbortSignal.timeout(15e3) });
-    const d = await r.json();
-    return { sent: !!(r.ok && d.id), message: r.ok && d.id ? "Email service accepted the message." : "Email was not accepted. Use the private order link." };
-  } catch {
-    return { sent: false, message: "Email could not be sent. Use the private order link." };
-  }
+var notify = sendOrderEmail;
+async function receiptEmail(env2, o, kind = "receipt") {
+  if (o.payment_status !== "paid" || o.payment_mode !== "live" || o.data.emails?.[kind]?.sent) return o;
+  const link = `https://cravenandquill.com/order.html?id=${o.id}#key=${await privateKey(env2, o.data.privateKey, true)}`;
+  const result = await notify(env2, o, kind, link);
+  const fresh = await get(env2, o.id);
+  fresh.data.emails = { ...fresh.data.emails, [kind]: result };
+  fresh.data.emailStatus = result;
+  return save(env2, fresh, fresh.data);
 }
 async function stripe(env2, path, form, id) {
   requireThat(/^sk_(live|test)_/.test(env2.STRIPE_SECRET_KEY || ""), "Payment gateway is not connected.", 503);
@@ -52422,7 +52449,7 @@ async function ziinaConfirm(env2, o) {
     await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 AND payment_status='unpaid'", o.data.payment.mode, now(), o.id, o.revision).run();
     await audit(env2, o.id, "payment_confirmed", "ziina", { mode: o.data.payment.mode });
   }
-  return get(env2, o.id);
+  return receiptEmail(env2, await get(env2, o.id));
 }
 async function ziinaWebhook(req, env2) {
   requireThat(env2.ZIINA_WEBHOOK_SECRET, "Ziina confirmations are not configured.", 503);
@@ -52627,6 +52654,14 @@ async function ordersApi(req, env2) {
     }
     requireThat(isAdmin, "Only the site owner can approve or manage printing.", 403);
     const actor = req.headers.get("oai-authenticated-user-email");
+    if (action === "notify-printed") {
+      requireThat(o.status === "submitted" && o.data.supplierId, "No confirmed printer submission.", 409);
+      return reply(publicOrder(await receiptEmail(env2, o, "shipped"), true));
+    }
+    if (action === "notify-receipt") {
+      requireThat(o.payment_status === "paid", "Payment must be verified first.", 409);
+      return reply(publicOrder(await receiptEmail(env2, o), true));
+    }
     if (action === "customer-link") {
       return reply({ url: `${url.origin}/order.html?id=${id}#key=${await privateKey(env2, o.data.privateKey, true)}` });
     }
@@ -52636,6 +52671,33 @@ async function ordersApi(req, env2) {
       o = await save(env2, o, o.data, "on_hold");
       await audit(env2, id, "held", actor);
       return reply(publicOrder(o, true));
+    }
+    if (action === "refund" || action === "refund-status") {
+      requireThat(o.data.payment?.provider === "ziina" && o.payment_status === "paid", "Only a verified Ziina payment can be refunded here.", 409);
+      requireThat(!["submitting", "supplier_unknown", "submitted"].includes(o.status), "Check/cancel the printer order before arranging a refund in Ziina.", 409);
+      if (action === "refund") {
+        requireThat(b.confirm === true && b.amountPence === o.amount, "Confirm the full original payment amount.", 409);
+        requireThat(!o.data.refund, "A refund already exists. Check its status instead of starting another.", 409);
+        o.data.refund = { id: uid(), status: "requesting", amount: o.amount, at: now() };
+        o.data.payment.refundReported = true;
+        o.data.holdReason = "Refund requested. Do not print.";
+        o = await save(env2, o, o.data, "on_hold");
+        try {
+          const r2 = await ziina(env2, "/refund", { id: o.data.refund.id, payment_intent_id: o.session_id, amount: o.amount, currency_code: "GBP", test: o.payment_mode !== "live" });
+          requireThat(r2.id === o.data.refund.id && r2.payment_intent_id === o.session_id && r2.amount === o.amount && r2.currency_code === "GBP" && ["pending", "completed", "failed"].includes(r2.status), "Refund response did not match.", 502);
+          o.data.refund.status = r2.status;
+        } catch {
+          o.data.refund.status = "unknown";
+        }
+        o = await save(env2, o, o.data, "on_hold");
+        await audit(env2, id, "refund_requested", actor, { id: o.data.refund.id, status: o.data.refund.status });
+        return reply(publicOrder(o, true));
+      }
+      requireThat(o.data.refund?.id, "No refund has been requested.", 409);
+      const r = await ziina(env2, "/refund/" + encodeURIComponent(o.data.refund.id));
+      requireThat(r.id === o.data.refund.id && r.payment_intent_id === o.session_id && r.amount === o.amount && r.currency_code === "GBP" && ["pending", "completed", "failed"].includes(r.status), "Refund could not be verified.", 502);
+      o.data.refund.status = r.status;
+      return reply(publicOrder(await save(env2, o, o.data, "on_hold"), true));
     }
     if (action === "quote") {
       requireThat(!["submitting", "supplier_unknown", "submitted"].includes(o.status), "This order has already entered printer submission.", 409);
@@ -52738,7 +52800,12 @@ async function ordersApi(req, env2) {
         o.data.supplierId = d.order.id;
         o.data.supplierStatus = d.order.status;
         await audit(env2, id, "supplier_submitted", actor, { supplierId: d.order.id, costPence: quote.totalPence });
-        return reply(publicOrder(await save(env2, o, o.data, "submitted"), true));
+        o = await save(env2, o, o.data, "submitted");
+        try {
+          o = await receiptEmail(env2, o, "shipped");
+        } catch {
+        }
+        return reply(publicOrder(o, true));
       } catch (e) {
         await save(env2, o, o.data, "supplier_unknown");
         throw new OrderError("Prodigi\u2019s result is uncertain. Keep this order on hold and reconcile before retrying. The same order key will be reused.", 502);
