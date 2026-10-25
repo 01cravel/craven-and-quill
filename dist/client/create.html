@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=54">
+  <link rel="stylesheet" href="create.css?v=55">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -44,7 +44,7 @@
     </aside>
 
     <section class="step-panel">
-      <form id="story-maker" novalidate><p id="draft-status" class="privacy-line" role="status"></p><div id="resume-draft" hidden><button type="button" class="shuffle" id="resume-button">Continue my saved draft</button></div><button type="button" class="shuffle" id="forget-draft" hidden>Start fresh</button>
+      <form id="story-maker" novalidate>
         <section class="step active" data-step="1" aria-labelledby="step-1-title">
           <p class="eyebrow">Start with the star</p>
           <h1 id="step-1-title">What’s their first name?</h1>
@@ -88,7 +88,7 @@
           <label class="face-confirm" id="face-confirm-wrap" hidden><input id="face-confirm" type="checkbox"><span><b>The face is clear</b><small>Whole face and both eyes visible.</small></span></label>
           <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I’m an adult with permission to use these photos</b><small>For a child, I’m their parent or guardian, or have their permission to create and fulfil this book.</small></span></label>
 
-          <p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. Use Start fresh on a shared device. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
+          <p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. You can remove it in Saved book options below. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
 
           <div class="error" id="step-2-error" role="alert"></div>
           <div class="step-actions"><button class="back" type="button" data-back="8">Back</button><button class="next" id="photo-continue" type="button" data-next="9" disabled>Continue <span>→</span></button></div>
@@ -251,6 +251,7 @@
             <p class="under-button">UK delivery included. Secure payment with Ziina. The seller may appear as cravenluke (Luke Craven, Craven &amp; Quill). Nothing prints without your approval.</p>
           </div>
         </section>
+      <details class="draft-options"><summary>Saved book options</summary><p id="draft-status" class="privacy-line" role="status"></p><div id="resume-draft" hidden><button type="button" class="shuffle" id="resume-button">Continue my saved draft</button></div><button type="button" class="shuffle" id="forget-draft" hidden>Start fresh</button></details>
       </form>
     </section>
   </main>
