@@ -208,7 +208,6 @@ $('#names').addEventListener('input',updateLive);
 $('#second-name').addEventListener('input',updateLive);
 $$('input[name="age"]').forEach(input=>input.addEventListener('change',updateLive));
 $$('input[name="mood"]').forEach(input=>input.addEventListener('change',()=>{ideaOffset=0;buildIdeas();}));
-$('#add-person').addEventListener('click',()=>{const panel=$('#second-person');const opening=panel.hidden;panel.hidden=!opening;$('#add-person').innerHTML=opening?'− Remove second person <span>Optional</span>':'+ Add another person <span>Optional</span>';if(opening)$('#second-name').focus();else{$('#second-name').value='';updateLive();}updatePhotoGate();});
 
 $$('[data-prompt]').forEach(button=>button.addEventListener('click',()=>{$('#own-idea').value=button.dataset.prompt;updateLive();$('#own-idea').focus();}));
 
