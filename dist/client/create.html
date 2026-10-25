@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=55">
+  <link rel="stylesheet" href="create.css?v=56">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -91,19 +91,30 @@
           <p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. You can remove it in Saved book options below. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p>
 
           <div class="error" id="step-2-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="8">Back</button><button class="next" id="photo-continue" type="button" data-next="9" disabled>Continue <span>→</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="8">Back</button><button class="next" id="photo-continue" type="button" data-next="12" disabled>Continue <span>→</span></button></div>
           <p class="under-button">Free. No card needed.</p>
         </section>
 
-<section class="step" data-step="9" aria-labelledby="step-9-title" hidden><h1 id="step-9-title">What makes them, them?</h1><p class="intro">Add a few favourite things, or skip this for now.</p>          <label for="personal-details">Tell us a little about them <span>Optional</span></label>
-          <textarea id="personal-details" name="personal-details" rows="4" maxlength="800" placeholder="They love Barcelona and football, fish and chips, and playing in the garden." aria-describedby="personal-details-note"></textarea>
-          <p class="privacy-line" id="personal-details-note">Favourite things, hobbies or little habits help make the story theirs. Please leave out surnames, school names and other private details.</p>
+<section class="step" data-step="12" aria-labelledby="step-12-title" hidden>
+<h1 id="step-12-title">How shall we create their story?</h1><p class="intro">Tap the option that sounds like you.</p>
+<div class="choice-grid story-route-grid">
+<label class="choice"><input type="radio" name="story-mode" value="invent"><span><b>Create one for me</b><small>Tell us what they’re like and love. We’ll invent the adventure.</small></span></label>
+<label class="choice"><input type="radio" name="story-mode" value="plot"><span><b>I have a story idea</b><small>Tell us what should happen. We’ll bring it to life.</small></span></label>
+</div><div class="error" id="step-12-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" type="button" data-next="9">Continue →</button></div></section>
+<section class="step" data-step="9" aria-labelledby="step-9-title" hidden><h1 id="step-9-title">What makes them, them?</h1><p class="intro" id="brief-intro">A few favourite things or little habits are enough. We’ll build the adventure around them.</p>
+<div id="interests-options"><label for="personal-details">Tell us about them</label><textarea id="personal-details" name="personal-details" rows="4" maxlength="800" placeholder="They love Barcelona, football, fish and chips, and playing in the garden." aria-describedby="personal-details-note"></textarea><p class="privacy-line" id="personal-details-note">Leave out surnames, school names and other private details.</p></div>
+          <div id="own-options" hidden>
+            <label for="own-idea">What should happen? <span>Required</span></label>
+            <textarea id="own-idea" name="own-idea" rows="5" maxlength="500" placeholder="For example, Leo finds three friendly aliens above Dubai and helps them get home."></textarea>
 
-<div class="error" id="step-9-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" type="button" data-next="3">Continue <span>→</span></button></div></section>
+          </div>
+
+<details class="optional-detail" id="brief-help"><summary>Help me get started</summary><p id="brief-help-copy">What do they love doing? What makes them laugh? A favourite place, food or little habit is plenty.</p></details>
+<div class="error" id="step-9-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="12">Back</button><button class="next" type="button" data-next="3">Choose the tone →</button></div></section>
         <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
           <p class="eyebrow">Story direction</p>
-          <h1 id="step-3-title">What kind of story will they love?</h1>
-          <p class="intro">Tap a style to see matching story ideas.</p>
+          <h1 id="step-3-title">How should the story feel?</h1>
+          <p class="intro">Tap a tone. We’ll use it to bring your description to life.</p>
 
 
 
@@ -112,34 +123,18 @@
             <div class="choice-grid four mood-grid">
               <label class="choice mood funny"><input type="radio" name="mood" value="funny"><span><b>Funny</b><small>Silly trouble</small></span></label>
               <label class="choice mood adventure"><input type="radio" name="mood" value="adventure"><span><b>Adventure</b><small>A brave quest</small></span></label>
-              <label class="choice mood classic"><input type="radio" name="mood" value="classic"><span><b>Classic</b><small>Gentle magic</small></span></label>
-              <label class="choice mood own"><input type="radio" name="mood" value="own"><span><b>My idea</b><small>You set the plot</small></span></label>
+              <label class="choice mood classic"><input type="radio" name="mood" value="classic"><span><b>Gentle</b><small>Gentle magic</small></span></label>
+
             </div>
           </fieldset>
           <div class="error" id="step-3-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="9">Back</button><button class="next" type="button" data-next="4">Choose a story <span>→</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="9">Back</button><button class="next" type="button" data-next="10">Continue <span>→</span></button></div>
         </section>
 
         <section class="step" data-step="4" aria-labelledby="step-4-title" hidden>
           <p class="eyebrow">Their story</p>
-          <h1 id="step-4-title">Create their story.</h1>
-          <p class="intro" id="story-choice-intro">Choose a starting idea. We’ll write a story using the details you added.</p>
-
-          <div id="ai-ideas">
-            <p class="field-label">Choose a story <span>Required</span></p>
-            <div class="idea-list" id="idea-list"></div>
-            <button class="shuffle" id="shuffle-ideas" type="button">Show different ideas</button>
-          </div>
-
-          <div id="own-options" hidden>
-            <label for="own-idea">What should happen? <span>Required</span></label>
-            <textarea id="own-idea" name="own-idea" rows="5" maxlength="500" placeholder="For example, Leo finds three friendly aliens above Dubai and helps them get home."></textarea>
-            <div class="suggestions" aria-label="Story starters">
-              <button type="button" data-prompt="A birthday surprise goes wonderfully wrong.">Birthday surprise</button>
-              <button type="button" data-prompt="They discover a secret world close to home.">Secret world</button>
-              <button type="button" data-prompt="A beloved pet leads them on a gentle adventure.">Pet adventure</button>
-            </div>
-          </div>
+          <h1 id="step-4-title">Your story draft.</h1>
+          <p class="intro" id="story-choice-intro">Read, edit or rewrite your story before continuing.</p>
 
           <div class="story-write-actions">
 
@@ -182,7 +177,7 @@
             <p class="privacy-line" id="preview-email-note">You can email yourself a private return link once your preview is ready.</p>
           </div>
 
-<div class="error" id="step-10-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next" type="button" id="start-preview">Create my free preview <span>→</span></button></div></section>
+<div class="error" id="step-10-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next" type="button" id="start-preview">Create my free preview <span>→</span></button></div></section>
         <section class="step preview-step" data-step="5" aria-labelledby="step-5-title" hidden>
           <div id="making-state">
             <div class="drawing-brand"><img src="assets/logo-mark-on-white.png" alt="" width="64" height="64"><span>Craven &amp; Quill</span></div>
@@ -261,6 +256,6 @@
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=27" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=54" defer></script><script src="draft-save.js?v=53" defer></script>
+  <script src="create.js?v=56" defer></script><script src="draft-save.js?v=56" defer></script>
 </body>
 </html>

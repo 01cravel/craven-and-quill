@@ -475,3 +475,5 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
  .step[data-step="8"] .choice span,.step[data-step="3"] .choice span{padding:10px 14px}
  .step[data-step="8"] .choice-grid,.step[data-step="3"] .choice-grid{gap:8px}
 }
+
+.story-route-grid{grid-template-columns:1fr;gap:12px}.story-route-grid .choice span{padding:18px}.story-route-grid small{line-height:1.5}
