@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=49">
+  <link rel="stylesheet" href="create.css?v=50">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -48,8 +48,9 @@
         <section class="step active" data-step="1" aria-labelledby="step-1-title">
           <p class="eyebrow">Start with the star</p>
           <h1 id="step-1-title">Who is the book for?</h1>
-          <p class="intro">Create a free preview. Launch offer: 20% off both sizes. The A5 hardback is <del>£49.99</del> £39.99 and A4 is <del>£59.99</del> £47.99, including UK delivery and a digital copy.</p>
+          <p class="intro">Create a free preview. 20% off both sizes. The A5 hardback is <del>£49.99</del> £39.99 and A4 is <del>£59.99</del> £47.99, including UK delivery and a digital copy.</p>
 
+          <div class="publishing-proof" aria-label="Our publishing experience"><strong>Over 3,000 books sold on Amazon</strong><span>Across our wider book catalogue.</span></div>
           <label for="names">First name <span>Required</span></label>
           <input id="names" name="names" maxlength="40" autocomplete="off" placeholder="For example, Leo" required>
 
@@ -215,8 +216,8 @@
           <fieldset>
             <legend class="visually-hidden">Book format</legend>
             <div class="product-options size-options">
-              <label class="product"><input type="radio" name="product" value="a5" data-price="39.99" checked><span><b>A5 hardback <em class="recommended">Little keepsake</em></b><small>14.8 × 21 cm, portrait. Easy to hold and treasure.</small><strong><del>£49.99</del> <span class="current-price">£39.99</span></strong><small class="offer-label">Launch offer · 20% off</small></span></label>
-              <label class="product"><input type="radio" name="product" value="a4" data-price="47.99"><span><b>A4 hardback <em class="recommended">Big gift</em></b><small>Bigger pages for £8 more. Same story, twice the page area. 21 × 29.7 cm.</small><strong><del>£59.99</del> <span class="current-price">£47.99</span></strong><small class="offer-label">Launch offer · 20% off</small></span></label>
+              <label class="product"><input type="radio" name="product" value="a5" data-price="39.99" checked><span><b>A5 hardback <em class="recommended">Little keepsake</em></b><small>14.8 × 21 cm, portrait. Easy to hold and treasure.</small><strong><del>£49.99</del> <span class="current-price">£39.99</span></strong><small class="offer-label">20% off</small></span></label>
+              <label class="product"><input type="radio" name="product" value="a4" data-price="47.99"><span><b>A4 hardback <em class="recommended">Big gift</em></b><small>Bigger pages for £8 more. Same story, twice the page area. 21 × 29.7 cm.</small><strong><del>£59.99</del> <span class="current-price">£47.99</span></strong><small class="offer-label">20% off</small></span></label>
             </div>
             <p class="privacy-line">Both include a digital PDF, matte hardback cover, full-colour 200gsm glossy pages and UK standard delivery. The same complete story in either size.</p>
             <div class="size-comparison" aria-label="Book size comparison"><div class="size-a5">A5<small>14.8 × 21 cm</small></div><div class="size-a4">A4<small>21 × 29.7 cm</small></div></div>
@@ -243,7 +244,7 @@
             <label class="launch-consent"><input id="purchase-intent" type="checkbox"><span id="purchase-intent-label">I’ve checked the story, names and character preview. I understand I’ll approve the finished proof before printing.</span></label>
 
             <p class="privacy-line">We save this book, illustrated character, email and delivery details privately. We use your email for this book, not a marketing subscription. <a href="privacy.html" target="_blank" rel="noopener">Privacy details</a> · <a href="ordering.html" target="_blank" rel="noopener">Ordering and delivery</a></p>
-            <div class="error" id="step-7-error" role="alert"></div>
+            <div class="publishing-proof" aria-label="Our publishing experience"><strong>Over 3,000 books sold on Amazon</strong><span>Across our wider book catalogue.</span></div><div class="error" id="step-7-error" role="alert"></div>
             <div class="step-actions"><button class="back" type="button" data-back="6">Back</button><button class="next checkout-button" id="join-launch" type="button">Save my book, no payment</button></div>
             <p class="under-button">UK delivery included. Secure payment with Ziina. The seller may appear as cravenluke (Luke Craven, Craven &amp; Quill). Nothing prints without your approval.</p>
           </div>

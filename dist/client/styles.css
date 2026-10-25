@@ -226,3 +226,5 @@ footer small{flex-basis:100%;font-size:.84rem}
 .price-row{grid-template-columns:repeat(3,minmax(0,1fr))}
 .measurement-settings{background:none;border:0;color:inherit;font:inherit;text-decoration:underline;cursor:pointer;padding:0}
 @media(max-width:900px){.price-row{grid-template-columns:1fr}}
+
+.publishing-proof{display:grid;gap:3px;margin:18px 0;padding:12px 16px;border-radius:16px;background:#e6e9fe;color:#17332c}.publishing-proof strong{font-size:.95rem;font-weight:700;line-height:1.35}.publishing-proof span{font-size:.78rem;line-height:1.4;color:#5b6b65}
