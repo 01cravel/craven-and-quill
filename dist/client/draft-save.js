@@ -1,6 +1,6 @@
 // Private, expiring draft recovery. Raw upload photos stay on this device only.
 (()=>{
- const fields=['names','second-name','personal-details','own-idea','email','recipient-name','address-line1','address-line2','town','postcode','dedication'];
+ const fields=['names','second-name','personal-details','own-idea','email','recipient-name','address-line1','address-line2','town','postcode','dedication','sender-name'];
  let db,ready=false,timer,remoteId=null,remoteKey=null;
  const status=document.querySelector('#draft-status');
  const open=new Promise((resolve,reject)=>{const r=indexedDB.open('cq-private-draft',1);r.onupgradeneeded=()=>r.result.createObjectStore('drafts');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});

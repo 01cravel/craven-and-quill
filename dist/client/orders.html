@@ -8,7 +8,7 @@
 <body>
   <header class="app-header"><a class="identity" href="/"><span class="identity-mark">CQ</span><span>Craven &amp; Quill<small>Orders</small></span></a><span class="owner-label">Private owner workspace</span></header>
   <main class="app-shell">
-    <div class="page-heading"><div><p class="eyebrow">Order operations</p><h1>Order review</h1><p>Check the complete book and release only the version you approve.</p></div><form id="signout" action="/api/owner-auth/logout" method="post" hidden><button class="button secondary" type="submit">Sign out</button></form><a id="signin" class="button" href="/owner-login.html" hidden>Email me a sign-in link</a></div>
+    <div class="page-heading"><div><p class="eyebrow">Order operations</p><h1>Order review</h1><p>Check the complete book and release only the version you approve.</p></div><button id="test-alert" class="button secondary" type="button" hidden>Send one test alert</button><form id="signout" action="/api/owner-auth/logout" method="post" hidden><button class="button secondary" type="submit">Sign out</button></form><a id="signin" class="button" href="/owner-login.html" hidden>Email me a sign-in link</a></div>
     <p id="message" class="message" role="status">Checking owner access…</p>
     <nav class="workspace-tabs" aria-label="Workspace"><button id="orders-tab" class="active" type="button">Orders</button><button id="quotes-tab" type="button">Quoted, not bought</button></nav>
     <section id="orders-view" class="workspace-grid" hidden>

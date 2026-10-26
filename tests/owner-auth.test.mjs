@@ -49,3 +49,23 @@ test('an expired link cannot create a session',async()=>{
   assert.equal((await post('/api/owner-auth/confirm',{token})).status,400);
   assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM owner_login_sessions').get().n,0);
 });
+
+test('a signed-in owner can request one Craven & Quill test alert',async()=>{
+  const {env,sent,post}=setup();
+  assert.equal((await post('/api/owner-auth/test-alert',{})).status,401);
+  await post('/api/owner-auth/request',{email:'cravenluke@gmail.com'});
+  const token=new URL(JSON.parse(sent[0].options.body).text.match(/https:\/\/\S+/)[0]).searchParams.get('token');
+  const login=await post('/api/owner-auth/confirm',{token});
+  const cookie=login.headers.get('Set-Cookie').split(';')[0];
+  assert.equal((await post('/api/owner-auth/test-alert',{}, {Cookie:cookie,Origin:'https://other.test'})).status,403);
+  const result=await post('/api/owner-auth/test-alert',{}, {Cookie:cookie});
+  assert.equal(result.status,200);
+  assert.match((await result.json()).message,/delivery is not yet confirmed/i);
+  assert.equal(sent.length,2);
+  const email=JSON.parse(sent[1].options.body);
+  assert.equal(email.from,'Craven & Quill <books@example.test>');
+  assert.deepEqual(email.to,['cravenluke@gmail.com']);
+  assert.match(email.text,/TEST ONLY. No book was bought or quoted/);
+  assert.equal((await post('/api/owner-auth/test-alert',{}, {Cookie:cookie})).status,409);
+  assert.equal(sent.length,2);
+});

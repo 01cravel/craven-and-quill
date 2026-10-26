@@ -4401,7 +4401,8 @@ var SESSION_LIFETIME_MS = 12 * 60 * 60 * 1e3;
 var TABLES = [
   "CREATE TABLE IF NOT EXISTS owner_login_links (token_hash TEXT PRIMARY KEY, expires_at TEXT NOT NULL, used_at TEXT)",
   "CREATE TABLE IF NOT EXISTS owner_login_sessions (token_hash TEXT PRIMARY KEY, expires_at TEXT NOT NULL)",
-  "CREATE TABLE IF NOT EXISTS owner_login_rate (id INTEGER PRIMARY KEY CHECK(id=1), last_sent_at TEXT NOT NULL, day TEXT NOT NULL, day_count INTEGER NOT NULL)"
+  "CREATE TABLE IF NOT EXISTS owner_login_rate (id INTEGER PRIMARY KEY CHECK(id=1), last_sent_at TEXT NOT NULL, day TEXT NOT NULL, day_count INTEGER NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS owner_alert_test (id INTEGER PRIMARY KEY CHECK(id=1), claimed_at TEXT NOT NULL, provider_id TEXT)"
 ];
 async function digest(token) {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
@@ -52358,7 +52359,13 @@ async function printBook(order, read3, fontBytes, logoBytes) {
   words(title2, order.story.title, { size: spec.id === "a5" ? 22 : 30, y: H * 0.69, center: true });
   words(title2, "A story for " + order.names, { y: H * 0.4, center: true });
   const dedication = page();
-  words(dedication, order.dedication || "For " + order.names, { y: H * 0.65, center: true });
+  const giftSize = spec.id === "a5" ? 13 : 18;
+  const giftParts = [{ text: "A story just for", size: giftSize }, { text: order.names, size: spec.id === "a5" ? 23 : 32 }, ...order.senderName ? [{ text: "Given with love by " + order.senderName, size: giftSize }] : [], ...order.dedication ? [{ text: order.dedication, size: giftSize }] : []];
+  const giftGap = mm(6), giftHeight = giftParts.reduce((h, p) => h + lines(p.text, p.size, W - 2 * M2).length * p.size * 1.45, 0) + (giftParts.length - 1) * giftGap;
+  let giftY = H / 2 + giftHeight / 2 - giftSize;
+  for (const part of giftParts) {
+    giftY = words(dedication, part.text, { size: part.size, y: giftY, center: true }) - giftGap;
+  }
   const opening = page();
   words(opening, "Let the story begin", { y: H * 0.55, center: true });
   for (let i4 = 0; i4 < BOOK.spreads; i4++) {
@@ -52736,12 +52743,12 @@ async function authorise(req, env2, o) {
 }
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, ...isAdmin ? { email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, ...isAdmin ? { email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
 }
 var editable = (o) => o.payment_status === "paid" && ["awaiting_review", "building", "proof_ready", "awaiting_approval"].includes(o.status);
 function archiveContent(o, kind, actor) {
   const d = o.data;
-  d.history = [...d.history || [], { version: d.contentVersion || 1, at: now2(), kind, actor, story: structuredClone(d.story), art: structuredClone(d.art), characters: structuredClone(d.characters || []), proof: structuredClone(d.proof), dedication: d.dedication, names: d.names, recipient: structuredClone(d.recipient) }].slice(-12);
+  d.history = [...d.history || [], { version: d.contentVersion || 1, at: now2(), kind, actor, story: structuredClone(d.story), art: structuredClone(d.art), characters: structuredClone(d.characters || []), proof: structuredClone(d.proof), dedication: d.dedication, senderName: d.senderName || "", names: d.names, recipient: structuredClone(d.recipient) }].slice(-12);
   d.contentVersion = (d.contentVersion || 1) + 1;
   d.proof = null;
   d.customerApproved = null;
@@ -53252,7 +53259,7 @@ You can stop offer emails here: ${unsubscribe}`;
         requireThat(bytes[0] === 255 && bytes[1] === 216, "Invalid character image.");
         characters.push(await assetPut(env2, o2, bytes, "image/jpeg", "character"));
       }
-      const data2 = { measurement: measurementContext(b2.measurement, req), privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, names: safeText(b2.names, 85), age: safeText(b2.age, 20), story, recipient: recipient(b2.recipient), dedication: safeText(b2.dedication, 300), characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now2(), storyApprovedAt: now2() };
+      const data2 = { measurement: measurementContext(b2.measurement, req), privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, names: safeText(b2.names, 85), age: safeText(b2.age, 20), story, recipient: recipient(b2.recipient), dedication: safeText(b2.dedication, 300), senderName: safeText(b2.senderName, 80), characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now2(), storyApprovedAt: now2() };
       requireThat(data2.names, "Add the main character name.");
       const date = now2();
       await q(env2, "INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,'saved','unpaid',1,?6,?7,?7)", o2.id, await sha(token), b2.email.toLowerCase(), b2.size, PRODUCTS[b2.size].pricePence, JSON.stringify(data2), date).run();
@@ -53410,6 +53417,7 @@ You can stop offer emails here: ${unsubscribe}`;
       archiveContent(o, "details_edited", actor);
       o.data.names = name5;
       o.data.dedication = dedication;
+      if (typeof b.senderName === "string") o.data.senderName = safeText(b.senderName, 80);
       o.data.recipient = address;
       await audit(env2, id, "details_edited", actor, { version: o.data.contentVersion, addressChanged: true });
       return reply(publicOrder(await save(env2, o, o.data, "building"), true));
@@ -53424,6 +53432,7 @@ You can stop offer emails here: ${unsubscribe}`;
       o.data.characters = [...old.characters];
       o.data.names = old.names;
       o.data.dedication = old.dedication;
+      o.data.senderName = old.senderName || "";
       o.data.recipient = old.recipient || o.data.recipient;
       await audit(env2, id, "version_restored", actor, { from: old.version, to: o.data.contentVersion });
       return reply(publicOrder(await save(env2, o, o.data, "building"), true));

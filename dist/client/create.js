@@ -32,8 +32,16 @@ let photoUrls=[];
 
 function fullNames(){return[state.names,state.secondName].filter(Boolean).join(' and ');}
 function getBookSlug(){const value=fullNames().toLowerCase();if(value.includes('luke')||state.mood==='funny')return'luke';if(value.includes('noah')||state.age==='3-5'||state.mood==='classic')return'noah';return'amara';}
-function updateCover(){$('#mini-cover-art').src=state.characterImages[0]||'assets/storybook.webp';$('#cover-caption').textContent=state.characterImages[0]?'Your character, cover design follows after payment':'Example book, your story takes shape here';$('#mini-cover-art').alt=`Sample ${state.mood==='own'?'personalised':state.mood} story cover`;}
+function updateCover(){const ready=!!state.characterImages[0];$('#mini-cover').hidden=!ready;$('.story-side .gift-page-preview').hidden=ready;$('#mini-cover-art').src=state.characterImages[0]||'assets/storybook.webp';$('#cover-caption').textContent=ready?'Your character, cover design follows after payment':'Your inside gift page';$('#mini-cover-art').alt='Your illustrated character';}
+function updateGiftPage(){
+ const name=$('#names').value.trim()||'Someone special',sender=$('#sender-name').value.trim(),message=$('#dedication').value.trim();
+ $$('[data-gift-name]').forEach(el=>el.textContent=name);
+ $$('[data-gift-sender]').forEach(el=>{el.textContent=sender?'Given with love by '+sender:'';el.hidden=!sender;});
+ $$('[data-gift-message]').forEach(el=>{el.textContent=message;el.hidden=!message;});
+}
+
 function updateLive(){
+  updateGiftPage();
   state.names=$('#names').value.trim();
   state.secondName=$('#second-person').hidden?'':$('#second-name').value.trim();
   state.age=($('input[name="age"]:checked')||{}).value||'';
@@ -205,6 +213,8 @@ $('#story-pages').addEventListener('keydown',event=>{
 new ResizeObserver(()=>turnStoryPage(state.storyPage,'instant')).observe($('#story-pages'));
 
 $('#names').addEventListener('input',updateLive);
+$('#sender-name').addEventListener('input',updateGiftPage);
+$('#dedication').addEventListener('input',updateGiftPage);
 $('#second-name').addEventListener('input',updateLive);
 $$('input[name="age"]').forEach(input=>input.addEventListener('change',updateLive));
 $$('input[name="mood"]').forEach(input=>input.addEventListener('change',()=>{ideaOffset=0;buildIdeas();}));
@@ -443,7 +453,7 @@ $('#join-launch').addEventListener('click',async()=>{
  if(!draftValid(state.storyDraft)||!state.characterImages.length){error.textContent='Finish the story and character preview first.';return;}
  updateProduct();button.disabled=true;button.textContent='Saving your book…';error.textContent='';
  orderRequest=orderRequest||{id:crypto.randomUUID(),key:crypto.randomUUID()+crypto.randomUUID()};
- try{await window.cqSaveDraft?.();const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({measurement:window.cqMeasurement?.context(),requestId:orderRequest.id,accessToken:orderRequest.key,email:$('#email').value.trim().toLowerCase(),size:state.product,story:state.storyDraft,names:fullNames(),age:state.age,previewId:state.previewId,characters:state.characterImages,approvedStory:true,photoPermission:true,dedication:$('#dedication').value.trim(),recipient:{name:$('#recipient-name').value.trim(),address:{line1:$('#address-line1').value.trim(),line2:$('#address-line2').value.trim(),townOrCity:$('#town').value.trim(),postalOrZipCode:$('#postcode').value.trim(),countryCode:'GB'}}}),signal:AbortSignal.timeout(45000)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Your book could not be saved. Please retry.');track('book_saved');const privateUrl=`/order.html?id=${data.order.id}#key=${orderRequest.key}`;
+ try{await window.cqSaveDraft?.();const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({measurement:window.cqMeasurement?.context(),requestId:orderRequest.id,accessToken:orderRequest.key,email:$('#email').value.trim().toLowerCase(),size:state.product,story:state.storyDraft,names:fullNames(),age:state.age,previewId:state.previewId,characters:state.characterImages,approvedStory:true,photoPermission:true,dedication:$('#dedication').value.trim(),senderName:$('#sender-name').value.trim(),recipient:{name:$('#recipient-name').value.trim(),address:{line1:$('#address-line1').value.trim(),line2:$('#address-line2').value.trim(),townOrCity:$('#town').value.trim(),postalOrZipCode:$('#postcode').value.trim(),countryCode:'GB'}}}),signal:AbortSignal.timeout(45000)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Your book could not be saved. Please retry.');track('book_saved');const privateUrl=`/order.html?id=${data.order.id}#key=${orderRequest.key}`;
  if(offerCode){const applied=await fetch(`/api/orders/${data.order.id}/apply-offer`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+orderRequest.key},body:JSON.stringify({revision:data.order.revision,code:offerCode})});const result=await applied.json();if(!applied.ok)throw new Error(result.error||'Your offer could not be applied. Your book is saved and no payment started.');data.order=result;$('#order-price').textContent=`£${(result.amount/100).toFixed(2)}`;$('#offer-code-note').textContent=`Offer ${offerCode} applied. Your total is £${(result.amount/100).toFixed(2)}.`;}
  if(orderCatalog?.checkoutEnabled){
  const headers={'Content-Type':'application/json',Authorization:'Bearer '+orderRequest.key};

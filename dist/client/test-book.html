@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="test-book.css?v=full-page-20261026?v=12">
+  <link rel="stylesheet" href="test-book.css?v=spread-20261026">
 </head>
 <body>
   <a class="skip" href="#book">Skip to the book</a>
@@ -42,10 +42,12 @@
       <article class="page-copy" id="page-copy">
         <p class="chapter" id="chapter"></p>
         <h1 id="page-title"></h1>
-        <p id="page-text"></p>
+        <p id="page-text" class="story-text"></p>
         <span class="page-number" id="page-number"></span>
       </article>
     </section>
+
+    <button type="button" class="spread-zoom" id="spread-zoom" hidden>Tap to enlarge spread</button>
 
     <nav class="page-nav" aria-label="Turn the page">
       <button class="book-arrow" type="button" id="previous" aria-label="Previous page"></button>
@@ -57,6 +59,10 @@
     <p class="test-note" id="test-note" hidden></p>
     <span id="turn-sheet" hidden></span>
   </main>
-  <script src="test-book.js?v=13" defer></script>
+  <dialog class="spread-dialog" id="spread-dialog" aria-label="Enlarged book spread">
+    <div class="zoom-toolbar"><span>Scroll to explore both pages</span><button type="button" id="zoom-close">Close zoom</button></div>
+    <div class="zoom-scroll" id="zoom-scroll"></div>
+  </dialog>
+  <script src="test-book.js?v=spread-20261026" defer></script>
 </body>
 </html>

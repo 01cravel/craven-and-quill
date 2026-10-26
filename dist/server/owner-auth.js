@@ -5,7 +5,8 @@ const COOKIE='__Host-cq_owner';
 const TABLES=[
   'CREATE TABLE IF NOT EXISTS owner_login_links (token_hash TEXT PRIMARY KEY, expires_at TEXT NOT NULL, used_at TEXT)',
   'CREATE TABLE IF NOT EXISTS owner_login_sessions (token_hash TEXT PRIMARY KEY, expires_at TEXT NOT NULL)',
-  'CREATE TABLE IF NOT EXISTS owner_login_rate (id INTEGER PRIMARY KEY CHECK(id=1), last_sent_at TEXT NOT NULL, day TEXT NOT NULL, day_count INTEGER NOT NULL)'
+  'CREATE TABLE IF NOT EXISTS owner_login_rate (id INTEGER PRIMARY KEY CHECK(id=1), last_sent_at TEXT NOT NULL, day TEXT NOT NULL, day_count INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS owner_alert_test (id INTEGER PRIMARY KEY CHECK(id=1), claimed_at TEXT NOT NULL, provider_id TEXT)'
 ];
 const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"};
 const html=(text,status=200,extra={})=>new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Owner sign-in | Craven &amp; Quill</title><style>body{font:16px/1.5 system-ui;background:#f7f8fa;color:#17212b;margin:0;padding:8vh 20px}main{max-width:420px;margin:auto;padding:32px;background:white;border:1px solid #dde3e8;border-radius:16px}button{background:#263d53;color:white;border:0;border-radius:8px;padding:12px 18px;font:inherit;cursor:pointer}a{color:#263d53}</style><main>${text}</main></html>`,{status,headers:{...headers,'Content-Type':'text/html; charset=utf-8',...extra}});
@@ -39,6 +40,21 @@ export async function ownerAuth(req,env){
   if(!path.startsWith('/api/owner-auth/'))return null;
   if(!env.DB)return html('<h1>Sign-in is temporarily unavailable</h1><p>Please try again shortly.</p>',503);
   await tables(env);
+  if(path==='/api/owner-auth/test-alert'&&req.method==='POST'){
+    if(!sameOrigin(req))return Response.json({error:'Request refused.'},{status:403,headers});
+    if(!await ownerSession(req,env))return Response.json({error:'Sign in to the order dashboard first.'},{status:401,headers});
+    if(!env.RESEND_API_KEY||!env.ORDER_EMAIL_FROM)return Response.json({error:'Craven & Quill email is unavailable.'},{status:503,headers});
+    const claim=await env.DB.prepare('INSERT OR IGNORE INTO owner_alert_test (id,claimed_at,provider_id) VALUES (1,?1,NULL) RETURNING id').bind(new Date().toISOString()).first();
+    if(!claim)return Response.json({error:'This one-time test alert was already requested. Check your inbox.'},{status:409,headers});
+    const message='TEST ONLY. No book was bought or quoted.\n\nThis is how a Craven & Quill owner alert could arrive when a customer buys a book or receives a quote.\n\nOpen your order dashboard: '+u.origin+'/orders\n\nAutomatic owner alerts are not enabled yet.';
+    try{
+      const r=await (env.fetch||fetch)('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`,'Content-Type':'application/json','Idempotency-Key':'cq-owner-alert-one-time-test'},body:JSON.stringify({from:env.ORDER_EMAIL_FROM,reply_to:env.ORDER_EMAIL_REPLY_TO||OWNER_EMAIL,to:[OWNER_EMAIL],subject:'TEST ONLY: Craven & Quill owner alert',text:message}),signal:AbortSignal.timeout(15000)});
+      const result=await r.json();
+      if(!r.ok||!result.id){console.error('Owner test alert rejected',r.status);await env.DB.prepare('DELETE FROM owner_alert_test WHERE id=1').run();return Response.json({error:'The email provider rejected the test alert.'},{status:503,headers});}
+      await env.DB.prepare('UPDATE owner_alert_test SET provider_id=?1 WHERE id=1').bind(result.id).run();
+      return Response.json({message:'Craven & Quill email provider accepted the test alert. Inbox delivery is not yet confirmed.'},{headers});
+    }catch{console.error('Owner test alert result uncertain');return Response.json({error:'Email result is uncertain. Check your inbox before trying again.'},{status:503,headers});}
+  }
   if(path==='/api/owner-auth/request'&&req.method==='POST'){
     if(!sameOrigin(req))return html('<h1>Request refused</h1><p>Reload the sign-in page and try again.</p>',403);
     let fields;try{fields=await form(req);}catch{return html('<h1>Invalid request</h1>',400);}

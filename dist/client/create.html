@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=56">
+  <link rel="stylesheet" href="create.css?v=gift-20261026">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -33,8 +33,9 @@
 
   <main id="maker" class="maker-shell">
     <aside class="story-side" aria-live="polite">
-      <p class="side-label" id="cover-caption">Example book, your story takes shape here</p>
-      <div class="mini-cover" id="mini-cover">
+      <p class="side-label" id="cover-caption">Your inside gift page</p>
+      <div class="gift-page-preview" aria-label="Inside gift page preview"><p>A story just for</p><strong data-gift-name>Someone special</strong><p data-gift-sender hidden></p><p class="gift-message" data-gift-message hidden></p></div>
+      <div class="mini-cover" id="mini-cover" hidden>
         <img id="mini-cover-art" src="assets/storybook.webp" width="900" height="1125" alt="Example book, your cover will be personalised">
         <div class="mini-cover-shade"></div>
         <div class="mini-cover-copy"><span>A STORY FOR</span><strong id="live-name">SOMEONE SPECIAL</strong><em id="live-title">The Map Beneath the Moon</em></div>
@@ -52,6 +53,10 @@
           <label for="names">First name <span>Required</span></label>
           <input id="names" enterkeyhint="next" name="names" maxlength="40" autocomplete="off" placeholder="For example, Leo" required>
 
+          <label for="sender-name">Who is it from? <span>Optional</span></label>
+          <input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad">
+          <details class="optional-detail gift-message-field"><summary>Add a personal message <span>Optional</span></summary><label for="dedication">Your message inside the book</label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea></details>
+          <div class="mobile-gift-preview"><div class="gift-page-preview" aria-label="Inside gift page preview"><p>A story just for</p><strong data-gift-name>Someone special</strong><p data-gift-sender hidden></p><p class="gift-message" data-gift-message hidden></p></div></div>
           <div class="error" id="step-1-error" role="alert"></div>
           <div class="step-actions step-actions-single"><button class="next" type="button" data-next="8">Continue <span>→</span></button></div>
         </section>
@@ -212,7 +217,7 @@
             <details class="optional-detail"><summary>Add another address line <span>Optional</span></summary><label for="address-line2">Address line 2 <span>Optional</span></label><input id="address-line2" maxlength="200" autocomplete="shipping address-line2"></details>
             <label for="town">Town or city</label><input id="town" maxlength="100" autocomplete="shipping address-level2" required>
             <label for="postcode">UK postcode</label><input id="postcode" maxlength="12" autocomplete="shipping postal-code" required>
-            <details class="optional-detail"><summary>Add a personal message <span>Optional</span></summary><label for="dedication">A message inside their book <span>Optional</span></label><textarea id="dedication" maxlength="300" rows="3" placeholder="For Leo, with love from Grandma and Grandad."></textarea></details>
+
 <div class="error" id="step-11-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="6">Back</button><button class="next" type="button" data-next="7">Review my book <span>→</span></button></div></section>
         <section class="step pay-step" data-step="7" aria-labelledby="step-7-title" hidden>
           <p class="eyebrow">A keepsake worth getting right</p>
@@ -221,7 +226,7 @@
           <section class="order-total" aria-label="Your selected book"><div><span id="order-label">A5 hardback</span><small>Includes digital PDF and UK standard delivery.</small></div><strong id="order-price"><del>£49.99</del> £39.99</strong></section>
           <p id="offer-code-note" class="privacy-line" hidden></p>
           <p class="privacy-line">Your full illustrated proof: within 7 calendar days of payment. Estimated UK delivery: 7–12 working days after you approve the proof. Our team checks every page before printing. Need it for a special date? <a href="mailto:cravenluke@gmail.com">check with us before ordering</a>.</p>
-          <p id="delivery-summary" class="delivery-summary"></p><button class="shuffle" type="button" data-back="11">Edit delivery details</button><div id="launch-form">
+          <div class="gift-page-preview" aria-label="Inside gift page preview"><p>A story just for</p><strong data-gift-name>Someone special</strong><p data-gift-sender hidden></p><p class="gift-message" data-gift-message hidden></p></div><button class="shuffle" type="button" data-back="1">Edit gift page</button><p id="delivery-summary" class="delivery-summary"></p><button class="shuffle" type="button" data-back="11">Edit delivery details</button><div id="launch-form">
             <div class="signup-honeypot" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" tabindex="-1" autocomplete="off"></div>
             <label class="launch-consent"><input id="purchase-intent" type="checkbox"><span id="purchase-intent-label">I’ve checked the story, names and character preview. I understand I’ll approve the finished proof before printing.</span></label>
 
@@ -241,6 +246,6 @@
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=27" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=56" defer></script><script src="draft-save.js?v=56" defer></script>
+  <script src="create.js?v=gift-20261026" defer></script><script src="draft-save.js?v=gift-20261026" defer></script>
 </body>
 </html>

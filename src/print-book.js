@@ -14,7 +14,12 @@ export async function printBook(order,read,fontBytes,logoBytes){
  function brand(p){const w=mm(12),h=w*logo.height/logo.width;p.drawImage(logo,{x:M,y:M,width:w,height:h});p.drawText('Craven & Quill',{x:M+w+mm(2),y:M+mm(3),size:spec.id==='a5'?8:11,font,color:ink});}
  const cover=page();const titleBottom=words(cover,order.story.title,{size:spec.id==='a5'?22:30,y:H-mm(24),center:true});await art(cover,order.art.cover,Math.min(H-mm(60),titleBottom-mm(8)),mm(35));brand(cover);
  const title=page();words(title,order.story.title,{size:spec.id==='a5'?22:30,y:H*.69,center:true});words(title,'A story for '+order.names,{y:H*.40,center:true});
- const dedication=page();words(dedication,order.dedication||'For '+order.names,{y:H*.65,center:true});
+ const dedication=page();
+ const giftSize=spec.id==='a5'?13:18;
+ const giftParts=[{text:'A story just for',size:giftSize},{text:order.names,size:spec.id==='a5'?23:32},...(order.senderName?[{text:'Given with love by '+order.senderName,size:giftSize}]:[]),...(order.dedication?[{text:order.dedication,size:giftSize}]:[])];
+ const giftGap=mm(6),giftHeight=giftParts.reduce((h,p)=>h+lines(p.text,p.size,W-2*M).length*p.size*1.45,0)+(giftParts.length-1)*giftGap;
+ let giftY=H/2+giftHeight/2-giftSize;
+ for(const part of giftParts){giftY=words(dedication,part.text,{size:part.size,y:giftY,center:true})-giftGap;}
  const opening=page();words(opening,'Let the story begin',{y:H*.55,center:true});
  // Interior page 4 is left, so art on the left faces its matching text on the right.
  for(let i=0;i<BOOK.spreads;i++){await art(page(),order.art.scenes[i],H,0,true);const textPage=page(),size=spec.id==='a5'?14:19,count=lines(order.story.spreads[i].text,size,W-M*2).length;words(textPage,order.story.spreads[i].text,{size,y:Math.min(H-mm(30),H/2+(count-1)*size*1.45/2-size*.35)});}

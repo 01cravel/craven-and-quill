@@ -86,13 +86,13 @@ document.querySelectorAll('[data-book]').forEach(link=>link.setAttribute('aria-c
 screens.forEach((screen,index)=>{const button=document.createElement('button');button.type='button';button.textContent=screen.kind==='story'?String(screen.number):screen.kind==='cover'?'C':screen.kind.includes('gift')?'G':'★';button.setAttribute('aria-label',`Go to ${screen.label}`);button.addEventListener('click',()=>navigate(index,index<current?'back':'forward'));dots.append(button);});
 
 function show(index){
-  current=Math.max(0,Math.min(screens.length-1,index));const screen=screens[current];stage.dataset.kind=screen.kind;stage.classList.toggle('cover-stage',screen.kind==='cover');frame.className=`art-frame ${screen.motion||'motion-in'}`;
+  current=Math.max(0,Math.min(screens.length-1,index));const screen=screens[current];document.querySelector('#spread-zoom').hidden=screen.kind!=='story';stage.dataset.kind=screen.kind;stage.classList.toggle('cover-stage',screen.kind==='cover');frame.className=`art-frame ${screen.motion||'motion-in'}`;
   if(screen.image){art.src=screen.image;art.alt=screen.kind==='cover'?`Cover of ${book.title}`:`Illustration for story spread ${screen.number}`;frame.style.setProperty('--page-art',`url("${screen.image}")`);}
   const nextButton=document.querySelector('#next');cover.hidden=screen.kind!=='cover';chapter.textContent=screen.chapter||'';title.textContent=screen.title||'';text.textContent=screen.text||'';number.textContent=screen.number||'';progress.style.width=`${((current+1)/screens.length)*100}%`;document.querySelector('#previous').disabled=current===0;nextButton.innerHTML=current===0?'<span>Open the book</span>':current===screens.length-1?'<span>Start again</span>':'';nextButton.classList.toggle('has-text',current===0||current===screens.length-1);document.querySelector('#page-count').textContent=screen.kind==='story'?`Page ${screen.number} of ${book.pages.length}`:screen.kind==='cover'?'Cover':screen.kind.includes('gift')?'Gift page':'Belongs to';document.querySelector('.page-nav').classList.toggle('at-cover',current===0);nextButton.setAttribute('aria-label',current===screens.length-1?'Back to cover':current===0?'Open book':'Next page');[...dots.children].forEach((button,i)=>button.setAttribute('aria-current',String(i===current)));copy.style.animation='none';void copy.offsetWidth;copy.style.animation='';fitText();
 }
 function fitText(){
   copy.style.removeProperty('--fit');
-  if(!matchMedia('(max-width:900px)').matches||stage.dataset.kind!=='story')return;
+  if(stage.dataset.kind!=='story')return;
   let size=1;while(copy.scrollHeight>copy.clientHeight+1&&size>0.76){size=Math.round((size-0.03)*100)/100;copy.style.setProperty('--fit',size);}
 }
 addEventListener('resize',fitText);
@@ -101,5 +101,24 @@ function navigate(index,direction='forward'){
 }
 document.querySelector('#previous').addEventListener('click',()=>navigate(current-1,'back'));
 document.querySelector('#next').addEventListener('click',()=>navigate(current===screens.length-1?0:current+1,'forward'));
-document.addEventListener('keydown',event=>{if(event.key==='ArrowRight')navigate(current===screens.length-1?0:current+1,'forward');if(event.key==='ArrowLeft')navigate(current-1,'back');});
+document.addEventListener('keydown',event=>{if(document.querySelector('#spread-dialog').open)return;if(event.key==='ArrowRight')navigate(current===screens.length-1?0:current+1,'forward');if(event.key==='ArrowLeft')navigate(current-1,'back');});
+const zoomDialog=document.querySelector('#spread-dialog');
+function openSpread(){
+  if(stage.dataset.kind!=='story')return;
+  const enlarged=stage.cloneNode(true);
+  // Avoid duplicate IDs while retaining the same typography rules.
+  enlarged.removeAttribute('aria-live');
+  enlarged.querySelectorAll('[id]').forEach(node=>node.removeAttribute('id'));enlarged.removeAttribute('id');
+  const scroll=document.querySelector('#zoom-scroll');
+  scroll.replaceChildren(enlarged);
+  zoomDialog.showModal();
+  scroll.scrollTo(0,0);
+}
+document.querySelector('#spread-zoom').addEventListener('click',openSpread);
+let tapStart=null;
+stage.addEventListener('pointerdown',event=>{tapStart=[event.clientX,event.clientY];});
+stage.addEventListener('click',event=>{if(tapStart&&Math.hypot(event.clientX-tapStart[0],event.clientY-tapStart[1])<12)openSpread();tapStart=null;});
+document.querySelector('#zoom-close').addEventListener('click',()=>zoomDialog.close());
+zoomDialog.addEventListener('close',()=>{document.querySelector('#zoom-scroll').replaceChildren();document.querySelector('#spread-zoom').focus();});
+document.fonts.ready.then(fitText);
 show(0);
