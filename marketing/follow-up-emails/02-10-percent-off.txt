@@ -1,0 +1,15 @@
+Subject: A little extra for their story: 10% off
+Preheader: Take an extra 10% off one Craven & Quill book with your personal code.
+
+If you are still thinking about their book, here is an extra 10% off the current book price.
+
+Use code {{discount_code}} at checkout. It is for your email address, works on one book, and expires on {{expiry_date}} at {{expiry_time}} UK time.
+
+A free character and first-page preview comes before payment. Your hardback also includes a digital PDF and UK standard delivery.
+
+Make their book with 10% off: {{continue_url}}
+
+We hope it helps you make a story that feels unmistakably theirs. Questions? Reply to this email.
+
+Craven & Quill · Personalised books, made for one reader at a time.
+You asked to hear from us about your book. Stop these emails: {{unsubscribe_url}}

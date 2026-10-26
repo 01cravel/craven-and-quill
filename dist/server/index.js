@@ -1,5 +1,5 @@
 import {campaignApi,beginPreview,finishPreview} from './campaign.js';
-import {ordersApi} from './orders.js';
+import {ordersApi,runFollowups,followupStatus} from './orders.js';
 import {storyApi} from './story.js';
 const RATE_WINDOW_MS=60*60*1000;
 const RATE_LIMIT=3;
@@ -106,8 +106,30 @@ async function serveAsset(request,env){
   return env.ASSETS.fetch(new Request(assetUrl,request));
 }
 
+async function followupMcp(request,env){
+  if(request.method!=='POST')return json({error:'Method not allowed.'},405);
+  const owner=request.headers.get('oai-authenticated-user-email')?.toLowerCase();
+  if(!owner||!env.ORDERS_ADMIN_EMAIL||owner!==env.ORDERS_ADMIN_EMAIL.toLowerCase())return json({error:'Owner access required.'},403);
+  let input;try{input=await request.json();}catch{return json({error:'Invalid JSON.'},400);}
+  const id=input.id??null,method=input.method;
+  const ok=result=>json({jsonrpc:'2.0',id,result});
+  if(method==='server/discover')return ok({supportedVersions:['2026-07-28'],capabilities:{tools:{}}});
+  if(method==='tools/list')return ok({tools:[
+    {name:'followup_status',description:'Read whether follow-up sending is enabled and summary counts.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
+    {name:'run_followups',description:'Send due follow-up emails only when the production sending switch is enabled.',inputSchema:{type:'object',properties:{},additionalProperties:false}}
+  ]});
+  if(method==='tools/call'){
+    const name=input.params?.name;
+    if(!['followup_status','run_followups'].includes(name))return json({jsonrpc:'2.0',id,error:{code:-32601,message:'Unknown tool.'}});
+    try{const data=name==='followup_status'?await followupStatus(env):await runFollowups(env);return ok({content:[{type:'text',text:JSON.stringify(data)}]});}
+    catch(error){return ok({content:[{type:'text',text:error?.message||'Follow-up task failed.'}],isError:true});}
+  }
+  return json({jsonrpc:'2.0',id,error:{code:-32601,message:'Unknown method.'}});
+}
+
 export default {async fetch(request,env){
   const url=new URL(request.url);
+  if(url.pathname==='/mcp')return followupMcp(request,env);
   const orderResponse=await ordersApi(request,env);if(orderResponse)return orderResponse;
   const storyResponse=await storyApi(request,env);if(storyResponse)return storyResponse;
   if(url.pathname==='/api/preview-email'&&request.method==='POST'&&rateLimited(request,signupBuckets,SIGNUP_RATE_LIMIT))return json({error:'Too many attempts. Please try again later.'},429);

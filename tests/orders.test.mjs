@@ -156,7 +156,7 @@ test('quoted non-buyers require their own preview and explicit offer consent',as
  assert.equal((await request(env,'/quote-interest',{email,previewId:preview,size:'a5',offerConsent:true},{auth:false})).status,200);
  env.DB.sqlite.prepare('UPDATE customer_quotes SET last_shown_at=? WHERE email=?').run(new Date(Date.now()-90000000).toISOString(),email);
  d=await (await request(env,'/admin-quotes',null,{admin:true})).json();
- assert.equal(d.totals.offerEligible,1);assert.equal(d.quotes[0].eligible,true);
+ assert.equal(d.totals.offerEligible,0);assert.equal(d.quotes[0].eligible,false);assert.equal(d.quotes[0].has_sequence_consent,1);
  const token=env.DB.sqlite.prepare('SELECT unsubscribe_token FROM customer_quotes WHERE email=?').get(email).unsubscribe_token;
  assert.equal((await request(env,'/offer-unsubscribe',{token},{auth:false})).status,200);
  d=await (await request(env,'/admin-quotes',null,{admin:true})).json();assert.equal(d.totals.offerEligible,0);
@@ -167,6 +167,8 @@ test('one offer email creates a single-use discount, never starts payment or pri
  env.DB.sqlite.prepare("INSERT INTO preview_contacts(email,source,medium,campaign,creative,country,created_at,updated_at) VALUES (?,'direct','none','none','none','GB',?,?)").run(email,new Date().toISOString(),new Date().toISOString());
  env.DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,created_at,email) VALUES (?,'succeeded',?,?)").run(preview,new Date().toISOString(),email);
  await request(env,'/quote-interest',{email,previewId:preview,size:'a5',offerConsent:true},{auth:false});
+ // Existing one-off opt-ins predate the new two-email consent record.
+ env.DB.sqlite.prepare('DELETE FROM followup_sequences WHERE email=?').run(email);
  env.DB.sqlite.prepare('UPDATE customer_quotes SET last_shown_at=? WHERE email=?').run(new Date(Date.now()-90000000).toISOString(),email);
  connected(env);env.fetch=async(url,opts)=>{assert.equal(url,'https://api.resend.com/emails');env.calls.push({url,opts});return Response.json({id:'email-test'});};
  let r=await request(env,'/admin-send-offer',{email,discountPence:300,confirm:true},{admin:true});assert.equal(r.status,200);const offer=await r.json();assert.equal(offer.accepted,true);
