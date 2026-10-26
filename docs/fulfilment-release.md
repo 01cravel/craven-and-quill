@@ -6,6 +6,6 @@ Ziina handles live checkout. Payment does not print a book. Customers approve th
 
 Runtime credentials stay in Sites environment variables, never this repository. ORDERS_ENABLED controls checkout availability. ZIINA_MODE selects live or sandbox. ORDER_TAX_CONFIRMED is informational, not an assertion made by enabling checkout.
 
-Validation: 72 checks pass, including both size journeys with simulated providers and manual release enforcement. Separate live GBP1 payment/refund was verified completed; this is not a complete real customer book order.
+Validation: 87 checks pass, including both size journeys with simulated providers and manual release enforcement. On 26 October 2026, a browser test confirmed that a saved A5 order reached the owner dashboard awaiting payment and a separate abandoned quote appeared with opt-in. No card was charged and no print order was placed. Separate live GBP1 payment/refund was verified completed; this is not a complete real customer book order.
 
 Run npm ci and npm run check:release. Deploy the built Sites artifact with the Sites workflow. This GitHub repository stores source; a push alone does not deploy production.
