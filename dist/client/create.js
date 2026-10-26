@@ -256,6 +256,7 @@ function renderPhotoThumbnails(files){
 let photoSelection=0;
 async function selectPhotos(files){
   const selection=++photoSelection;
+  $('#photos').value='';
   photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];
   const requiredCount=$('#second-person').hidden?1:2;
   files=files.slice(0,state.secondName?2:3);
