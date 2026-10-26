@@ -11,14 +11,14 @@ function authorized(request,env){const token=request.headers.get('Authorization'
 async function body(request){if(Number(request.headers.get('Content-Length')||0)>4096)throw new Error('Too much data.');const raw=await request.text();if(raw.length>4096)throw new Error('Too much data.');return JSON.parse(raw);}
 
 // A durable daily ceiling bounds drawing-service usage across Worker instances.
-export async function beginPreview(env){
+export async function beginPreview(env,email=null){
   if(!env.DB)throw new Error('Previews are temporarily unavailable. Please try again later.');
   const day=new Date().toISOString().slice(0,10);
   const configured=Number(env.PREVIEW_DAILY_LIMIT||50);const limit=Number.isInteger(configured)&&configured>0?Math.min(configured,500):50;
   const claim=await env.DB.prepare('INSERT INTO preview_daily_usage (day, attempts) VALUES (?1, 1) ON CONFLICT(day) DO UPDATE SET attempts = attempts + 1 WHERE attempts < ?2 RETURNING attempts').bind(day,limit).first();
   if(!claim)throw new Error('Today’s free previews have been used. Please come back tomorrow.');
   const id=crypto.randomUUID();
-  await env.DB.prepare('INSERT INTO preview_receipts (id, status, created_at) VALUES (?1, ?2, ?3)').bind(id,'started',new Date().toISOString()).run();
+  await env.DB.prepare('INSERT INTO preview_receipts (id, status, created_at, email) VALUES (?1, ?2, ?3, ?4)').bind(id,'started',new Date().toISOString(),email).run();
   return id;
 }
 export async function finishPreview(env,id,status){await env.DB.prepare('UPDATE preview_receipts SET status = ?1 WHERE id = ?2').bind(status,id).run();}
