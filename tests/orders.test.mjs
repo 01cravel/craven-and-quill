@@ -144,3 +144,56 @@ test('draft return links encrypt large artwork, require the secret, send only to
  assert.equal((await request(env,'/drafts/'+id,{draft,previewId:body.previewId,email:'qa-draft@example.test'},{method:'PUT'})).status,429);
  assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM customer_orders').get().n,1);
 });
+
+test('quoted non-buyers require their own preview and explicit offer consent',async()=>{
+ const env=environment(),preview=crypto.randomUUID(),email='quote@example.test';
+ env.DB.sqlite.prepare("INSERT INTO preview_contacts(email,source,medium,campaign,creative,country,created_at,updated_at) VALUES (?,'direct','none','none','none','GB',?,?)").run(email,new Date().toISOString(),new Date().toISOString());
+ env.DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,created_at,email) VALUES (?,'succeeded',?,?)").run(preview,new Date().toISOString(),email);
+ assert.equal((await request(env,'/quote-interest',{email:'other@example.test',previewId:preview,size:'a5',offerConsent:true},{auth:false})).status,400);
+ assert.equal((await request(env,'/quote-interest',{email,previewId:preview,size:'a5'},{auth:false})).status,200);
+ let d=await (await request(env,'/admin-quotes',null,{admin:true})).json();
+ assert.equal(d.totals.quotedNotBought,1);assert.equal(d.totals.offerEligible,0);
+ assert.equal((await request(env,'/quote-interest',{email,previewId:preview,size:'a5',offerConsent:true},{auth:false})).status,200);
+ env.DB.sqlite.prepare('UPDATE customer_quotes SET last_shown_at=? WHERE email=?').run(new Date(Date.now()-90000000).toISOString(),email);
+ d=await (await request(env,'/admin-quotes',null,{admin:true})).json();
+ assert.equal(d.totals.offerEligible,1);assert.equal(d.quotes[0].eligible,true);
+ const token=env.DB.sqlite.prepare('SELECT unsubscribe_token FROM customer_quotes WHERE email=?').get(email).unsubscribe_token;
+ assert.equal((await request(env,'/offer-unsubscribe',{token},{auth:false})).status,200);
+ d=await (await request(env,'/admin-quotes',null,{admin:true})).json();assert.equal(d.totals.offerEligible,0);
+});
+
+test('one offer email creates a single-use discount, never starts payment or printing',async()=>{
+ const env=environment(),{id}=await create(env),email='qa-order@example.test',preview=crypto.randomUUID();
+ env.DB.sqlite.prepare("INSERT INTO preview_contacts(email,source,medium,campaign,creative,country,created_at,updated_at) VALUES (?,'direct','none','none','none','GB',?,?)").run(email,new Date().toISOString(),new Date().toISOString());
+ env.DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,created_at,email) VALUES (?,'succeeded',?,?)").run(preview,new Date().toISOString(),email);
+ await request(env,'/quote-interest',{email,previewId:preview,size:'a5',offerConsent:true},{auth:false});
+ env.DB.sqlite.prepare('UPDATE customer_quotes SET last_shown_at=? WHERE email=?').run(new Date(Date.now()-90000000).toISOString(),email);
+ connected(env);env.fetch=async(url,opts)=>{assert.equal(url,'https://api.resend.com/emails');env.calls.push({url,opts});return Response.json({id:'email-test'});};
+ let r=await request(env,'/admin-send-offer',{email,discountPence:300,confirm:true},{admin:true});assert.equal(r.status,200);const offer=await r.json();assert.equal(offer.accepted,true);
+ assert.equal((await request(env,'/admin-send-offer',{email,discountPence:300,confirm:true},{admin:true})).status,409);
+ let o=await state(env,id);r=await request(env,'/'+id+'/apply-offer',{revision:o.revision,code:offer.code});assert.equal(r.status,200);assert.equal((await r.json()).amount,3699);
+ o=await state(env,id);assert.equal(o.payment_status,'unpaid');assert.equal(o.status,'saved');assert.equal(env.calls.length,1);
+ const repeated=await request(env,'/'+id+'/apply-offer',{revision:o.revision,code:offer.code});
+ assert.equal(repeated.status,200);assert.equal((await repeated.json()).amount,3699);
+});
+
+test('page regeneration saves the exact prior text and clears proof approvals',async()=>{
+ const env=environment(),{id}=await create(env);await paid(env,id);let o=await upload(env,id);
+ env.OPENAI_API_KEY='test';env.fetch=async(url)=>{assert.equal(url,'https://api.openai.com/v1/responses');return Response.json({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({text:'A completely new scene for Jamie and the picnic.',image_scene:'Jamie waves beside the picnic table.'})}]}]});};
+ const original=o.story.spreads[0].text;
+ const r=await request(env,'/'+id+'/rewrite-page',{revision:o.revision,page:0,confirm:true,redrawImage:true},{admin:true});
+ assert.equal(r.status,200);o=await r.json();
+ assert.equal(o.status,'building');assert.equal(o.proof,null);assert.equal(o.customerApproved,false);
+ assert.equal(o.history[0].story.spreads[0].text,original);assert.notEqual(o.story.spreads[0].text,original);
+ const restored=await request(env,'/'+id+'/restore-version',{revision:o.revision,version:1,confirm:true},{admin:true});
+ assert.equal(restored.status,200);assert.equal((await restored.json()).story.spreads[0].text,original);
+});
+
+test('one final approval releases only the customer-approved live proof',async()=>{
+ const env=environment(),{id}=await create(env);connected(env);env.orderId=id;await paid(env,id);
+ let o=await upload(env,id);
+ let r=await request(env,'/'+id+'/approve-proof',{revision:o.revision,confirm:true,proofHash:o.proof.hash});assert.equal(r.status,200);o=await r.json();
+ liveFetch(env);
+ r=await request(env,'/'+id+'/approve-and-submit',{revision:o.revision,confirm:true,checkedPages:true,checkedQuality:true,checkedAddress:true,proofHash:o.proof.hash,maxCostPence:2000},{admin:true});
+ assert.equal(r.status,200);o=await r.json();assert.equal(o.status,'submitted');assert.equal(o.release.proofHash,o.proof.hash);assert.equal(env.calls.filter(x=>x.url.endsWith('/orders')).length,1);
+});

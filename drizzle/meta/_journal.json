@@ -36,6 +36,20 @@
       "when": 1792649615133,
       "tag": "0004_breezy_texas_twister",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793006270870,
+      "tag": "0005_nasty_skrulls",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793007151966,
+      "tag": "0006_slow_mimic",
+      "breakpoints": true
     }
   ]
 }
