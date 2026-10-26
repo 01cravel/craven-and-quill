@@ -1,5 +1,5 @@
 import {campaignApi,beginPreview,finishPreview} from './campaign.js';
-import {ordersApi,runFollowups,followupStatus} from './orders.js';
+import {ordersApi,runFollowups,followupStatus,runArtworkJobs} from './orders.js';
 import {ownerAuth} from './owner-auth.js';
 import {storyApi} from './story.js';
 const RATE_WINDOW_MS=60*60*1000;
@@ -117,12 +117,13 @@ async function followupMcp(request,env){
   if(method==='server/discover')return ok({supportedVersions:['2026-07-28'],capabilities:{tools:{}}});
   if(method==='tools/list')return ok({tools:[
     {name:'followup_status',description:'Read whether follow-up sending is enabled and summary counts.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
-    {name:'run_followups',description:'Send due follow-up emails only when the production sending switch is enabled.',inputSchema:{type:'object',properties:{},additionalProperties:false}}
+    {name:'run_followups',description:'Send due follow-up emails only when the production sending switch is enabled.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
+    {name:'run_artwork_jobs',description:'Generate one image or proof for a verified live paid order awaiting automatic artwork. Never submits a book to the printer.',inputSchema:{type:'object',properties:{},additionalProperties:false}}
   ]});
   if(method==='tools/call'){
     const name=input.params?.name;
-    if(!['followup_status','run_followups'].includes(name))return json({jsonrpc:'2.0',id,error:{code:-32601,message:'Unknown tool.'}});
-    try{const data=name==='followup_status'?await followupStatus(env):await runFollowups(env);return ok({content:[{type:'text',text:JSON.stringify(data)}]});}
+    if(!['followup_status','run_followups','run_artwork_jobs'].includes(name))return json({jsonrpc:'2.0',id,error:{code:-32601,message:'Unknown tool.'}});
+    try{const data=name==='followup_status'?await followupStatus(env):name==='run_followups'?await runFollowups(env):await runArtworkJobs(env);return ok({content:[{type:'text',text:JSON.stringify(data)}]});}
     catch(error){return ok({content:[{type:'text',text:error?.message||'Follow-up task failed.'}],isError:true});}
   }
   return json({jsonrpc:'2.0',id,error:{code:-32601,message:'Unknown method.'}});

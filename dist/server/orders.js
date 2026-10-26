@@ -52736,7 +52736,7 @@ async function authorise(req, env2, o) {
 }
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, ...isAdmin ? { email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, ...isAdmin ? { email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
 }
 var editable = (o) => o.payment_status === "paid" && ["awaiting_review", "building", "proof_ready", "awaiting_approval"].includes(o.status);
 function archiveContent(o, kind, actor) {
@@ -52866,7 +52866,8 @@ async function verifyPayment(req, env2) {
   requireThat(s.id === o.session_id && s.payment_status === "paid" && s.currency === "gbp" && s.amount_total === o.amount && s.client_reference_id === o.id, "Payment did not match this order.");
   if (o.payment_status === "paid") return { ok: true, duplicate: true };
   requireThat(o.status === "awaiting_payment", "Order is not awaiting payment.", 409);
-  await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',revision=revision+1,updated_at=?2 WHERE id=?3 AND payment_status='unpaid' AND session_id=?4", live ? "live" : "test", now2(), o.id, s.id).run();
+  if (live) o.data.autoGeneration = { status: "pending", queuedAt: now2() };
+  await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND payment_status='unpaid' AND session_id=?5", live ? "live" : "test", JSON.stringify(o.data), now2(), o.id, s.id).run();
   await audit(env2, o.id, "payment_confirmed", "stripe", { event: e.id, mode: live ? "live" : "test" });
   return { ok: true };
 }
@@ -52899,7 +52900,8 @@ async function ziinaSync(env2, o) {
 async function ziinaConfirm(env2, o) {
   const p = await ziinaSync(env2, o);
   if (p.status === "completed" && o.payment_status === "unpaid" && o.status === "awaiting_payment") {
-    await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 AND payment_status='unpaid'", o.data.payment.mode, now2(), o.id, o.revision).run();
+    if (o.data.payment.mode === "live") o.data.autoGeneration = { status: "pending", queuedAt: now2() };
+    await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid'", o.data.payment.mode, JSON.stringify(o.data), now2(), o.id, o.revision).run();
     await audit(env2, o.id, "payment_confirmed", "ziina", { mode: o.data.payment.mode });
   }
   return receiptEmail(env2, await get(env2, o.id));
@@ -52974,6 +52976,90 @@ async function drawPage2(env2, o, index) {
   const d = await r.json();
   requireThat(r.ok && d.data?.[0]?.b64_json, "This illustration did not finish. Previously saved artwork is safe.", 502);
   return { bytes: Uint8Array.from(atob(d.data[0].b64_json), (x) => x.charCodeAt(0)), usage: d.usage || null };
+}
+async function createIllustration(env2, o, index, actor, replace = false) {
+  requireThat(editable(o), "Artwork generation requires a paid book under review.", 409);
+  requireThat(index === "cover" || Number.isInteger(index) && index >= 0 && index < 10, "Choose a valid illustration.");
+  requireThat((o.data.artAttempts || 0) < (o.data.artBudget || 22), "This book reached its illustration request limit. Review the budget before retrying.", 429);
+  const slot = index === "cover" ? o.data.art.cover : o.data.art.scenes[index];
+  requireThat(!slot || replace, "Artwork exists. Explicitly choose replacement.", 409);
+  o.data.artAttempts = (o.data.artAttempts || 0) + 1;
+  o.data.generationError = null;
+  const claim = await q(env2, "UPDATE customer_orders SET state=?1,status='generating',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 RETURNING id", JSON.stringify(o.data), now2(), o.id, o.revision).first();
+  requireThat(claim, "Another action is running.", 409);
+  try {
+    const drawing = await drawPage2(env2, o, index), key2 = await assetPut(env2, o, drawing.bytes, "image/jpeg", "art");
+    o = await get(env2, o.id);
+    if (slot || o.data.proof) archiveContent(o, "image_replaced", actor);
+    o.data.artUsage = [...o.data.artUsage || [], { at: now2(), page: index, usage: drawing.usage }];
+    if (index === "cover") o.data.art.cover = key2;
+    else o.data.art.scenes[index] = key2;
+    invalidateProof(o.data);
+    o.data.generationError = null;
+    await audit(env2, o.id, slot ? "image_replaced" : "image_created", actor, { page: index, version: o.data.contentVersion || 1 });
+    return save(env2, o, o.data, "building");
+  } catch (e) {
+    const current = await get(env2, o.id);
+    current.data.generationError = e.message;
+    if (current.data.autoGeneration?.status === "running") current.data.autoGeneration = { ...current.data.autoGeneration, status: "paused", error: e.message };
+    await save(env2, current, current.data, "awaiting_review");
+    throw e;
+  }
+}
+async function createProof(env2, o, actor, origin) {
+  requireThat(editable(o), "This order cannot be rendered now.", 409);
+  requireThat(o.data.art.cover && o.data.art.scenes.every(Boolean), "Generate the cover and all ten illustrations first.");
+  const [font, logo] = await Promise.all(["story-serif.ttf", "logo-mark-on-white.png"].map(async (name5) => {
+    const r = await env2.ASSETS.fetch(new Request(origin + "/assets/" + name5));
+    requireThat(r.ok, "Book design asset unavailable.", 503);
+    return r.arrayBuffer();
+  }));
+  const render2 = await printBook({ ...o.data, size: o.size }, (key3) => assetRead(env2, o, key3), font, logo);
+  const key2 = await assetPut(env2, o, render2.bytes, "application/pdf", "print-proof");
+  const nextProofVersion = Math.max(o.data.proofSequence || 0, o.data.proof?.version || 0) + 1;
+  if (o.data.proof) archiveContent(o, "proof_rebuilt", actor);
+  o.data.proofSequence = nextProofVersion;
+  o.data.proof = { key: key2, hash: await sha(render2.bytes), version: o.data.proofSequence, preflight: render2.preflight, createdAt: now2() };
+  o.data.customerApproved = null;
+  o.data.adminApproved = null;
+  await audit(env2, o.id, "proof_built", actor, { version: o.data.proofSequence, hash: o.data.proof.hash });
+  return save(env2, o, o.data, "proof_ready");
+}
+async function runArtworkJobs(env2) {
+  requireThat(env2.DB && env2.BOOK_ASSETS, "Order storage is unavailable.", 503);
+  const row = await q(env2, "SELECT * FROM customer_orders WHERE payment_status='paid' AND payment_mode='live' AND status IN ('awaiting_review','building','generating') AND json_extract(state,'$.autoGeneration.status') IN ('pending','running') ORDER BY created_at LIMIT 1").first();
+  if (!row) return { worked: false };
+  let o = { ...row, data: JSON.parse(row.state) };
+  if (o.data.autoGeneration.status === "running" && Date.now() - Date.parse(o.updated_at) < 18e4) return { worked: false, busy: true };
+  if (o.data.autoGeneration.status === "running") {
+    o.data.autoGeneration = { ...o.data.autoGeneration, status: "paused", error: "A previous generation result is uncertain. Check provider usage before retrying." };
+    await save(env2, o, o.data);
+    return { worked: false, paused: true, id: o.id };
+  }
+  o.data.autoGeneration = { ...o.data.autoGeneration, status: "running", startedAt: now2() };
+  o = await save(env2, o, o.data);
+  const actor = "automatic";
+  try {
+    const missing = [["cover", o.data.art.cover], ...o.data.art.scenes.map((key2, i4) => [i4, key2])].find(([, key2]) => !key2);
+    if (missing) {
+      o = await createIllustration(env2, o, missing[0], actor);
+      o.data.autoGeneration = { ...o.data.autoGeneration, status: "pending", completed: (o.data.art.cover ? 1 : 0) + o.data.art.scenes.filter(Boolean).length };
+      o = await save(env2, o, o.data);
+      return { worked: true, id: o.id, completed: o.data.autoGeneration.completed, total: 11 };
+    }
+    o = await createProof(env2, o, actor, "https://cravenandquill.com");
+    o.data.autoGeneration = { ...o.data.autoGeneration, status: "complete", completed: 11, completedAt: now2() };
+    o = await save(env2, o, o.data);
+    return { worked: true, id: o.id, completed: 11, total: 11, proofReady: true };
+  } catch (e) {
+    const latest = await get(env2, o.id);
+    if (latest.data.autoGeneration?.status === "running") {
+      latest.data.autoGeneration = { ...latest.data.autoGeneration, status: "paused", error: e.message };
+      latest.data.generationError = e.message;
+      await save(env2, latest, latest.data, latest.status === "generating" ? "awaiting_review" : latest.status);
+    }
+    return { worked: false, id: o.id, paused: true, error: e.message };
+  }
 }
 async function ordersApi(req, env2) {
   const url = new URL(req.url), path = url.pathname;
@@ -53281,6 +53367,14 @@ You can stop offer emails here: ${unsubscribe}`;
     }
     requireThat(isAdmin, "Only the site owner can approve or manage printing.", 403);
     const actor = "cravenluke@gmail.com";
+    if (action === "retry-auto-generation") {
+      requireThat(o.payment_status === "paid" && o.payment_mode === "live" && o.data.autoGeneration?.status === "paused" && b.confirm === true, "Review the paused paid order before resuming.", 409);
+      requireThat(["awaiting_review", "building"].includes(o.status), "This order cannot resume automatic artwork.", 409);
+      o.data.autoGeneration = { ...o.data.autoGeneration, status: "pending", error: null };
+      o.data.generationError = null;
+      await audit(env2, id, "automatic_artwork_resumed", actor);
+      return reply(publicOrder(await save(env2, o, o.data), true));
+    }
     if (action === "set-art-budget") {
       requireThat(b.confirm === true && editable(o), "This book cannot be changed now.", 409);
       const budget = Number(b.artBudget);
@@ -53418,53 +53512,10 @@ You can stop offer emails here: ${unsubscribe}`;
       return reply(publicOrder(await save(env2, o, o.data), true));
     }
     if (action === "illustrate") {
-      requireThat(editable(o), "Artwork generation requires a paid book under review.", 409);
       const index = b.page === "cover" ? "cover" : Number(b.page);
-      requireThat(index === "cover" || Number.isInteger(index) && index >= 0 && index < 10, "Choose a valid illustration.");
-      requireThat((o.data.artAttempts || 0) < (o.data.artBudget || 22), "This book reached its illustration request limit. Review the budget before retrying.", 429);
-      const slot = index === "cover" ? o.data.art.cover : o.data.art.scenes[index];
-      requireThat(!slot || b.replace === true, "Artwork exists. Explicitly choose replacement.", 409);
-      o.data.artAttempts = (o.data.artAttempts || 0) + 1;
-      o.data.generationError = null;
-      const claim = await q(env2, "UPDATE customer_orders SET state=?1,status='generating',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 RETURNING id", JSON.stringify(o.data), now2(), id, o.revision).first();
-      requireThat(claim, "Another action is running.", 409);
-      try {
-        const drawing = await drawPage2(env2, o, index), key2 = await assetPut(env2, o, drawing.bytes, "image/jpeg", "art");
-        o = await get(env2, id);
-        if (slot || o.data.proof) archiveContent(o, "image_replaced", actor);
-        o.data.artUsage = [...o.data.artUsage || [], { at: now2(), page: index, usage: drawing.usage }];
-        if (index === "cover") o.data.art.cover = key2;
-        else o.data.art.scenes[index] = key2;
-        invalidateProof(o.data);
-        o.data.generationError = null;
-        await audit(env2, id, slot ? "image_replaced" : "image_created", actor, { page: index, version: o.data.contentVersion || 1 });
-        return reply(publicOrder(await save(env2, o, o.data, "building"), true));
-      } catch (e) {
-        const current = await get(env2, id);
-        current.data.generationError = e.message;
-        await save(env2, current, current.data, "awaiting_review");
-        throw e;
-      }
+      return reply(publicOrder(await createIllustration(env2, o, index, actor, b.replace === true), true));
     }
-    if (action === "make-proof") {
-      requireThat(editable(o), "This order cannot be rendered now.", 409);
-      requireThat(o.data.art.cover && o.data.art.scenes.every(Boolean), "Generate the cover and all ten illustrations first.");
-      const [font, logo] = await Promise.all(["story-serif.ttf", "logo-mark-on-white.png"].map(async (name5) => {
-        const r = await env2.ASSETS.fetch(new Request(url.origin + "/assets/" + name5));
-        requireThat(r.ok, "Book design asset unavailable.", 503);
-        return r.arrayBuffer();
-      }));
-      const render2 = await printBook({ ...o.data, size: o.size }, (key3) => assetRead(env2, o, key3), font, logo);
-      const key2 = await assetPut(env2, o, render2.bytes, "application/pdf", "print-proof");
-      const nextProofVersion = Math.max(o.data.proofSequence || 0, o.data.proof?.version || 0) + 1;
-      if (o.data.proof) archiveContent(o, "proof_rebuilt", actor);
-      o.data.proofSequence = nextProofVersion;
-      o.data.proof = { key: key2, hash: await sha(render2.bytes), version: o.data.proofSequence, preflight: render2.preflight, createdAt: now2() };
-      o.data.customerApproved = null;
-      o.data.adminApproved = null;
-      await audit(env2, id, "proof_built", actor, { version: o.data.proofSequence, hash: o.data.proof.hash });
-      return reply(publicOrder(await save(env2, o, o.data, "proof_ready"), true));
-    }
+    if (action === "make-proof") return reply(publicOrder(await createProof(env2, o, actor, url.origin), true));
     if (action === "notify-proof") {
       requireThat(o.data.proof && o.status === "proof_ready", "Build a proof first.", 409);
       const token = await privateKey(env2, o.data.privateKey, true), link = `${url.origin}/order.html?id=${id}#key=${token}`;
@@ -53557,6 +53608,7 @@ export {
   ordersApi,
   quoteOrder,
   recordFollowupConsent,
+  runArtworkJobs,
   runFollowups,
   unsubscribeFollowup,
   verifyPayment,
