@@ -151,3 +151,6 @@ button{font:inherit;color:inherit;cursor:pointer}
   .page-copy p#page-text{font-size:calc(1rem * var(--fit,1))}
   .chapter{font-size:calc(.84rem * var(--fit,1))}
 }
+
+/* Supplied gold monogram: retain its full artwork and natural proportions. */
+.brand img,.footer-brand img,.drawing-brand img,img[src*="logo-header"]{object-fit:contain;mix-blend-mode:normal;height:auto;aspect-ratio:3/2;border-radius:3px}
