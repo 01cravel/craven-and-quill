@@ -1,0 +1,11 @@
+Live £1 payment and refund check, 25 October 2026
+
+Payment: completed, GBP 1.00, verified against Ziina.
+Payment intent: cdeb3ac6-2d9d-44f4-81d6-44725bbd644b
+Refund: one full refund submitted; pending then failed.
+Verified provider error: INSUFFICIENT_BALANCE. Ziina states insufficient wallet funds.
+No duplicate refund requested. No successful refund confirmed.
+Next: sufficient available Ziina wallet balance, then reconcile existing failed refund before controlled retry.
+Prodigi: permanently excluded, isolated diagnostic table, no book order created.
+Normal public checkout remains disabled.
+Failure details now persisted and displayed in deployed v40; 68 checks passed.

@@ -69,7 +69,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .page-stage[data-kind^="special"] h1{font-size:clamp(2.4rem,6vw,3.4rem)}
 
 /* Turning pages */
-.page-nav{display:grid;grid-template-columns:56px 1fr 56px;align-items:center;gap:12px;max-width:520px;margin:20px auto 0}
+.page-nav{display:grid;grid-template-columns:56px minmax(0,1fr) auto;align-items:center;gap:12px;max-width:520px;margin:20px auto 0}
 .page-count{text-align:center;font-size:.9rem;font-weight:600;color:var(--muted)}
 .book-arrow{position:relative;width:56px;height:56px;border:0;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1.5px var(--line);transition:background-color .2s ease}
 .book-arrow::before{content:"";position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%) rotate(180deg);background:var(--pine);-webkit-mask:var(--arrow) center/contain no-repeat;mask:var(--arrow) center/contain no-repeat}
@@ -78,7 +78,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .book-arrow-next::before{transform:translate(-50%,-50%);background:#fff}
 .book-arrow-next:hover{background:var(--pine-soft)}
 .book-arrow-next>span{display:none}
-.book-arrow-next.has-text{width:auto;height:56px;padding:0 26px;border-radius:999px;color:#fff;font-weight:600}
+.book-arrow-next.has-text{width:max-content;min-width:112px;white-space:nowrap;height:56px;padding:0 20px;border-radius:999px;color:#fff;font-weight:600}
 .book-arrow-next.has-text::before{display:none}
 .book-arrow-next.has-text>span{display:inline}
 .page-nav.at-cover{grid-template-columns:1fr}
@@ -151,3 +151,6 @@ button{font:inherit;color:inherit;cursor:pointer}
   .page-copy p#page-text{font-size:calc(1rem * var(--fit,1))}
   .chapter{font-size:calc(.84rem * var(--fit,1))}
 }
+
+/* Supplied gold monogram: retain its full artwork and natural proportions. */
+.brand img,.footer-brand img,.drawing-brand img,img[src*="logo-header"]{object-fit:contain;mix-blend-mode:normal;height:auto;aspect-ratio:3/2;border-radius:3px}

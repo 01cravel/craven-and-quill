@@ -66,7 +66,7 @@ function showStep(number){
   state.step=number;
   if(number===2){updatePhotoGate();renderPhotoThumbnails(state.photos);}
   if(number===9)configureBrief();
-  if(number===6)window.cqMeasurement?.record('price_view');
+  if(number===6){window.cqMeasurement?.record('price_view');void saveQuote().catch(()=>{});}
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
   const names={1:'Their name',8:'Reading level',2:'Their photo',12:'Story approach',9:state.storyMode==='plot'?'Your idea':'About them',3:'Story tone',4:'Your story',10:'Your email',5:'Your character',6:'Book size',11:'Delivery',7:'Review & pay'};
@@ -256,6 +256,7 @@ function renderPhotoThumbnails(files){
 let photoSelection=0;
 async function selectPhotos(files){
   const selection=++photoSelection;
+  $('#photos').value='';
   photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];
   const requiredCount=$('#second-person').hidden?1:2;
   files=files.slice(0,state.secondName?2:3);
@@ -312,7 +313,7 @@ function previewText(idea){
 let drawingProgress=null,generationBusy=false;
 async function requestCharacter(file,name){
   const idea=selectedStory();const form=new FormData();
-  for(const photo of (Array.isArray(file)?file:[file]))form.append('photo',photo,photo.name||'photo.jpg');form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',`${idea?.[1]||''} ${state.storyDraft?.spreads[0]?.text||''}`.slice(0,500));
+  for(const photo of (Array.isArray(file)?file:[file]))form.append('photo',photo,photo.name||'photo.jpg');form.append('email',$('#email').value.trim().toLowerCase());form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',`${idea?.[1]||''} ${state.storyDraft?.spreads[0]?.text||''}`.slice(0,500));
   const data=await window.cqPreviewProgress.request(form,event=>drawingProgress?.update(event));
   state.previewId=data.previewId||null;
   return data.image;
@@ -417,13 +418,23 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
 $$('[data-back]').forEach(button=>button.addEventListener('click',()=>{if(state.step===5&&button.dataset.back==='4')$('#story-editor').open=true;showStep(Number(button.dataset.back));}));
 
 let orderCatalog=null,orderRequest=null;
+const offerCode=new URLSearchParams(location.search).get('offer')?.trim().toUpperCase()||'';
+if(/^CQ[A-Z0-9]{10}$/.test(offerCode)){$('#offer-code-note').hidden=false;$('#offer-code-note').textContent=`Offer code ${offerCode} will be checked before payment. No discount is applied until the final total updates.`;}
+async function saveQuote(explicitConsent){
+ if(!validPreviewEmail()||!state.previewId)return;
+ const body={email:$('#email').value.trim().toLowerCase(),previewId:state.previewId,size:$('input[name="product"]:checked').value};
+ if(typeof explicitConsent==='boolean')body.offerConsent=explicitConsent;
+ const r=await fetch('/api/orders/quote-interest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||'Could not save your offer preference.');
+}
+$('#offer-email-consent').addEventListener('change',async event=>{try{await saveQuote(event.target.checked);$('#step-6-error').textContent='';}catch(e){event.target.checked=!event.target.checked;$('#step-6-error').textContent=e.message;}});
 async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Secure payment, then we create the rest of your illustrations. You and our team approve the finished proof before printing.';$('#join-launch').textContent='Continue to payment';}updateProduct();}catch{}}
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
   $('#order-label').textContent=state.product==='a4'?'A4 hardback + digital PDF':'A5 hardback + digital PDF';
   $('#order-price').textContent=`£${state.price.toFixed(2)}`;
 }
-$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{$('#purchase-intent').checked=false;orderRequest=null;updateProduct();}));
+$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{$('#purchase-intent').checked=false;orderRequest=null;updateProduct();void saveQuote().catch(()=>{});}));
 $('#join-launch').addEventListener('click',async()=>{
  const error=$('#step-7-error'),button=$('#join-launch');if(button.disabled)return;
  if(!validPreviewEmail()){showStep(10);$('#step-10-error').textContent='Enter a valid email address.';return;}
@@ -433,6 +444,7 @@ $('#join-launch').addEventListener('click',async()=>{
  updateProduct();button.disabled=true;button.textContent='Saving your book…';error.textContent='';
  orderRequest=orderRequest||{id:crypto.randomUUID(),key:crypto.randomUUID()+crypto.randomUUID()};
  try{await window.cqSaveDraft?.();const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({measurement:window.cqMeasurement?.context(),requestId:orderRequest.id,accessToken:orderRequest.key,email:$('#email').value.trim().toLowerCase(),size:state.product,story:state.storyDraft,names:fullNames(),age:state.age,previewId:state.previewId,characters:state.characterImages,approvedStory:true,photoPermission:true,dedication:$('#dedication').value.trim(),recipient:{name:$('#recipient-name').value.trim(),address:{line1:$('#address-line1').value.trim(),line2:$('#address-line2').value.trim(),townOrCity:$('#town').value.trim(),postalOrZipCode:$('#postcode').value.trim(),countryCode:'GB'}}}),signal:AbortSignal.timeout(45000)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Your book could not be saved. Please retry.');track('book_saved');const privateUrl=`/order.html?id=${data.order.id}#key=${orderRequest.key}`;
+ if(offerCode){const applied=await fetch(`/api/orders/${data.order.id}/apply-offer`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+orderRequest.key},body:JSON.stringify({revision:data.order.revision,code:offerCode})});const result=await applied.json();if(!applied.ok)throw new Error(result.error||'Your offer could not be applied. Your book is saved and no payment started.');data.order=result;$('#order-price').textContent=`£${(result.amount/100).toFixed(2)}`;$('#offer-code-note').textContent=`Offer ${offerCode} applied. Your total is £${(result.amount/100).toFixed(2)}.`;}
  if(orderCatalog?.checkoutEnabled){
  const headers={'Content-Type':'application/json',Authorization:'Bearer '+orderRequest.key};
  const session=await fetch(`/api/orders/${data.order.id}/session`,{method:'POST',headers,body:JSON.stringify({token:orderRequest.key})});if(!session.ok)throw Error('Your book is saved. Please retry to open secure payment.');
