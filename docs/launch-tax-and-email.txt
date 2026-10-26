@@ -1,0 +1,32 @@
+25 October 2026 launch handoff
+
+Seller confirmed by Luke: individual based in UAE, not VAT registered.
+Do not mark ORDER_TAX_CONFIRMED=true until the actual treatment is established.
+
+Facts for tax adviser/HMRC:
+- UAE-based individual sells directly to UK consumers on own website.
+- Each order is a personalised illustrated story generated from customer photo/details and editable storyline.
+- Package is printed A5 (£49.99) or A4 (£59.99) hardback, digital PDF and UK standard delivery, one inclusive price.
+- Prodigi prints in the UK and ships to the UK recipient. Confirm contractual point of supply/title because goods are manufactured after order.
+- Ziina charges GBP and settles in AED to seller's personal UAE account.
+Questions requiring an answer:
+1. Does this package qualify as a zero-rated book/e-publication supply, or is original writing/design the principal supply? Is apportionment needed?
+2. Is this a UK taxable supply by a non-established taxable person requiring registration from first supply? If exclusively zero-rated, should an exemption from registration be applied for, and when can trading start?
+3. What UAE VAT treatment applies to this UK-produced/delivered package, and how do Luke's other activities affect UAE registration?
+4. Required invoice seller identity/address, tax wording and registrations.
+User information still needed: seller's legal/trading name and business address for invoices; any UK business establishment; combined turnover of personal business activities over the last 12 months and expected next 30 days; any existing tax advice/registration exemption. Do not infer exemption from payment-provider onboarding.
+Sources:
+https://www.gov.uk/guidance/charging-vat-on-goods-sold-direct-to-customers-in-the-uk
+https://www.gov.uk/guidance/zero-rating-books-and-printed-matter-for-vat-notice-70110 (sections 6, 7.1-7.3 and 9)
+https://www.tax.gov.ae/en/services/vat.registration.aspx
+
+Email setup:
+Luke requested a separate Resend account. Signup page opened; no new account created by agent. Existing browser session is Breez; do not reuse its keys/domain without Luke's instruction.
+Proposed sender Craven & Quill <orders@cravenandquill.com>, reply-to cravenluke@gmail.com initially. DNS nameservers are Porkbun. Preserve existing root MX/SPF forwarding. Add only provider-requested DKIM and dedicated return-path SPF/MX. Verify domain before sending. Store scoped sending key in Sites RESEND_API_KEY and set ORDER_EMAIL_FROM, ORDER_EMAIL_REPLY_TO. Test inbox delivery, not just provider acceptance.
+Emails implemented: Ziina live-payment receipt, owner-triggered proof-ready notice with per-proof idempotency key, confirmed printer-submission notice (not dispatch), manual receipt/print retry. Provider acceptance is not proof of delivery. No live email sent yet.
+
+Refunds:
+Full-refund owner action claims a stable refund id and holds order before calling provider. Unknown/failed results stay held; no second refund. Status lookup validates original payment, amount and GBP. Orders already entering print submission require manual printer reconciliation.
+Ziina test refunds still fail TRANSACTION_NOT_FOUND for both completed GBP tests, even minimal documented body. Support enquiry sent with Luke's explicit permission from personal Gmail, message 1a1728bdce01abdb, 25 October. Await supported test procedure before claiming refunds verified. No real payment/refund authorized or made.
+
+CURRENT STATUS, 25 October 2026 (supersedes earlier setup/refund status above): Resend separate lukecraven768 account configured, domain verified, branded order templates delivered. Sender orders@cravenandquill.com, reply-to lukecraven768@gmail.com. Real isolated GBP1 payment and refund completed. Seller has explicitly stated no licence/VAT registration and does not want repeated questions. Do not misrepresent registration or tax treatment as verified. Continue technical preparation; no production checkout or release flags changed by these checks.

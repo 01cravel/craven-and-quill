@@ -477,3 +477,6 @@ hr.rule {
 .mt-0 { margin-top: 0; }
 .text-center { text-align: center; }
 .stack-sm > * + * { margin-top: 0.6rem; }
+
+/* Supplied gold monogram: retain its full artwork and natural proportions. */
+.brand img,.footer-brand img,.drawing-brand img,img[src*="logo-header"]{object-fit:contain;mix-blend-mode:normal;height:auto;aspect-ratio:3/2;border-radius:3px}

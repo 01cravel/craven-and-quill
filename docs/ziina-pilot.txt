@@ -1,0 +1,26 @@
+Ziina pilot, 25 October 2026
+
+Implemented: GBP hosted checkout for A5 £49.99 and A4 £59.99, durable checkout claim, merchant/price/currency verification, mode pinned to each order, HMAC + documented source-IP webhook verification, server-side payment refresh, refund holds and manual print release.
+
+Not yet connected or live-tested. Existing payments remain disabled. No real payment or print order was made.
+
+Configure through Sites runtime secrets, never commit credentials:
+PAYMENT_PROVIDER=ziina
+ZIINA_MODE=test initially
+ZIINA_ACCESS_TOKEN (custom integration token)
+ZIINA_ACCOUNT_ID (verify against authenticated account API)
+ZIINA_WEBHOOK_SECRET (random secret)
+Existing email, tax and ORDERS_ENABLED gates still apply.
+
+Register webhook https://cravenandquill.com/api/orders/ziina-webhook with Ziina. Registration replaces the account's existing webhook: inspect/confirm existing integration before replacing it. Verify deployed gateway preserves cf-connecting-ip and accepts the four documented source IPs. Do not loosen webhook authentication to get tests green.
+
+Before enabling live: confirm account eligibility and payout bank, configure transactional email, confirm tax treatment, test A5/A4 GBP checkout, Apple Pay on a supported device, successful and failed/canceled payment, duplicate notifications, refund delivery, and one complete approved order. Test payments must never print. Switch ZIINA_MODE=live only after provider tests. ORDERS_ENABLED stays false until ready.
+
+Ziina's documented payment-intent response does not expose full refund/dispute status. Owner must check the payment dashboard immediately before each manual release, in addition to the server's completed-payment check. Refund webhooks put the order on hold; refunds after submission require prompt manual printer intervention. No automated chargeback monitor is claimed.
+
+Uncertain creation: order remains checkout_pending; never clear the claim or start another checkout blindly. Reconcile with Ziina using the order UUID in its message. There is no automatic retry because create schema does not document operation_id, despite the response description mentioning retries. Investigate with provider before reopening any affected order. Existing Stripe orders continue through Stripe; switching providers does not move existing payments.
+
+Fees: replace earlier UK Stripe assumptions. Published Ziina international rate 2.6% + 1 AED plus 1.5%, VAT on fees; foreign-currency requests additionally have published 1.2% FX markup. Actual GBP-to-AED settlement and fee invoice must be measured during live pilot. Retail prices unchanged; do not describe old Stripe-based contribution estimates as verified Ziina margins.
+Sources: https://docs.ziina.com/api-reference/payment-intent/create
+https://docs.ziina.com/api-reference/webhook/index
+https://ziina.com/help-center/12807759-will-the-fx-fee-affect-the-amount-i-receive

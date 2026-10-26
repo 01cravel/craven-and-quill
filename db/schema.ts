@@ -17,7 +17,7 @@ export const campaignEvents=sqliteTable('campaign_events',{
 },t=>[index('campaign_events_campaign_created_idx').on(t.campaign,t.createdAt)]);
 
 export const previewReceipts=sqliteTable('preview_receipts',{
-  id:text('id').primaryKey(),status:text('status').notNull(),createdAt:text('created_at').notNull(),
+  id:text('id').primaryKey(),status:text('status').notNull(),createdAt:text('created_at').notNull(),email:text('email'),
 });
 export const previewDailyUsage=sqliteTable('preview_daily_usage',{
   day:text('day').primaryKey(),attempts:integer('attempts').notNull().default(0),
@@ -42,3 +42,13 @@ export const customerOrders=sqliteTable('customer_orders',{
 export const orderAudit=sqliteTable('order_audit',{
  id:text('id').primaryKey(),orderId:text('order_id').notNull(),kind:text('kind').notNull(),actor:text('actor').notNull(),details:text('details').notNull(),createdAt:text('created_at').notNull(),
 });
+
+// Customer-facing prices shown after a preview. This is separate from printer quotes.
+// Preview-only email capture never grants offer-email permission.
+export const customerQuotes=sqliteTable('customer_quotes',{
+ email:text('email').primaryKey(),size:text('size').notNull(),pricePence:integer('price_pence').notNull(),catalogueVersion:text('catalogue_version').notNull(),
+ firstShownAt:text('first_shown_at').notNull(),lastShownAt:text('last_shown_at').notNull(),
+ offerConsentAt:text('offer_consent_at'),offerUnsubscribedAt:text('offer_unsubscribed_at'),unsubscribeToken:text('unsubscribe_token').notNull().unique(),
+ discountCode:text('discount_code').unique(),discountPence:integer('discount_pence'),codeExpiresAt:text('code_expires_at'),
+ emailStatus:text('email_status'),emailSentAt:text('email_sent_at'),emailProviderId:text('email_provider_id'),redeemedOrderId:text('redeemed_order_id'),
+},t=>[index('customer_quotes_last_shown_idx').on(t.lastShownAt)]);
