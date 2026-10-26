@@ -1,0 +1,51 @@
+name: Generate paid book artwork
+
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: craven-quill-artwork
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Generate pending artwork and proof
+        env:
+          ARTWORK_RUN_TOKEN: ${{ secrets.ARTWORK_RUN_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          token = os.environ.get('ARTWORK_RUN_TOKEN', '')
+          if not token:
+              raise SystemExit('ARTWORK_RUN_TOKEN is missing.')
+          url = 'https://cravenandquill.com/api/orders/artwork-run'
+          for step in range(12):
+              request = urllib.request.Request(
+                  url,
+                  data=b'',
+                  method='POST',
+                  headers={'Authorization': 'Bearer ' + token},
+              )
+              with urllib.request.urlopen(request, timeout=150) as response:
+                  result = json.load(response)
+              if result.get('paused'):
+                  raise SystemExit('Automatic artwork paused. Review the order dashboard.')
+              if not result.get('worked'):
+                  print('No artwork step ready.')
+                  break
+              print('Artwork step completed:', step + 1)
+              if result.get('proofReady'):
+                  print('Book proof ready for review.')
+                  break
+          PY

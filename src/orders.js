@@ -65,6 +65,12 @@ export async function ordersApi(req,env){const url=new URL(req.url),path=url.pat
   await unsubscribeFollowup(env,token);return new Response(null,{status:204,headers:{'Cache-Control':'no-store'}});
  }
  requireThat(env.DB&&env.BOOK_ASSETS,'Order storage is being connected. Your story is unchanged.',503);
+ if(path==='/api/orders/artwork-run'&&req.method==='POST'){
+  const token=req.headers.get('authorization')?.replace(/^Bearer /,'')||'';
+  requireThat(env.ARTWORK_RUN_TOKEN&&token.length>=40&&equal(token,env.ARTWORK_RUN_TOKEN),'Artwork runner access denied.',403);
+  const result=await runArtworkJobs(env);
+  return reply({worked:result.worked,paused:!!result.paused,busy:!!result.busy,proofReady:!!result.proofReady,completed:result.completed||0});
+ }
  if(path==='/api/orders/ziina-webhook'&&req.method==='POST')return reply(await ziinaWebhook(req,env));
  if(path==='/api/orders/payment-webhook'&&req.method==='POST')return reply(await verifyPayment(req,env));
  if(!['GET','HEAD'].includes(req.method)){requireThat(req.headers.get('origin')===url.origin,'Reload this page before saving.',403);requireThat(req.headers.get('sec-fetch-site')!=='cross-site','Cross-site request refused.',403);}

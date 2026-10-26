@@ -53075,6 +53075,12 @@ async function ordersApi(req, env2) {
       return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
     }
     requireThat(env2.DB && env2.BOOK_ASSETS, "Order storage is being connected. Your story is unchanged.", 503);
+    if (path === "/api/orders/artwork-run" && req.method === "POST") {
+      const token = req.headers.get("authorization")?.replace(/^Bearer /, "") || "";
+      requireThat(env2.ARTWORK_RUN_TOKEN && token.length >= 40 && equal(token, env2.ARTWORK_RUN_TOKEN), "Artwork runner access denied.", 403);
+      const result = await runArtworkJobs(env2);
+      return reply({ worked: result.worked, paused: !!result.paused, busy: !!result.busy, proofReady: !!result.proofReady, completed: result.completed || 0 });
+    }
     if (path === "/api/orders/ziina-webhook" && req.method === "POST") return reply(await ziinaWebhook(req, env2));
     if (path === "/api/orders/payment-webhook" && req.method === "POST") return reply(await verifyPayment(req, env2));
     if (!["GET", "HEAD"].includes(req.method)) {
