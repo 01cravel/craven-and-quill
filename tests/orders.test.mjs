@@ -34,7 +34,7 @@ test('test-paid books can be proofed but never released to live Prodigi',async()
 test('quote uses tax-inclusive total once and refuses non-UK production',async()=>{const env=environment();env.PRODIGI_API_KEY='test';env.fetch=async()=>Response.json(quoteResponse('1.00'));assert.equal((await quoteOrder(env,'a5')).totalPence,1506);env.fetch=async()=>{const q=quoteResponse();q.quotes[0].shipments[0].fulfillmentLocation.countryCode='US';return Response.json(q);};await assert.rejects(()=>quoteOrder(env,'a5'));});
 test('release rechecks cost, payment refund and approvals before any paid printer call',async()=>{const env=environment(),{id}=await create(env);connected(env);env.orderId=id;await paid(env,id);let o=await approveBoth(env,id);liveFetch(env);let r=await request(env,'/'+id+'/submit',{revision:o.revision,confirm:true,proofHash:o.proof.hash,maxCostPence:1000},{admin:true});assert.equal(r.status,409);assert.equal(env.calls.filter(x=>x.url.endsWith('/orders')).length,0);liveFetch(env,{refunded:true});r=await request(env,'/'+id+'/submit',{revision:o.revision,confirm:true,proofHash:o.proof.hash,maxCostPence:2000},{admin:true});assert.equal(r.status,409);assert.equal(env.calls.filter(x=>x.url.endsWith('/orders')).length,0);});
 test('uncertain print response stays held and retry uses identical order key; a second release is refused',async()=>{const env=environment(),{id}=await create(env);connected(env);env.orderId=id;await paid(env,id);let o=await approveBoth(env,id);liveFetch(env,{timeout:true});let r=await request(env,'/'+id+'/submit',{revision:o.revision,confirm:true,proofHash:o.proof.hash,maxCostPence:2000},{admin:true});assert.equal(r.status,502);o=await state(env,id);assert.equal(o.status,'supplier_unknown');const first=JSON.parse(env.calls.find(x=>x.url.endsWith('/orders')).opts.body);liveFetch(env);r=await request(env,'/'+id+'/submit',{revision:o.revision,confirm:true,proofHash:o.data.proof.hash,maxCostPence:2000},{admin:true});assert.equal(r.status,200);const second=JSON.parse(env.calls.filter(x=>x.url.endsWith('/orders')).at(-1).opts.body);assert.equal(first.idempotencyKey,second.idempotencyKey);assert.equal(second.items[0].sku,PRODUCTS.a5.sku);assert.equal(second.items[0].assets[0].pageCount,28);assert.ok(!JSON.stringify(second).includes('qa-order@example.test'));o=await state(env,id);r=await request(env,'/'+id+'/submit',{revision:o.revision,confirm:true,proofHash:o.data.proof.hash,maxCostPence:2000},{admin:true});assert.equal(r.status,409);const fileUrl=new URL(second.items[0].assets[0].url);const file=await ordersApi(new Request(fileUrl),env);assert.equal(file.status,200);fileUrl.searchParams.set('signature','tampered');assert.equal((await ordersApi(new Request(fileUrl),env)).status,404);});
-test('A5 and A4 PDFs have exactly 28 single pages, embedded font, native image quality and matching dimensions',async()=>{for(const size of ['a5','a4']){const bytes=readFileSync(new URL('../dist/client/assets/story-serif.ttf',import.meta.url)),logo=readFileSync(new URL('../dist/client/assets/logo-mark-on-white.png',import.meta.url));const p=await printBook({size,story,names:'Jamie',dedication:'For Jamie',art:{cover:'x',scenes:Array(10).fill('x')}},async()=>({bytes:jpeg,type:'image/jpeg'}),bytes,logo);assert.equal(p.preflight.pageCount,28);assert.equal(p.preflight.fontsEmbedded,true);assert.equal(p.preflight.allImages300dpi,true);assert.equal(p.preflight.images.length,11);await validatePdf(p.bytes,PRODUCTS[size]);await assert.rejects(()=>validatePdf(p.bytes,PRODUCTS[size==='a5'?'a4':'a5']));}});
+test('A5 and A4 PDFs have exactly 28 single pages, embedded font, honest image quality and matching dimensions',async()=>{for(const size of ['a5','a4']){const bytes=readFileSync(new URL('../dist/client/assets/story-serif.ttf',import.meta.url)),logo=readFileSync(new URL('../dist/client/assets/logo-mark-on-white.png',import.meta.url));const p=await printBook({size,story,names:'Jamie',dedication:'For Jamie',art:{cover:'x',scenes:Array(10).fill('x')}},async()=>({bytes:jpeg,type:'image/jpeg'}),bytes,logo);assert.equal(p.preflight.pageCount,28);assert.equal(p.preflight.fontsEmbedded,true);assert.equal(p.preflight.allImages300dpi,p.preflight.images.every(x=>x.dpi>=300));assert.equal(p.preflight.images.filter(x=>x.fullPage).length,10);assert.ok(p.preflight.images.every(x=>x.cropPercent>=0));assert.equal(p.preflight.images.length,11);await validatePdf(p.bytes,PRODUCTS[size]);await assert.rejects(()=>validatePdf(p.bytes,PRODUCTS[size==='a5'?'a4':'a5']));}});
 
 function ziinaConnected(env,mode='test'){connected(env);Object.assign(env,{PAYMENT_PROVIDER:'ziina',ZIINA_MODE:mode,ZIINA_ACCESS_TOKEN:'test-token',ZIINA_ACCOUNT_ID:'merchant-test',ZIINA_WEBHOOK_SECRET:'test-webhook'});}
 function intent(env,amount=3999,status='requires_payment_instrument'){return {id:'ziina-intent',account_id:env.ZIINA_ACCOUNT_ID,amount,currency_code:'GBP',tip_amount:0,vat_amount:0,status,redirect_url:'https://pay.ziina.com/test'};}
@@ -143,4 +143,57 @@ test('draft return links encrypt large artwork, require the secret, send only to
  const object=[...env.objects.entries()].find(([k])=>k.startsWith('drafts/'))[1];assert.ok(!new TextDecoder().decode(object.bytes).includes('Jamie'));
  assert.equal((await request(env,'/drafts/'+id,{draft,previewId:body.previewId,email:'qa-draft@example.test'},{method:'PUT'})).status,429);
  assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM customer_orders').get().n,1);
+});
+
+test('quoted non-buyers require their own preview and explicit offer consent',async()=>{
+ const env=environment(),preview=crypto.randomUUID(),email='quote@example.test';
+ env.DB.sqlite.prepare("INSERT INTO preview_contacts(email,source,medium,campaign,creative,country,created_at,updated_at) VALUES (?,'direct','none','none','none','GB',?,?)").run(email,new Date().toISOString(),new Date().toISOString());
+ env.DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,created_at,email) VALUES (?,'succeeded',?,?)").run(preview,new Date().toISOString(),email);
+ assert.equal((await request(env,'/quote-interest',{email:'other@example.test',previewId:preview,size:'a5',offerConsent:true},{auth:false})).status,400);
+ assert.equal((await request(env,'/quote-interest',{email,previewId:preview,size:'a5'},{auth:false})).status,200);
+ let d=await (await request(env,'/admin-quotes',null,{admin:true})).json();
+ assert.equal(d.totals.quotedNotBought,1);assert.equal(d.totals.offerEligible,0);
+ assert.equal((await request(env,'/quote-interest',{email,previewId:preview,size:'a5',offerConsent:true},{auth:false})).status,200);
+ env.DB.sqlite.prepare('UPDATE customer_quotes SET last_shown_at=? WHERE email=?').run(new Date(Date.now()-90000000).toISOString(),email);
+ d=await (await request(env,'/admin-quotes',null,{admin:true})).json();
+ assert.equal(d.totals.offerEligible,1);assert.equal(d.quotes[0].eligible,true);
+ const token=env.DB.sqlite.prepare('SELECT unsubscribe_token FROM customer_quotes WHERE email=?').get(email).unsubscribe_token;
+ assert.equal((await request(env,'/offer-unsubscribe',{token},{auth:false})).status,200);
+ d=await (await request(env,'/admin-quotes',null,{admin:true})).json();assert.equal(d.totals.offerEligible,0);
+});
+
+test('one offer email creates a single-use discount, never starts payment or printing',async()=>{
+ const env=environment(),{id}=await create(env),email='qa-order@example.test',preview=crypto.randomUUID();
+ env.DB.sqlite.prepare("INSERT INTO preview_contacts(email,source,medium,campaign,creative,country,created_at,updated_at) VALUES (?,'direct','none','none','none','GB',?,?)").run(email,new Date().toISOString(),new Date().toISOString());
+ env.DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,created_at,email) VALUES (?,'succeeded',?,?)").run(preview,new Date().toISOString(),email);
+ await request(env,'/quote-interest',{email,previewId:preview,size:'a5',offerConsent:true},{auth:false});
+ env.DB.sqlite.prepare('UPDATE customer_quotes SET last_shown_at=? WHERE email=?').run(new Date(Date.now()-90000000).toISOString(),email);
+ connected(env);env.fetch=async(url,opts)=>{assert.equal(url,'https://api.resend.com/emails');env.calls.push({url,opts});return Response.json({id:'email-test'});};
+ let r=await request(env,'/admin-send-offer',{email,discountPence:300,confirm:true},{admin:true});assert.equal(r.status,200);const offer=await r.json();assert.equal(offer.accepted,true);
+ assert.equal((await request(env,'/admin-send-offer',{email,discountPence:300,confirm:true},{admin:true})).status,409);
+ let o=await state(env,id);r=await request(env,'/'+id+'/apply-offer',{revision:o.revision,code:offer.code});assert.equal(r.status,200);assert.equal((await r.json()).amount,3699);
+ o=await state(env,id);assert.equal(o.payment_status,'unpaid');assert.equal(o.status,'saved');assert.equal(env.calls.length,1);
+ const repeated=await request(env,'/'+id+'/apply-offer',{revision:o.revision,code:offer.code});
+ assert.equal(repeated.status,200);assert.equal((await repeated.json()).amount,3699);
+});
+
+test('page regeneration saves the exact prior text and clears proof approvals',async()=>{
+ const env=environment(),{id}=await create(env);await paid(env,id);let o=await upload(env,id);
+ env.OPENAI_API_KEY='test';env.fetch=async(url)=>{assert.equal(url,'https://api.openai.com/v1/responses');return Response.json({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({text:'A completely new scene for Jamie and the picnic.',image_scene:'Jamie waves beside the picnic table.'})}]}]});};
+ const original=o.story.spreads[0].text;
+ const r=await request(env,'/'+id+'/rewrite-page',{revision:o.revision,page:0,confirm:true,redrawImage:true},{admin:true});
+ assert.equal(r.status,200);o=await r.json();
+ assert.equal(o.status,'building');assert.equal(o.proof,null);assert.equal(o.customerApproved,false);
+ assert.equal(o.history[0].story.spreads[0].text,original);assert.notEqual(o.story.spreads[0].text,original);
+ const restored=await request(env,'/'+id+'/restore-version',{revision:o.revision,version:1,confirm:true},{admin:true});
+ assert.equal(restored.status,200);assert.equal((await restored.json()).story.spreads[0].text,original);
+});
+
+test('one final approval releases only the customer-approved live proof',async()=>{
+ const env=environment(),{id}=await create(env);connected(env);env.orderId=id;await paid(env,id);
+ let o=await upload(env,id);
+ let r=await request(env,'/'+id+'/approve-proof',{revision:o.revision,confirm:true,proofHash:o.proof.hash});assert.equal(r.status,200);o=await r.json();
+ liveFetch(env);
+ r=await request(env,'/'+id+'/approve-and-submit',{revision:o.revision,confirm:true,checkedPages:true,checkedQuality:true,checkedAddress:true,proofHash:o.proof.hash,maxCostPence:2000},{admin:true});
+ assert.equal(r.status,200);o=await r.json();assert.equal(o.status,'submitted');assert.equal(o.release.proofHash,o.proof.hash);assert.equal(env.calls.filter(x=>x.url.endsWith('/orders')).length,1);
 });

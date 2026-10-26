@@ -1,0 +1,1 @@
+ALTER TABLE `preview_receipts` ADD `email` text;

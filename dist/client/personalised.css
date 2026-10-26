@@ -11,3 +11,6 @@ header{height:80px;display:flex;align-items:center;padding:10px clamp(18px,5vw,7
 @media(max-width:900px){header nav{display:none}.personal-hero,.how,.what-you-buy,.privacy{grid-template-columns:1fr}.hero-visual{min-height:600px}.how,.what-you-buy,.privacy{gap:48px}}
 @media(max-width:620px){header{height:68px;padding:8px 14px}.brand{font-size:.78rem}.brand img{width:42px;height:42px}.top-cta{padding:10px 12px;font-size:.78rem}.personal-hero{min-height:auto}.hero-copy{padding:52px 20px}.hero-copy h1{font-size:3.55rem}.hero-visual{min-height:520px;padding:42px 16px}.open-book{grid-template-columns:1fr;transform:none}.open-book article{padding:24px;border-right:0;border-bottom:1px solid var(--line)}.open-book figure{min-height:280px}.trust-strip{grid-template-columns:1fr 1fr}.trust-strip span{padding:14px 8px}.how,.what-you-buy,.privacy{padding:72px 20px}.how h2,.what-you-buy h2,.privacy h2,.final-cta h2{font-size:3.35rem}.prices{grid-template-columns:1fr}.prices p{min-height:0}.final-cta{padding:75px 20px}footer{flex-direction:column}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Supplied gold monogram: retain its full artwork and natural proportions. */
+.brand img,.footer-brand img,.drawing-brand img,img[src*="logo-header"]{object-fit:contain;mix-blend-mode:normal;height:auto;aspect-ratio:3/2;border-radius:3px}
