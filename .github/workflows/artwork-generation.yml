@@ -35,7 +35,11 @@ jobs:
                   url,
                   data=b'',
                   method='POST',
-                  headers={'Authorization': 'Bearer ' + token},
+                  headers={
+                      'Authorization': 'Bearer ' + token,
+                      'User-Agent': 'Mozilla/5.0 (compatible; CravenQuillArtwork/1.0)',
+                      'Accept': 'application/json',
+                  },
               )
               with urllib.request.urlopen(request, timeout=150) as response:
                   result = json.load(response)
