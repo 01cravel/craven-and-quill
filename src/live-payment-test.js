@@ -1,7 +1,7 @@
 import {requireThat,safeText} from './catalog.js';
 // Owner-only, at most two separately stored £1 diagnostic payments. Never creates a customer_order or calls Prodigi.
 export async function livePaymentTest(req,env,{admin,ziina,matchZiina}) {
- requireThat(admin(req,env),'Sign in with the site owner’s ChatGPT account.',401);
+ requireThat(await admin(req,env),'Sign in with an email link sent to the owner.',401);
  requireThat(env.DB,'Test storage unavailable.',503);
  const slot=new URL(req.url).searchParams.get('payment')||'1';
  requireThat(['1','2'].includes(slot),'Only the two authorised tests are available.');

@@ -4288,7 +4288,7 @@ function checkoutReady(env2) {
 
 // src/live-payment-test.js
 async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZiina: matchZiina2 }) {
-  requireThat(admin2(req, env2), "Sign in with the site owner\u2019s ChatGPT account.", 401);
+  requireThat(await admin2(req, env2), "Sign in with an email link sent to the owner.", 401);
   requireThat(env2.DB, "Test storage unavailable.", 503);
   const slot = new URL(req.url).searchParams.get("payment") || "1";
   requireThat(["1", "2"].includes(slot), "Only the two authorised tests are available.");
@@ -4392,6 +4392,31 @@ async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZ
     requireThat(r.id === t2.refund.id && r.payment_intent_id === t2.paymentId && r.amount === 100 && r.currency_code === "GBP" && ["pending", "completed", "failed"].includes(r.status), "Refund response did not match this test.", 502);
   }
   return result(await read3());
+}
+
+// src/owner-auth.js
+var OWNER_EMAIL = "cravenluke@gmail.com";
+var LINK_LIFETIME_MS = 15 * 60 * 1e3;
+var SESSION_LIFETIME_MS = 12 * 60 * 60 * 1e3;
+var TABLES = [
+  "CREATE TABLE IF NOT EXISTS owner_login_links (token_hash TEXT PRIMARY KEY, expires_at TEXT NOT NULL, used_at TEXT)",
+  "CREATE TABLE IF NOT EXISTS owner_login_sessions (token_hash TEXT PRIMARY KEY, expires_at TEXT NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS owner_login_rate (id INTEGER PRIMARY KEY CHECK(id=1), last_sent_at TEXT NOT NULL, day TEXT NOT NULL, day_count INTEGER NOT NULL)"
+];
+async function digest(token) {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(bytes), (x) => x.toString(16).padStart(2, "0")).join("");
+}
+async function tables(env2) {
+  for (const sql of TABLES) await env2.DB.prepare(sql).run();
+}
+async function ownerSession(req, env2) {
+  if (!env2.DB) return null;
+  const token = req.headers.get("Cookie")?.match(/(?:^|;\s*)__Host-cq_owner=([a-f0-9]{64})(?:;|$)/)?.[1];
+  if (!token) return null;
+  await tables(env2);
+  const row = await env2.DB.prepare("SELECT token_hash FROM owner_login_sessions WHERE token_hash=?1 AND expires_at>?2").bind(await digest(token), (/* @__PURE__ */ new Date()).toISOString()).first();
+  return row ? OWNER_EMAIL : null;
 }
 
 // src/order-email.js
@@ -39669,51 +39694,51 @@ var opbd = new restructure.Struct({
   format: restructure.uint16,
   lookupTable: new LookupTable(OpticalBounds)
 });
-var tables = {};
-tables.cmap = cmap;
-tables.head = head;
-tables.hhea = hhea;
-tables.hmtx = hmtx;
-tables.maxp = maxp;
-tables.name = NameTable;
-tables["OS/2"] = OS2;
-tables.post = post;
-tables.fpgm = fpgm;
-tables.loca = loca;
-tables.prep = prep;
-tables["cvt "] = cvt;
-tables.glyf = glyf;
-tables["CFF "] = CFFFont;
-tables["CFF2"] = CFFFont;
-tables.VORG = VORG;
-tables.EBLC = EBLC;
-tables.CBLC = tables.EBLC;
-tables.sbix = sbix;
-tables.COLR = COLR;
-tables.CPAL = CPAL;
-tables.BASE = BASE;
-tables.GDEF = GDEF;
-tables.GPOS = GPOS;
-tables.GSUB = GSUB;
-tables.JSTF = JSTF;
-tables.HVAR = HVAR;
-tables.DSIG = DSIG;
-tables.gasp = gasp;
-tables.hdmx = hdmx;
-tables.kern = kern;
-tables.LTSH = LTSH;
-tables.PCLT = PCLT;
-tables.VDMX = VDMX;
-tables.vhea = vhea;
-tables.vmtx = vmtx;
-tables.avar = avar;
-tables.bsln = bsln;
-tables.feat = feat;
-tables.fvar = fvar;
-tables.gvar = gvar;
-tables.just = just;
-tables.morx = morx;
-tables.opbd = opbd;
+var tables2 = {};
+tables2.cmap = cmap;
+tables2.head = head;
+tables2.hhea = hhea;
+tables2.hmtx = hmtx;
+tables2.maxp = maxp;
+tables2.name = NameTable;
+tables2["OS/2"] = OS2;
+tables2.post = post;
+tables2.fpgm = fpgm;
+tables2.loca = loca;
+tables2.prep = prep;
+tables2["cvt "] = cvt;
+tables2.glyf = glyf;
+tables2["CFF "] = CFFFont;
+tables2["CFF2"] = CFFFont;
+tables2.VORG = VORG;
+tables2.EBLC = EBLC;
+tables2.CBLC = tables2.EBLC;
+tables2.sbix = sbix;
+tables2.COLR = COLR;
+tables2.CPAL = CPAL;
+tables2.BASE = BASE;
+tables2.GDEF = GDEF;
+tables2.GPOS = GPOS;
+tables2.GSUB = GSUB;
+tables2.JSTF = JSTF;
+tables2.HVAR = HVAR;
+tables2.DSIG = DSIG;
+tables2.gasp = gasp;
+tables2.hdmx = hdmx;
+tables2.kern = kern;
+tables2.LTSH = LTSH;
+tables2.PCLT = PCLT;
+tables2.VDMX = VDMX;
+tables2.vhea = vhea;
+tables2.vmtx = vmtx;
+tables2.avar = avar;
+tables2.bsln = bsln;
+tables2.feat = feat;
+tables2.fvar = fvar;
+tables2.gvar = gvar;
+tables2.just = just;
+tables2.morx = morx;
+tables2.opbd = opbd;
 function _createForOfIteratorHelperLoose$3(o) {
   var i4 = 0;
   if (typeof Symbol === "undefined" || o[Symbol.iterator] == null) {
@@ -39758,12 +39783,12 @@ var Directory = new restructure.Struct({
   tables: new restructure.Array(TableEntry, "numTables")
 });
 Directory.process = function() {
-  var tables2 = {};
+  var tables3 = {};
   for (var _iterator2 = _createForOfIteratorHelperLoose$3(this.tables), _step2; !(_step2 = _iterator2()).done; ) {
     var table9 = _step2.value;
-    tables2[table9.tag] = table9;
+    tables3[table9.tag] = table9;
   }
-  this.tables = tables2;
+  this.tables = tables3;
 };
 Directory.preEncode = function(stream2) {
   var tables$1 = [];
@@ -39773,8 +39798,8 @@ Directory.preEncode = function(stream2) {
       tables$1.push({
         tag: tag3,
         checkSum: 0,
-        offset: new restructure.VoidPointer(tables[tag3], table9),
-        length: tables[tag3].size(table9)
+        offset: new restructure.VoidPointer(tables2[tag3], table9),
+        length: tables2[tag3].size(table9)
       });
     }
   }
@@ -47763,7 +47788,7 @@ var TTFSubset = /* @__PURE__ */ (function(_Subset) {
     var maxp2 = clone_1(this.font.maxp);
     maxp2.numGlyphs = this.glyf.length;
     this.loca.offsets.push(this.offset);
-    tables.loca.preEncode.call(this.loca);
+    tables2.loca.preEncode.call(this.loca);
     var head2 = clone_1(this.font.head);
     head2.indexToLocFormat = this.loca.version;
     var hhea2 = clone_1(this.font.hhea);
@@ -48053,7 +48078,7 @@ var TTFFont = (_class$4 = /* @__PURE__ */ (function() {
     this._decodeDirectory();
     for (var tag3 in this.directory.tables) {
       var table9 = this.directory.tables[tag3];
-      if (tables[tag3] && table9.length > 0) {
+      if (tables2[tag3] && table9.length > 0) {
         Object.defineProperty(this, tag3, {
           get: this._getTable.bind(this, table9)
         });
@@ -48090,7 +48115,7 @@ var TTFFont = (_class$4 = /* @__PURE__ */ (function() {
   _proto._decodeTable = function _decodeTable(table9) {
     var pos = this.stream.pos;
     var stream2 = this._getTableStream(table9.tag);
-    var result = tables[table9.tag].decode(stream2, this, table9.length);
+    var result = tables2[table9.tag].decode(stream2, this, table9.length);
     this.stream.pos = pos;
     return result;
   };
@@ -48507,12 +48532,12 @@ var WOFFDirectory = new restructure.Struct({
   tables: new restructure.Array(WOFFDirectoryEntry, "numTables")
 });
 WOFFDirectory.process = function() {
-  var tables2 = {};
+  var tables3 = {};
   for (var _iterator2 = _createForOfIteratorHelperLoose$r(this.tables), _step2; !(_step2 = _iterator2()).done; ) {
     var table9 = _step2.value;
-    tables2[table9.tag] = table9;
+    tables3[table9.tag] = table9;
   }
-  this.tables = tables2;
+  this.tables = tables3;
 };
 var TINF_OK$1 = 0;
 var TINF_DATA_ERROR$1 = -3;
@@ -51198,7 +51223,7 @@ function ReadHuffmanCodeLengths(code_length_code_lengths, num_symbols, code_leng
     code_lengths[symbol] = 0;
   }
 }
-function ReadHuffmanCode(alphabet_size, tables2, table9, br) {
+function ReadHuffmanCode(alphabet_size, tables3, table9, br) {
   var table_size = 0;
   var simple_code_or_skip;
   var code_lengths = new Uint8Array(alphabet_size);
@@ -51268,7 +51293,7 @@ function ReadHuffmanCode(alphabet_size, tables2, table9, br) {
     if (!(num_codes === 1 || space === 0)) throw new Error("[ReadHuffmanCode] invalid num_codes or space");
     ReadHuffmanCodeLengths(code_length_code_lengths, alphabet_size, code_lengths, br);
   }
-  table_size = BrotliBuildHuffmanTable$1(tables2, table9, HUFFMAN_TABLE_BITS, code_lengths, alphabet_size);
+  table_size = BrotliBuildHuffmanTable$1(tables3, table9, HUFFMAN_TABLE_BITS, code_lengths, alphabet_size);
   if (table_size === 0) {
     throw new Error("[ReadHuffmanCode] BuildHuffmanTable failed: ");
   }
@@ -51840,12 +51865,12 @@ var WOFF2Directory = new restructure.Struct({
   tables: new restructure.Array(WOFF2DirectoryEntry, "numTables")
 });
 WOFF2Directory.process = function() {
-  var tables2 = {};
+  var tables3 = {};
   for (var i4 = 0; i4 < this.tables.length; i4++) {
     var table9 = this.tables[i4];
-    tables2[table9.tag] = table9;
+    tables3[table9.tag] = table9;
   }
-  return this.tables = tables2;
+  return this.tables = tables3;
 };
 function _inheritsLoose$h(subClass, superClass) {
   subClass.prototype = Object.create(superClass.prototype);
@@ -52632,7 +52657,7 @@ var now2 = () => (/* @__PURE__ */ new Date()).toISOString();
 var uid = () => crypto.randomUUID();
 var reply = (body2, status = 200, extra = {}) => new Response(JSON.stringify(body2), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff", ...extra } });
 var q = (env2, sql, ...v2) => env2.DB.prepare(sql).bind(...v2);
-var admin = (req, env2) => !!req.headers.get("oai-authenticated-user-id") && !!env2.ORDERS_ADMIN_EMAIL && req.headers.get("oai-authenticated-user-email")?.toLowerCase() === env2.ORDERS_ADMIN_EMAIL.toLowerCase();
+var admin = ownerSession;
 var equal = (a, b) => {
   if (a.length !== b.length) return false;
   let diff = 0;
@@ -52703,7 +52728,7 @@ async function save(env2, o, data2, status = o.status) {
   return get(env2, o.id);
 }
 async function authorise(req, env2, o) {
-  if (admin(req, env2)) return true;
+  if (await admin(req, env2)) return true;
   const cookie = req.headers.get("cookie")?.match(new RegExp("(?:^|; )cq_order_" + o.id.replaceAll("-", "") + "=([^;]+)"))?.[1];
   const token = req.headers.get("authorization")?.replace(/^Bearer /, "") || cookie || "";
   requireThat(token.length >= 32 && equal(await sha(token), o.token_hash), "Order not found.", 404);
@@ -52992,7 +53017,7 @@ async function ordersApi(req, env2) {
       return reply({ ok: true });
     }
     if (path === "/api/orders/admin-quotes" && req.method === "GET") {
-      requireThat(admin(req, env2), "Owner access required.", 401);
+      requireThat(await admin(req, env2), "Owner access required.", 401);
       await ensureFollowupTable(env2);
       const cutoff = new Date(Date.now() - 864e5).toISOString();
       const [quoted, saved, eligible, rows] = await Promise.all([
@@ -53010,7 +53035,7 @@ async function ordersApi(req, env2) {
       return reply({ totals: { quotedNotBought: quoted?.n || 0, savedUnpaid: saved?.n || 0, offerEligible: eligible?.n || 0 }, quotes: (rows.results || []).map((x) => ({ ...x, eligible: !!x.offer_consent_at && !x.offer_unsubscribed_at && !x.email_status && !x.has_sequence_consent && !x.has_paid && !x.active_checkout && x.last_shown_at < cutoff })) });
     }
     if (path === "/api/orders/admin-send-offer" && req.method === "POST") {
-      requireThat(admin(req, env2), "Owner access required.", 403);
+      requireThat(await admin(req, env2), "Owner access required.", 403);
       await ensureFollowupTable(env2);
       const b2 = await input(req), email = String(b2.email || "").trim().toLowerCase(), discount = Number(b2.discountPence);
       requireThat(b2.confirm === true && Number.isSafeInteger(discount) && discount >= 100 && discount <= 500, "Choose a discount between \xA31 and \xA35.");
@@ -53047,7 +53072,7 @@ You can stop offer emails here: ${unsubscribe}`;
       } catch {
       }
       await q(env2, "UPDATE customer_quotes SET email_status=?1,email_sent_at=?2,email_provider_id=?3 WHERE email=?4", accepted ? "accepted" : "unknown", accepted ? now2() : null, providerId, email).run();
-      if (existing) await audit(env2, existing.id, "offer_email_requested", req.headers.get("oai-authenticated-user-email"), { code: code2, status: accepted ? "accepted" : "unknown" });
+      if (existing) await audit(env2, existing.id, "offer_email_requested", "cravenluke@gmail.com", { code: code2, status: accepted ? "accepted" : "unknown" });
       return reply({ accepted, message: accepted ? "Email accepted by provider. Delivery is not yet confirmed." : "Email result is uncertain. Check Resend before trying again.", code: code2 });
     }
     const draftRoute = path.match(/^\/api\/orders\/drafts\/([a-f0-9-]{36})$/);
@@ -53095,7 +53120,7 @@ You can stop offer emails here: ${unsubscribe}`;
       return reply({ sent });
     }
     if (path === "/api/orders/admin" && req.method === "GET") {
-      requireThat(admin(req, env2), "Sign in with the site owner\u2019s ChatGPT account.", 401);
+      requireThat(await admin(req, env2), "Sign in with an email link sent to the owner.", 401);
       const search = safeText(url.searchParams.get("search"), 100), status = safeText(url.searchParams.get("status"), 40), page = Math.max(1, Math.min(1e3, Number(url.searchParams.get("page")) || 1)), limit = 25, pattern = "%" + search.replaceAll("%", "\\%").replaceAll("_", "\\_") + "%";
       const where = "(?1='' OR email LIKE ?2 ESCAPE '\\' OR id LIKE ?2 ESCAPE '\\' OR state LIKE ?2 ESCAPE '\\') AND (?3='' OR status=?3)";
       const count = await q(env2, "SELECT COUNT(*) n FROM customer_orders WHERE " + where, search, pattern, status).first();
@@ -53175,12 +53200,12 @@ You can stop offer emails here: ${unsubscribe}`;
       const revision = Number(req.headers.get("x-order-revision"));
       requireThat(revision === o.revision, "Order changed. Reload before uploading.", 409);
       const nextProofVersion = Math.max(o.data.proofSequence || 0, o.data.proof?.version || 0) + 1;
-      if (o.data.proof) archiveContent(o, "proof_uploaded", req.headers.get("oai-authenticated-user-email"));
+      if (o.data.proof) archiveContent(o, "proof_uploaded", "cravenluke@gmail.com");
       o.data.proofSequence = nextProofVersion;
       o.data.proof = { key: await assetPut(env2, o, bytes, "application/pdf", "uploaded-proof"), hash: await sha(bytes), version: o.data.proofSequence, preflight: { ...preflight, fontsEmbedded: "manual check required", allImages300dpi: "manual check required", pdfX4: false, notes: ["Uploaded proof: inspect resolution, fonts, safety margins and every page manually."] }, createdAt: now2() };
       o.data.customerApproved = null;
       o.data.adminApproved = null;
-      await audit(env2, id, "proof_uploaded", req.headers.get("oai-authenticated-user-email"));
+      await audit(env2, id, "proof_uploaded", "cravenluke@gmail.com");
       return reply(publicOrder(await save(env2, o, o.data, "proof_ready"), true));
     }
     if (action === "activity" && req.method === "GET") {
@@ -53255,7 +53280,7 @@ You can stop offer emails here: ${unsubscribe}`;
       return reply(publicOrder(o));
     }
     requireThat(isAdmin, "Only the site owner can approve or manage printing.", 403);
-    const actor = req.headers.get("oai-authenticated-user-email");
+    const actor = "cravenluke@gmail.com";
     if (action === "set-art-budget") {
       requireThat(b.confirm === true && editable(o), "This book cannot be changed now.", 409);
       const budget = Number(b.artBudget);

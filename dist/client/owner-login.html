@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+  <title>Owner sign-in | Craven &amp; Quill</title>
+  <link rel="stylesheet" href="/orders-admin.css">
+</head>
+<body>
+  <header class="app-header"><a class="identity" href="/"><span class="identity-mark">CQ</span><span>Craven &amp; Quill<small>Orders</small></span></a><span class="owner-label">Private owner workspace</span></header>
+  <main class="app-shell" style="max-width:520px;margin:9vh auto">
+    <section class="panel" style="padding:32px">
+      <p class="eyebrow">Owner access</p><h1>Sign in to your dashboard</h1>
+      <p>We will email a one-use link to the owner address. It expires after 15 minutes.</p>
+      <form method="post" action="/api/owner-auth/request">
+        <label for="email">Owner email</label>
+        <input id="email" name="email" type="email" value="cravenluke@gmail.com" autocomplete="email" required style="display:block;width:100%;margin:8px 0 20px">
+        <button class="button" type="submit">Email me a sign-in link</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

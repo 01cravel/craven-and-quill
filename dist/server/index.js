@@ -1,5 +1,6 @@
 import {campaignApi,beginPreview,finishPreview} from './campaign.js';
 import {ordersApi,runFollowups,followupStatus} from './orders.js';
+import {ownerAuth} from './owner-auth.js';
 import {storyApi} from './story.js';
 const RATE_WINDOW_MS=60*60*1000;
 const RATE_LIMIT=3;
@@ -130,6 +131,7 @@ async function followupMcp(request,env){
 export default {async fetch(request,env){
   const url=new URL(request.url);
   if(url.pathname==='/mcp')return followupMcp(request,env);
+  const ownerResponse=await ownerAuth(request,env);if(ownerResponse)return ownerResponse;
   const orderResponse=await ordersApi(request,env);if(orderResponse)return orderResponse;
   const storyResponse=await storyApi(request,env);if(storyResponse)return storyResponse;
   if(url.pathname==='/api/preview-email'&&request.method==='POST'&&rateLimited(request,signupBuckets,SIGNUP_RATE_LIMIT))return json({error:'Too many attempts. Please try again later.'},429);
