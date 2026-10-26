@@ -52312,13 +52312,13 @@ async function printBook(order, read3, fontBytes, logoBytes) {
     }
     return y;
   }
-  async function art(p, key2, top = H - M2, bottom = M2) {
+  async function art(p, key2, top = H - M2, bottom = M2, fullPage = false) {
     const { bytes, type } = await read3(key2);
     const image = type === "image/png" ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
-    const scale2 = Math.min((W - M2 * 2) / image.width, (top - bottom) / image.height, 72 / 300);
+    const scale2 = fullPage ? Math.max(W / image.width, H / image.height) : Math.min((W - M2 * 2) / image.width, (top - bottom) / image.height, 72 / 300);
     const w = image.width * scale2, h = image.height * scale2;
-    p.drawImage(image, { x: (W - w) / 2, y: bottom + (top - bottom - h) / 2, width: w, height: h });
-    images.push({ dpi: Math.round(72 / scale2), widthPx: image.width, heightPx: image.height });
+    p.drawImage(image, { x: (W - w) / 2, y: fullPage ? (H - h) / 2 : bottom + (top - bottom - h) / 2, width: w, height: h });
+    images.push({ dpi: Math.floor(72 / scale2), widthPx: image.width, heightPx: image.height, fullPage, cropPercent: fullPage ? Math.round((1 - W * H / (w * h)) * 1e4) / 100 : 0 });
   }
   function brand(p) {
     const w = mm(12), h = w * logo.height / logo.width;
@@ -52337,9 +52337,9 @@ async function printBook(order, read3, fontBytes, logoBytes) {
   const opening = page();
   words(opening, "Let the story begin", { y: H * 0.55, center: true });
   for (let i4 = 0; i4 < BOOK.spreads; i4++) {
-    await art(page(), order.art.scenes[i4]);
+    await art(page(), order.art.scenes[i4], H, 0, true);
     const textPage = page(), size = spec.id === "a5" ? 14 : 19, count = lines(order.story.spreads[i4].text, size, W - M2 * 2).length;
-    words(textPage, order.story.spreads[i4].text, { size, y: Math.min(H - mm(30), H / 2 + count * size * 1.45 / 2) });
+    words(textPage, order.story.spreads[i4].text, { size, y: Math.min(H - mm(30), H / 2 + (count - 1) * size * 1.45 / 2 - size * 0.35) });
   }
   words(page(), "The End", { size: spec.id === "a5" ? 26 : 34, y: H * 0.55, center: true });
   const keepsake = page();
@@ -52352,7 +52352,7 @@ async function printBook(order, read3, fontBytes, logoBytes) {
   words(back, order.story.synopsis, { y: H * 0.7 });
   brand(back);
   requireThat(pdf.getPageCount() === BOOK.pdfPages, "Unexpected print page count.");
-  return { bytes: await pdf.save(), preflight: { pageCount: BOOK.pdfPages, interiorPages: BOOK.interiorPages, widthMm: spec.widthMm, heightMm: spec.heightMm, safeMm: 12, fontsEmbedded: true, images, allImages300dpi: images.every((x) => x.dpi >= 300), pdfX4: false, notes: ["Artwork is inset at native 300dpi, never enlarged.", "PDF/X-4 certification is not performed. Human inspection of every page remains required."] } };
+  return { bytes: await pdf.save(), preflight: { pageCount: BOOK.pdfPages, interiorPages: BOOK.interiorPages, widthMm: spec.widthMm, heightMm: spec.heightMm, safeMm: 12, fontsEmbedded: true, images, allImages300dpi: images.every((x) => x.dpi >= 300), pdfX4: false, notes: ["Story illustrations fill the left page; proportional centre-cropping may trim edges. Check every page before approval.", "Effective image resolution is reported at its printed size; low-resolution artwork must be replaced.", "These are existing trim-size proof pages; supplier bleed requirements still require print review.", "PDF/X-4 certification is not performed. Human inspection of every page remains required."] } };
 }
 async function validatePdf(bytes, spec) {
   const pdf = await PDFDocument_default.load(bytes);
