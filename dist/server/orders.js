@@ -53347,6 +53347,12 @@ You can stop offer emails here: ${unsubscribe}`;
       requireThat(o.data.payment?.provider === "ziina" && o.session_id, "No Ziina checkout to check.", 409);
       return reply(publicOrder(await ziinaConfirm(env2, o), isAdmin));
     }
+    if (action === "checkout" && o.payment_status === "unpaid" && o.data.discount?.ownerTest && !o.session_id && (o.email !== OWNER_TEST.email || Date.parse(OWNER_TEST.expiresAt) <= Date.now())) {
+      o.data.discount = null;
+      const changed = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", PRODUCTS[o.size].pricePence, JSON.stringify(o.data), now2(), id, o.revision).first();
+      requireThat(changed, "This order changed. Reload before checkout.", 409);
+      throw new OrderError("The offer expired. Your book is saved at the current price. Reload before checkout.", 409);
+    }
     if (action === "checkout") {
       requireThat(checkoutReady(env2), "Payments are not open yet. Your book is saved and nothing has been charged.", 503);
       requireThat(o.payment_status === "unpaid" && ["saved", "awaiting_payment"].includes(o.status), "This book is already paid or on hold.", 409);
