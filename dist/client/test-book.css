@@ -172,3 +172,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .zoom-scroll{height:calc(100% - 64px);overflow:auto;padding:16px;overscroll-behavior:contain}
 .zoom-scroll .page-stage[data-kind="story"]{width:1040px;max-width:none;margin:0 auto;cursor:auto}
 @media(max-width:900px){.page-stage[data-kind="story"]{width:100%;flex:none;max-height:none}.reader:has(.page-stage[data-kind="story"]){overflow-y:auto}.reader:has(.page-stage[data-kind="story"]) .page-nav{margin-top:18px}}
+
+/* Opened inside the example-books window on the order page */
+.embed-mode .reader-header,.embed-mode .skip{display:none}
+.embed-mode .reader{padding-top:12px}

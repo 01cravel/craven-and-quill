@@ -80,6 +80,7 @@ function showStep(number){
   const names={1:'Their name',8:'Reading level',2:'Their photo',12:'Story approach',9:state.storyMode==='plot'?'Your idea':'About them',3:'Story tone',4:'Your story',10:'Your email',5:'Your character',6:'Book size',11:'Delivery',7:'Review & pay'};
   const visibleStep=order.indexOf(number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
   $('.journey').setAttribute('aria-label',`Step ${visibleStep} of ${order.length}: ${names[number]}`);
+  if(number===7)fillReview();
   if(number===7)$('#delivery-summary').textContent=[$('#recipient-name').value,$('#address-line1').value,$('#address-line2').value,$('#town').value,$('#postcode').value].filter(Boolean).join(', ');
   if(number===4&&state.storyDraft)requestAnimationFrame(()=>turnStoryPage(state.storyPage,'instant'));
   if(number===5&&state.storyDraft)$('#illustration-count').textContent=`${state.storyDraft.spreads.length} story illustrations and a cover`;
@@ -497,3 +498,15 @@ for(const [name,step,next] of [['age',8,2],['mood',3,10],['story-mode',12,9],['p
 $('#names').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();document.querySelector('[data-step="1"] [data-next]').click();}});
 $('#story-maker').addEventListener('submit',event=>event.preventDefault());
 showStep(1);
+
+function fillReview(){
+  const name=fullNames()||'your character';
+  const art=$('#review-art');art.src=state.characterImages[0]||'assets/storybook.webp';art.alt=state.characterImages[0]?`${name}, illustrated`:'Sample storybook illustration';
+  $$('[data-review-name]').forEach(el=>el.textContent=fullNames()||'your character');
+  $('#review-chapter').textContent=state.storyDraft?.title||'Chapter one';
+  $('#review-text').textContent=state.storyDraft?previewText():previewText(selectedStory());
+}
+const examplesDialog=$('#examples-dialog');
+$('#open-examples').addEventListener('click',()=>{const frame=$('#examples-frame');if(frame.src==='about:blank'||!frame.src.includes('test-book'))frame.src='test-book.html?book=amara&sample=1&embed=1';examplesDialog.showModal();track('examples_opened');});
+$('#close-examples').addEventListener('click',()=>examplesDialog.close());
+examplesDialog.addEventListener('click',event=>{if(event.target===examplesDialog)examplesDialog.close();});
