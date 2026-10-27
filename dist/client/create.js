@@ -439,7 +439,7 @@ async function saveQuote(explicitConsent){
  if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||'Could not save your offer preference.');
 }
 $('#offer-email-consent').addEventListener('change',async event=>{try{await saveQuote(event.target.checked);$('#step-6-error').textContent='';}catch(e){event.target.checked=!event.target.checked;$('#step-6-error').textContent=e.message;}});
-async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Secure payment, then we create the rest of your illustrations. You and our team approve the finished proof before printing.';$('#join-launch').textContent='Continue to payment';}updateProduct();}catch{}}
+async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Secure payment, then we create the rest of your illustrations. You and our team approve the finished proof before printing.';$('#join-launch').textContent='Next';}updateProduct();}catch{}}
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
   $('#order-label').textContent=state.product==='a4'?'A4 hardback + digital PDF':'A5 hardback + digital PDF';
@@ -464,7 +464,7 @@ $('#join-launch').addEventListener('click',async()=>{
  if(!checkout.ok){track('checkout_error');location.assign(privateUrl);return;}
  const destination=new URL(payment.url);if(destination.protocol!=='https:'||!(destination.hostname==='ziina.com'||destination.hostname.endsWith('.ziina.com')||destination.hostname==='checkout.stripe.com'))throw Error('Payment address could not be verified. Your book is saved.');
  location.assign(destination.href);
- }else location.assign(privateUrl);}catch(cause){error.textContent=cause.message||'The connection stopped. Retry to save the same book without duplicating it.';button.disabled=false;button.textContent=orderCatalog?.checkoutEnabled?'Continue to payment':'Save my book, no payment';}
+ }else location.assign(privateUrl);}catch(cause){error.textContent=cause.message||'The connection stopped. Retry to save the same book without duplicating it.';button.disabled=false;button.textContent='Next';}
 });
 void loadOrderCatalog();
 
