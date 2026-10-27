@@ -4257,6 +4257,7 @@ var PRODUCTS = {
   a5: { id: "a5", label: "A5 hardback", widthMm: 148, heightMm: 210, sku: "BOOK-FE-A5-P-HARD-G", pricePence: 3999, regularPricePence: 4999, discountPercent: 20, estimatedSupplierPence: 1506 },
   a4: { id: "a4", label: "A4 hardback", widthMm: 210, heightMm: 297, sku: "BOOK-FE-A4-P-HARD-G", pricePence: 4799, regularPricePence: 5999, discountPercent: 20, estimatedSupplierPence: 1676 }
 };
+var OWNER_TEST = { codeHash: "4494c8d03100dff3c9560ca54ada85bc13cacb7852092bb59fbc8166b0578cdb", email: "cravenluke@gmail.com", pricePence: 200, expiresAt: "2026-12-01T00:00:00Z" };
 var BOOK = { pdfPages: 28, interiorPages: 26, spreads: 10, paper: "200gsm gloss", cover: "Matte hardback", safeMm: 10 };
 function catalogue(enabled = false) {
   return { version: CATALOG_VERSION, products: Object.values(PRODUCTS).map(({ estimatedSupplierPence, ...p }) => p), book: BOOK, currency: "GBP", shippingPence: 0, country: "GB", includes: ["UK standard delivery", "Digital PDF", "Human print review"], checkoutEnabled: enabled, proofPreparationDays: 7, delivery: "First complete illustrated proof within 7 calendar days of payment. Usually 7\u201312 working days after final proof approval. An estimate, not a guaranteed arrival date." };
@@ -53320,6 +53321,14 @@ You can stop offer emails here: ${unsubscribe}`;
       requireThat(/^CQ[A-Z0-9]{10}$/.test(code2), "Enter a valid offer code.");
       if (o.data.discount?.code === code2) return reply(publicOrder(o, isAdmin));
       requireThat(!o.data.discount, "Only one offer can be used on a book.", 409);
+      if (await sha(code2) === OWNER_TEST.codeHash) {
+        requireThat(o.email === OWNER_TEST.email && Date.parse(OWNER_TEST.expiresAt) > Date.now(), "This offer is unavailable or expired.", 409);
+        o.data.discount = { code: "OWNER-TEST", amountPence: PRODUCTS[o.size].pricePence - OWNER_TEST.pricePence, ownerTest: true, appliedAt: now2() };
+        const changed2 = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", OWNER_TEST.pricePence, JSON.stringify(o.data), now2(), id, o.revision).first();
+        requireThat(changed2, "This order changed. Reload before applying the offer.", 409);
+        await audit(env2, id, "owner_test_price", o.email, { amount: OWNER_TEST.pricePence });
+        return reply(publicOrder(await get(env2, id), isAdmin));
+      }
       const offer = await q(env2, "SELECT * FROM customer_quotes WHERE discount_code=?1 AND email=?2", code2, o.email).first();
       requireThat(offer?.email_status === "accepted" && Date.parse(offer.code_expires_at) > Date.now() && (!offer.redeemed_order_id || offer.redeemed_order_id === id), "This offer is unavailable or expired.", 409);
       await ensureFollowupTable(env2);
@@ -53341,7 +53350,7 @@ You can stop offer emails here: ${unsubscribe}`;
     if (action === "checkout") {
       requireThat(checkoutReady(env2), "Payments are not open yet. Your book is saved and nothing has been charged.", 503);
       requireThat(o.payment_status === "unpaid" && ["saved", "awaiting_payment"].includes(o.status), "This book is already paid or on hold.", 409);
-      if (o.data.discount && !o.session_id) {
+      if (o.data.discount && !o.data.discount.ownerTest && !o.session_id) {
         const offer = await q(env2, "SELECT code_expires_at,redeemed_order_id FROM customer_quotes WHERE discount_code=?1 AND email=?2", o.data.discount.code, o.email).first();
         if (!offer || offer.redeemed_order_id !== id || Date.parse(offer.code_expires_at) <= Date.now()) {
           const code2 = o.data.discount.code;
@@ -53568,7 +53577,7 @@ You can stop offer emails here: ${unsubscribe}`;
         requireThat(intentResponse.ok && intent.status === "succeeded" && intent.amount_received === o.amount && intent.currency === "gbp" && intent.metadata?.cq_order_id === id && intent.latest_charge && typeof intent.latest_charge === "object" && !intent.latest_charge.refunded && !intent.latest_charge.disputed && Number(intent.latest_charge.amount_refunded) === 0, "Payment is refunded, disputed or unconfirmed. Do not print this order.", 409);
       }
       const quote = await quoteOrder(env2, o.size);
-      requireThat(Number.isSafeInteger(b.maxCostPence) && b.maxCostPence >= quote.totalPence && b.maxCostPence <= o.amount, "Printer cost exceeds your approved limit. Refresh the quote.", 409);
+      requireThat(Number.isSafeInteger(b.maxCostPence) && b.maxCostPence >= quote.totalPence && b.maxCostPence <= (o.data.discount?.ownerTest ? PRODUCTS[o.size].pricePence : o.amount), "Printer cost exceeds your approved limit. Refresh the quote.", 409);
       if (!o.data.spine) {
         const d = await supplier(env2, "/products/spine", { sku: PRODUCTS[o.size].sku, destinationCountryCode: "GB", numberOfPages: BOOK.pdfPages });
         requireThat(d.success === true && Number(d.spineInfo?.widthMm) > 0, "Printer spine measurements are unavailable.", 502);

@@ -429,7 +429,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
 $$('[data-back]').forEach(button=>button.addEventListener('click',()=>{if(state.step===5&&button.dataset.back==='4')$('#story-editor').open=true;showStep(Number(button.dataset.back));}));
 
 let orderCatalog=null,orderRequest=null;
-const offerCode=new URLSearchParams(location.search).get('offer')?.trim().toUpperCase()||'';
+let offerCode=new URLSearchParams(location.search).get('offer')?.trim().toUpperCase()||'';
 if(/^CQ[A-Z0-9]{10}$/.test(offerCode)){$('#offer-code-note').hidden=false;$('#offer-code-note').textContent=`Offer code ${offerCode} will be checked before payment. No discount is applied until the final total updates.`;}
 async function saveQuote(explicitConsent){
  if(!validPreviewEmail()||!state.previewId)return;
@@ -448,6 +448,7 @@ function updateProduct(){
 $$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{$('#purchase-intent').checked=false;orderRequest=null;updateProduct();void saveQuote().catch(()=>{});}));
 $('#join-launch').addEventListener('click',async()=>{
  const error=$('#step-7-error'),button=$('#join-launch');if(button.disabled)return;
+ const typedCode=$('#offer-code').value.replace(/\s/g,'').toUpperCase();if(typedCode){if(!/^CQ[A-Z0-9]{10}$/.test(typedCode)){error.textContent='Check the discount code. It starts with CQ and has 12 characters.';$('#offer-code').focus();return;}offerCode=typedCode;}
  if(!validPreviewEmail()){showStep(10);$('#step-10-error').textContent='Enter a valid email address.';return;}
  if(!$('#purchase-intent').checked||!$('#photo-permission').checked){error.textContent='Confirm the story and your permission to create this book.';return;}
  const fields=['recipient-name','address-line1','town','postcode'];const invalid=fields.find(id=>!$('#'+id).value.trim());if(invalid){showStep(11);$('#step-11-error').textContent='Complete the UK delivery address.';$('#'+invalid).focus();return;}
@@ -510,3 +511,5 @@ const examplesDialog=$('#examples-dialog');
 $('#open-examples').addEventListener('click',()=>{const frame=$('#examples-frame');if(frame.src==='about:blank'||!frame.src.includes('test-book'))frame.src='test-book.html?book=amara&sample=1&embed=1';examplesDialog.showModal();track('examples_opened');});
 $('#close-examples').addEventListener('click',()=>examplesDialog.close());
 examplesDialog.addEventListener('click',event=>{if(event.target===examplesDialog)examplesDialog.close();});
+
+$('#show-offer-code').addEventListener('click',()=>{const field=$('#offer-code-field');field.hidden=false;$('#show-offer-code').setAttribute('aria-expanded','true');$('#show-offer-code').hidden=true;$('#offer-code').focus();});

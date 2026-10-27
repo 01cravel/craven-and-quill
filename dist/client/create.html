@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=review-20261027">
+  <link rel="stylesheet" href="create.css?v=code-20261027">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -234,12 +234,13 @@
           </figure>
           <section class="order-total" aria-label="Your selected book"><div><span id="order-label">A5 hardback + digital PDF</span><small>UK delivery included</small></div><strong id="order-price">£39.99</strong></section>
           <p id="offer-code-note" class="privacy-line" hidden></p>
+          <div class="offer-code-field" id="offer-code-field" hidden><label for="offer-code">Discount code</label><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="CQ…"></div>
           <div id="launch-form">
             <div class="signup-honeypot" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" tabindex="-1" autocomplete="off"></div>
             <label class="launch-consent"><input id="purchase-intent" type="checkbox"><span id="purchase-intent-label">I’ve checked their name and story. I’ll approve the finished proof before printing.</span></label>
             <div class="error" id="step-7-error" role="alert"></div>
             <button class="next checkout-button" id="join-launch" type="button">Next</button>
-            <div class="review-links"><button class="shuffle" type="button" id="open-examples" aria-haspopup="dialog">See example books</button><button class="back" type="button" data-back="11">Back</button></div>
+            <div class="review-links"><button class="shuffle" type="button" id="open-examples" aria-haspopup="dialog">See example books</button><button class="shuffle" type="button" id="show-offer-code" aria-controls="offer-code-field" aria-expanded="false">Have a code?</button><button class="back" type="button" data-back="11">Back</button></div>
             <div class="review-details">
               <p class="intro" id="order-availability">Payments are not open yet. Save your book and delivery details now, with no charge or commitment.</p>
               <p class="privacy-line">Your full illustrated proof: within 7 calendar days of payment. Estimated UK delivery: 7–12 working days after you approve the proof. Our team checks every page before printing. Need it for a special date? <a href="mailto:cravenluke@gmail.com">Check with us before ordering</a>.</p>
@@ -264,6 +265,6 @@
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=27" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=review-20261027" defer></script><script src="draft-save.js?v=gift-20261026" defer></script>
+  <script src="create.js?v=code-20261027" defer></script><script src="draft-save.js?v=gift-20261026" defer></script>
 </body>
 </html>

@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {PDFDocument} from 'pdf-lib';
 import {ordersApi,quoteOrder,runArtworkJobs} from '../src/orders.js';
-import {PRODUCTS,sha,checkoutReady} from '../src/catalog.js';
+import {PRODUCTS,OWNER_TEST,sha,checkoutReady} from '../src/catalog.js';
 import {printBook,validatePdf} from '../src/print-book.js';
 import {testDb} from './sqlite-d1.mjs';
 const ownerToken='a'.repeat(64),origin='https://cq.test',owner={Cookie:'__Host-cq_owner='+ownerToken},token=crypto.randomUUID()+crypto.randomUUID();
@@ -203,3 +203,16 @@ test('one final approval releases only the customer-approved live proof',async()
  r=await request(env,'/'+id+'/approve-and-submit',{revision:o.revision,confirm:true,checkedPages:true,checkedQuality:true,checkedAddress:true,proofHash:o.proof.hash,maxCostPence:2000},{admin:true});
  assert.equal(r.status,200);o=await r.json();assert.equal(o.status,'submitted');assert.equal(o.release.proofHash,o.proof.hash);assert.equal(env.calls.filter(x=>x.url.endsWith('/orders')).length,1);
 });
+
+test('owner test code makes a £2 book only for the owner email, and that book can still be released to print',async()=>{const realHash=OWNER_TEST.codeHash;OWNER_TEST.codeHash=await sha('CQTESTCODE01');try{
+ const env=environment(),{id}=await create(env);connected(env);env.orderId=id;
+ let o=await state(env,id);assert.equal((await request(env,'/'+id+'/apply-offer',{revision:o.revision,code:'CQTESTCODE01'})).status,409);
+ env.DB.sqlite.prepare('UPDATE customer_orders SET email=? WHERE id=?').run(OWNER_TEST.email,id);o=await state(env,id);
+ assert.equal((await request(env,'/'+id+'/apply-offer',{revision:o.revision,code:'CQWRONGCODE1'})).status,409);
+ let r=await request(env,'/'+id+'/apply-offer',{revision:o.revision,code:'CQTESTCODE01'});assert.equal(r.status,200);assert.equal((await r.json()).amount,200);
+ o=await state(env,id);assert.equal(o.amount,200);assert.equal(o.data.discount.ownerTest,true);assert.ok(!o.state.includes('CQTESTCODE01'));
+ const a4=await create(env,'a4');env.DB.sqlite.prepare('UPDATE customer_orders SET email=? WHERE id=?').run(OWNER_TEST.email,a4.id);let o4=await state(env,a4.id);r=await request(env,'/'+a4.id+'/apply-offer',{revision:o4.revision,code:'CQTESTCODE01'});assert.equal((await r.json()).amount,200);
+ await paid(env,id);o=await approveBoth(env,id);liveFetch(env);const base=env.fetch;env.fetch=async(url,opts)=>{const res=await base(url,opts);if(url.includes('/checkout/sessions/')||url.includes('/payment_intents/'))return Response.json(JSON.parse(JSON.stringify(await res.json()).replaceAll('3999','200')));return res;};
+ r=await request(env,'/'+id+'/submit',{revision:o.revision,confirm:true,proofHash:o.proof.hash,maxCostPence:PRODUCTS.a5.pricePence+1},{admin:true});assert.equal(r.status,409);assert.equal(env.calls.filter(x=>x.url.endsWith('/orders')).length,0);
+ r=await request(env,'/'+id+'/submit',{revision:o.revision,confirm:true,proofHash:o.proof.hash,maxCostPence:2000},{admin:true});assert.equal(r.status,200);assert.equal(env.calls.filter(x=>x.url.endsWith('/orders')).length,1);
+}finally{OWNER_TEST.codeHash=realHash;}});

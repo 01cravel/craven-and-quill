@@ -3,6 +3,8 @@ export const PRODUCTS={
   a5:{id:'a5',label:'A5 hardback',widthMm:148,heightMm:210,sku:'BOOK-FE-A5-P-HARD-G',pricePence:3999,regularPricePence:4999,discountPercent:20,estimatedSupplierPence:1506},
   a4:{id:'a4',label:'A4 hardback',widthMm:210,heightMm:297,sku:'BOOK-FE-A4-P-HARD-G',pricePence:4799,regularPricePence:5999,discountPercent:20,estimatedSupplierPence:1676},
 };
+// Owner-only test price: the code itself is never stored, only its SHA-256.
+export const OWNER_TEST={codeHash:'4494c8d03100dff3c9560ca54ada85bc13cacb7852092bb59fbc8166b0578cdb',email:'cravenluke@gmail.com',pricePence:200,expiresAt:'2026-12-01T00:00:00Z'};
 export const BOOK={pdfPages:28,interiorPages:26,spreads:10,paper:'200gsm gloss',cover:'Matte hardback',safeMm:10};
 export function catalogue(enabled=false){return {version:CATALOG_VERSION,products:Object.values(PRODUCTS).map(({estimatedSupplierPence,...p})=>p),book:BOOK,currency:'GBP',shippingPence:0,country:'GB',includes:['UK standard delivery','Digital PDF','Human print review'],checkoutEnabled:enabled,proofPreparationDays:7,delivery:'First complete illustrated proof within 7 calendar days of payment. Usually 7–12 working days after final proof approval. An estimate, not a guaranteed arrival date.'};}
 export class OrderError extends Error{constructor(message,status=400){super(message);this.status=status;}}

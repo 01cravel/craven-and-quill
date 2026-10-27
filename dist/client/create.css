@@ -543,3 +543,6 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .examples-close{border:0;border-radius:999px;min-height:44px;padding:0 18px;background:var(--ink);color:#fff;font:inherit;font-weight:700;cursor:pointer}
 .examples-dialog iframe{flex:1;width:100%;border:0;background:var(--mist,#f7f4ed)}
 @media(max-width:780px){.examples-dialog{width:100vw;height:100dvh;border-radius:0}}
+
+.offer-code-field{display:flex;align-items:center;gap:10px;max-width:560px;margin:8px auto 0}.offer-code-field label{font-size:.9rem;font-weight:600;white-space:nowrap}.offer-code-field input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-s);font:inherit;text-transform:uppercase;letter-spacing:.04em;background:#fff}
+.review-links{gap:12px}.review-links .back{margin-left:auto}
