@@ -93,8 +93,8 @@ function configureBrief(){
  const own=state.storyMode==='plot';
  $('#interests-options').hidden=own;$('#own-options').hidden=!own;
  $('#step-9-title').textContent=own?'What should happen?':'What makes them, them?';
- $('#brief-intro').textContent=own?'Share your plot, even in one sentence. We’ll turn it into a complete story.':'A few favourite things or little habits are enough. We’ll build the adventure around them.';
- $('#brief-help-copy').textContent=own?'Who is the hero? What do they want? What goes wrong? For example: they score the winning goal at Wembley, but their lucky boots have gone missing.':'What do they love doing? What makes them laugh? A favourite place, food or little habit is plenty.';
+ $('#brief-intro').textContent=own?'Share your plot, even in one sentence. We’ll turn it into a complete story.':'One or two favourite things are perfect. We’ll build the adventure around the main ones.';
+ $('#brief-help-copy').textContent=own?'Who is the hero? What do they want? What goes wrong? For example: they score the winning goal at Wembley, but their lucky boots have gone missing.':'What do they love most? One or two things, like a favourite team, place or pet, is plenty.';
 }
 function validBrief(){
  const field=state.storyMode==='plot'?$('#own-idea'):$('#personal-details');
@@ -102,12 +102,12 @@ function validBrief(){
  showStep(9);$('#step-9-error').textContent=state.storyMode==='plot'?'Give us a sentence about what should happen.':'Tell us one thing about them so we can make it personal.';field.focus();return false;
 }
 function buildIdeas(){
- state.ideas=[['Their own adventure',state.storyMode==='plot'?$('#own-idea').value.trim():'Invent an original plot driven by the supplied personality and interests. Make these details central to the adventure rather than decorations on an unrelated story.']];
+ state.ideas=[['Their own adventure',state.storyMode==='plot'?$('#own-idea').value.trim():'Invent an original plot built around the one or two strongest details about them. Leave other details out rather than cramming them in, and do not substitute an unrelated stock plot.']];
  state.selected=0;configureBrief();updateLive();
 }
 
 let storyWriting=false,storyRequest=0;
-function storyBasis(){return JSON.stringify({names:state.names,secondName:state.secondName,age:state.age,mood:state.mood,details:state.details,idea:state.storyMode==='plot'?$('#own-idea').value.trim():'Invent an original plot driven by the supplied personality and interests. Make these details central to the adventure rather than decorations on an unrelated story.'});}
+function storyBasis(){return JSON.stringify({names:state.names,secondName:state.secondName,age:state.age,mood:state.mood,details:state.details,idea:state.storyMode==='plot'?$('#own-idea').value.trim():'Invent an original plot built around the one or two strongest details about them. Leave other details out rather than cramming them in, and do not substitute an unrelated stock plot.'});}
 function draftValid(story){return Boolean(typeof story?.title==='string'&&story.title.trim()&&story.title.length<=120&&typeof story?.synopsis==='string'&&story.synopsis.trim()&&story.synopsis.length<=600&&Array.isArray(story.spreads)&&story.spreads.length===10&&story.spreads.every(page=>typeof page?.text==='string'&&page.text.trim()&&page.text.length<=1500&&typeof page?.image_scene==='string'&&page.image_scene.trim()&&page.image_scene.length<=800));}
 function updateStoryGate(){
   const outdated=Boolean(state.storyDraft&&(state.storyBasis!==storyBasis()||state.storylineNeedsUpdate));
