@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=code-20261027">
+  <link rel="stylesheet" href="create.css?v=book-20261028">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -182,14 +182,18 @@
           <div id="result-state" hidden>
             <section class="first-page" aria-labelledby="first-page-title">
               <div class="page-preview-heading"><h2 id="first-page-title">Meet your character.</h2><p hidden><span id="result-story-title"></span></p></div>
-<div class="book-preview">
+<div class="pbook" id="preview-book">
+                <div class="pbook-track" id="pbook-track" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Flick through their book"></div>
+                <div class="pbook-nav"><button type="button" id="pbook-prev" aria-label="Previous page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><p id="pbook-pos" role="status">Cover</p><button type="button" id="pbook-next" aria-label="Next page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button></div>
+              </div>
+<div class="book-preview" hidden>
                 <figure class="preview-art" id="preview-art"><img id="preview-image" src="assets/storybook.webp" width="900" height="1125" alt="Sample personalised story illustration format"><img id="preview-image-second" width="900" height="1125" alt="" hidden><span>Free preview</span></figure>
                 <article class="preview-copy"><p class="chapter" id="preview-chapter">The adventure begins</p><p id="story-copy"></p></article>
               </div>
-              <p class="preview-explainer">After payment, we’ll create <strong id="illustration-count">10 story illustrations and a cover</strong> with this character. Each takes time and a little creative fuel.</p><p class="proof-reassurance">You approve the finished book before printing.</p><div id="locked-dots" hidden></div>
+              <p class="preview-explainer">After you order, we illustrate <strong id="illustration-count">10 story illustrations and a cover</strong> with this character. You approve the finished book before printing.</p><div id="locked-dots" hidden></div>
             </section>
 <div class="error" id="step-5-error" role="alert"></div>
-            <div class="step-actions"><button class="back" type="button" data-back="10">Back</button><button class="next" id="choose-book" type="button" data-next="4" disabled>Read your story <span>→</span></button></div>
+            <div class="step-actions"><button class="back" type="button" data-back="10">Back</button><button class="next" id="choose-book" type="button" data-next="4" disabled>Next <span>→</span></button></div>
           </div>
         </section>
 
@@ -265,6 +269,6 @@
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=27" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=focus-20261028" defer></script><script src="draft-save.js?v=gift-20261026" defer></script>
+  <script src="create.js?v=book-20261028" defer></script><script src="draft-save.js?v=gift-20261026" defer></script>
 </body>
 </html>

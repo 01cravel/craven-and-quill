@@ -84,6 +84,7 @@ function showStep(number){
   if(number===7)$('#delivery-summary').textContent=[$('#recipient-name').value,$('#address-line1').value,$('#address-line2').value,$('#town').value,$('#postcode').value].filter(Boolean).join(', ');
   if(number===4&&state.storyDraft)requestAnimationFrame(()=>turnStoryPage(state.storyPage,'instant'));
   if(number===5&&state.storyDraft)$('#illustration-count').textContent=`${state.storyDraft.spreads.length} story illustrations and a cover`;
+  if(number===5&&state.characterImages[0])renderPreviewBook();
   scrollToStepTop(number);
   track('story_step_view',{step:number});
   window.dispatchEvent(new Event('cq-draft-change'));
@@ -364,7 +365,7 @@ async function preparePreview(){
     await renderStoryArt();
     await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
     drawingProgress.stop(true);
-    $('#making-state').hidden=true;$('#result-state').hidden=false;$('#choose-book').disabled=false;updateCover();window.dispatchEvent(new Event('cq-draft-change'));track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});
+    $('#making-state').hidden=true;$('#result-state').hidden=false;$('#choose-book').disabled=false;updateCover();renderPreviewBook();window.dispatchEvent(new Event('cq-draft-change'));track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});
   }catch(error){
     drawingProgress.stop(false);
     $('#generation-error-copy').textContent=error.message||'The character could not be drawn. Please try again.';$('#generation-error').hidden=false;
@@ -513,3 +514,49 @@ $('#close-examples').addEventListener('click',()=>examplesDialog.close());
 examplesDialog.addEventListener('click',event=>{if(event.target===examplesDialog)examplesDialog.close();});
 
 $('#show-offer-code').addEventListener('click',()=>{const field=$('#offer-code-field');field.hidden=false;$('#show-offer-code').setAttribute('aria-expanded','true');$('#show-offer-code').hidden=true;$('#offer-code').focus();});
+
+// Free preview book: the cover with their character, then each spread with the words on the left
+// and a sketch placeholder on the right, because we only paint the pages after an order.
+let previewBookPage=0;
+function renderPreviewBook(){
+ const track=$('#pbook-track');if(!track)return;
+ const make=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!=null)el.textContent=text;return el;};
+ const idea=selectedStory();const title=state.storyDraft?.title||idea?.[0]||'Their story';
+ const spreads=state.storyDraft?.spreads||[{text:previewText(idea),image_scene:''}];
+ const slides=[];
+ const cover=make('figure','pbook-slide pbook-cover');cover.setAttribute('aria-label','Front cover');
+ const board=make('div','pbook-board');board.append(make('p','pbook-for',`A story for ${fullNames()||state.names||'them'}`));
+ const window_=make('div','pbook-window');
+ state.characterImages.filter(Boolean).forEach((src,i)=>{const img=make('img');img.src=src;img.alt=i?`${state.secondName} as a character`:`${state.names} as a character`;window_.append(img);});
+ window_.classList.toggle('two',state.characterImages.filter(Boolean).length>1);
+ board.append(window_,make('h3','pbook-title',title),make('p','pbook-mark','Craven & Quill'));cover.append(board);slides.push(cover);
+ spreads.forEach((spread,i)=>{
+  const slide=make('article','pbook-slide pbook-spread');slide.setAttribute('aria-label',`Page ${i+1} of ${spreads.length}`);
+  const words=make('div','pbook-page pbook-words');words.append(make('p','pbook-text',spread.text),make('span','pbook-folio',String(i*2+1)));
+  const art=make('div','pbook-page pbook-art');const sketch=make('div','pbook-sketch');
+  sketch.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20z"/><path d="M14 7l3 3"/></svg>';
+  sketch.append(make('b',null,'Illustrated after you order'));
+  const scene=String(spread.image_scene||'').trim();if(scene)sketch.append(make('i',null,scene.length>110?scene.slice(0,107).replace(/\s+\S*$/,'')+'…':scene));
+  art.append(sketch,make('span','pbook-folio',String(i*2+2)));slide.append(words,art);slides.push(slide);
+ });
+ track.replaceChildren(...slides);
+ previewBookPage=Math.min(previewBookPage,slides.length-1);
+ requestAnimationFrame(()=>turnPreviewBook(previewBookPage,'instant'));
+}
+function updatePreviewBook(index){
+ const slides=$$('#pbook-track .pbook-slide');if(!slides.length)return;
+ previewBookPage=Math.max(0,Math.min(index,slides.length-1));
+ $('#pbook-pos').textContent=previewBookPage===0?'Cover':`Page ${previewBookPage} of ${slides.length-1}`;
+ $('#pbook-prev').disabled=previewBookPage===0;$('#pbook-next').disabled=previewBookPage===slides.length-1;
+ slides.forEach((slide,i)=>{slide.inert=i!==previewBookPage;slide.setAttribute('aria-hidden',String(i!==previewBookPage));});
+}
+function turnPreviewBook(index,behavior){
+ const track=$('#pbook-track');if(!track.clientWidth)return;
+ updatePreviewBook(index);
+ track.scrollTo({left:previewBookPage*track.clientWidth,behavior:behavior||(matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth')});
+}
+$('#pbook-prev').addEventListener('click',()=>{turnPreviewBook(previewBookPage-1);track('preview_book_turn');});
+$('#pbook-next').addEventListener('click',()=>{turnPreviewBook(previewBookPage+1);track('preview_book_turn');});
+$('#pbook-track').addEventListener('scroll',()=>{const t=$('#pbook-track');if(t.clientWidth)updatePreviewBook(Math.round(t.scrollLeft/t.clientWidth));},{passive:true});
+$('#pbook-track').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();turnPreviewBook(previewBookPage+(event.key==='ArrowLeft'?-1:1));});
+new ResizeObserver(()=>turnPreviewBook(previewBookPage,'instant')).observe($('#pbook-track'));
