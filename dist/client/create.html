@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=book-20261028">
+  <link rel="stylesheet" href="create.css?v=address-20261028">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -217,10 +217,20 @@
         </section>
 
 <section class="step" data-step="11" aria-labelledby="step-11-title" hidden><h1 id="step-11-title">Where should we send it?</h1><p class="intro">UK standard delivery is included.</p>            <label for="recipient-name">Recipient name</label><input id="recipient-name" maxlength="100" autocomplete="shipping name" required>
-            <label for="address-line1">Address</label><input id="address-line1" maxlength="200" autocomplete="shipping address-line1" required>
-            <details class="optional-detail"><summary>Add another address line <span>Optional</span></summary><label for="address-line2">Address line 2 <span>Optional</span></label><input id="address-line2" maxlength="200" autocomplete="shipping address-line2"></details>
-            <label for="town">Town or city</label><input id="town" maxlength="100" autocomplete="shipping address-level2" required>
-            <label for="postcode">UK postcode</label><input id="postcode" maxlength="12" autocomplete="shipping postal-code" required>
+            <div class="address-finder" id="address-finder" hidden>
+              <label for="address-search">Address</label>
+              <div class="address-search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg><input id="address-search" type="text" inputmode="search" autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="80" placeholder="Start typing the address or postcode" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="address-results" aria-describedby="address-search-note"><span class="address-spinner" id="address-spinner" hidden></span></div>
+              <ul class="address-results" id="address-results" role="listbox" aria-label="Matching addresses" hidden></ul>
+              <p class="address-note" id="address-search-note" role="status">Try a postcode or the first line, like “12 Oak Road”.</p>
+            </div>
+            <div class="address-card" id="address-card" hidden><div><span class="address-card-label">Sending to</span><p id="address-card-text"></p></div><button type="button" id="address-change">Change</button></div>
+            <div class="address-manual" id="address-manual">
+              <label for="address-line1">Address</label><input id="address-line1" maxlength="200" autocomplete="shipping address-line1" required>
+              <button type="button" class="address-add-line" id="address-add-line">+ Add flat, building or company</button>
+              <div id="address-line2-wrap" hidden><label for="address-line2">Flat, building or company <span>Optional</span></label><input id="address-line2" maxlength="200" autocomplete="shipping address-line2"></div>
+              <div class="address-pair"><div><label for="town">Town or city</label><input id="town" maxlength="100" autocomplete="shipping address-level2" required></div><div><label for="postcode">Postcode</label><input id="postcode" maxlength="9" autocomplete="shipping postal-code" autocapitalize="characters" spellcheck="false" required></div></div>
+            </div>
+            <button type="button" class="address-mode" id="address-mode" hidden>Enter the address myself</button>
 
 <div class="error" id="step-11-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="6">Back</button><button class="next" type="button" data-next="7">Review my book <span>→</span></button></div></section>
         <section class="step pay-step" data-step="7" aria-labelledby="step-7-title" hidden>
@@ -269,6 +279,6 @@
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=27" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=book-20261028" defer></script><script src="draft-save.js?v=gift-20261026" defer></script>
+  <script src="create.js?v=address-20261028" defer></script><script src="draft-save.js?v=gift-20261026" defer></script>
 </body>
 </html>

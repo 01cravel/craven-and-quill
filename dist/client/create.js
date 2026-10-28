@@ -81,6 +81,7 @@ function showStep(number){
   const visibleStep=order.indexOf(number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
   $('.journey').setAttribute('aria-label',`Step ${visibleStep} of ${order.length}: ${names[number]}`);
   if(number===7)fillReview();
+  if(number===11)queueMicrotask(()=>void prepareAddressStep());
   if(number===7)$('#delivery-summary').textContent=[$('#recipient-name').value,$('#address-line1').value,$('#address-line2').value,$('#town').value,$('#postcode').value].filter(Boolean).join(', ');
   if(number===4&&state.storyDraft)requestAnimationFrame(()=>turnStoryPage(state.storyPage,'instant'));
   if(number===5&&state.storyDraft)$('#illustration-count').textContent=`${state.storyDraft.spreads.length} story illustrations and a cover`;
@@ -393,7 +394,8 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   if(state.step===9){updateLive();const own=state.storyMode==='plot';const field=own?$('#own-idea'):$('#personal-details');if(!field.value.trim()){$('#step-9-error').textContent=own?'Give us a sentence about what should happen.':'Tell us one thing about them so we can make it personal.';field.focus();return;}$('#step-9-error').textContent='';buildIdeas();}
   if(state.step===11){
     const invalid=['recipient-name','address-line1','town','postcode'].find(id=>!$('#'+id).value.trim());
-    if(invalid){$('#step-11-error').textContent='Complete the delivery address to continue.';$('#'+invalid).focus();return;}
+    if(invalid){if(invalid!=='recipient-name'&&addressFinder.mode==='search'){$('#step-11-error').textContent='Start typing their address and pick it from the list, or enter it yourself.';$('#address-search').focus();return;}$('#step-11-error').textContent='Complete the delivery address to continue.';$('#'+invalid).focus();return;}
+    if(!validUkPostcode($('#postcode').value)){$('#step-11-error').textContent='Check the postcode. It should look like YO1 7AA.';if(addressFinder.mode!=='manual')setAddressMode('manual');$('#postcode').focus();return;}
     $('#step-11-error').textContent='';
   }
   if(state.step===3){
@@ -560,3 +562,91 @@ $('#pbook-next').addEventListener('click',()=>{turnPreviewBook(previewBookPage+1
 $('#pbook-track').addEventListener('scroll',()=>{const t=$('#pbook-track');if(t.clientWidth)updatePreviewBook(Math.round(t.scrollLeft/t.clientWidth));},{passive:true});
 $('#pbook-track').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();turnPreviewBook(previewBookPage+(event.key==='ArrowLeft'?-1:1));});
 new ResizeObserver(()=>turnPreviewBook(previewBookPage,'instant')).observe($('#pbook-track'));
+
+// Delivery address: one search box backed by Royal Mail data. Picking a match fills the hidden fields
+// and shows a tidy card. Typing it in stays available, with the second line tucked away until asked for.
+const addressFinder={available:null,mode:'manual',timer:0,controller:null,hits:[],active:-1,query:''};
+function tidyPostcode(value){const v=String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');return v.length>4?`${v.slice(0,-3)} ${v.slice(-3)}`:v;}
+function validUkPostcode(value){return /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/.test(tidyPostcode(value));}
+function addressFilled(){return ['address-line1','town','postcode'].every(id=>$('#'+id).value.trim());}
+function showAddressCard(){
+ const lines=[$('#address-line1').value,$('#address-line2').value,$('#town').value,tidyPostcode($('#postcode').value)].map(v=>v.trim()).filter(Boolean);
+ $('#address-card-text').replaceChildren(...lines.flatMap((line,i)=>i?[document.createElement('br'),line]:[line]));
+}
+function setAddressMode(mode){
+ addressFinder.mode=mode;
+ $('#address-finder').hidden=mode!=='search';$('#address-card').hidden=mode!=='card';$('#address-manual').hidden=mode!=='manual';
+ $('#address-mode').hidden=!addressFinder.available||mode==='card';
+ $('#address-mode').textContent=mode==='manual'?'Search for the address instead':'Enter the address myself';
+ if(mode==='card')showAddressCard();
+ if(mode==='manual'){$('#address-line2-wrap').hidden=!$('#address-line2').value.trim();$('#address-add-line').hidden=!$('#address-line2-wrap').hidden;}
+ closeAddressResults();
+}
+function closeAddressResults(){$('#address-results').hidden=true;$('#address-results').replaceChildren();$('#address-search').setAttribute('aria-expanded','false');$('#address-search').removeAttribute('aria-activedescendant');addressFinder.active=-1;}
+async function prepareAddressStep(){
+ if(addressFinder.available===null){
+  try{const r=await fetch('/api/address/status',{signal:AbortSignal.timeout(4000)});addressFinder.available=r.ok&&(await r.json()).available===true;}catch{addressFinder.available=false;}
+ }
+ if(state.step!==11)return;
+ if(addressFilled())setAddressMode(addressFinder.available?'card':'manual');
+ else setAddressMode(addressFinder.available?'search':'manual');
+}
+function renderAddressHits(){
+ const list=$('#address-results');list.replaceChildren();
+ addressFinder.hits.forEach((hit,i)=>{
+  const item=document.createElement('li');item.id=`address-hit-${i}`;item.setAttribute('role','option');item.setAttribute('aria-selected',String(i===addressFinder.active));
+  const [first,...rest]=hit.suggestion.split(', ');const strong=document.createElement('b');strong.textContent=first;item.append(strong);
+  if(rest.length){const small=document.createElement('span');small.textContent=rest.join(', ');item.append(small);}
+  item.addEventListener('pointerdown',event=>{event.preventDefault();void pickAddress(i);});list.append(item);
+ });
+ const manual=document.createElement('li');manual.id='address-hit-manual';manual.setAttribute('role','option');manual.className='address-hit-manual';manual.setAttribute('aria-selected',String(addressFinder.active===addressFinder.hits.length));
+ manual.textContent=addressFinder.hits.length?'Can’t see it? Enter the address yourself':'No matches yet. Enter the address yourself';
+ manual.addEventListener('pointerdown',event=>{event.preventDefault();useManualAddress();});list.append(manual);
+ list.hidden=false;$('#address-search').setAttribute('aria-expanded','true');
+ if(addressFinder.active>=0)$('#address-search').setAttribute('aria-activedescendant',addressFinder.active===addressFinder.hits.length?'address-hit-manual':`address-hit-${addressFinder.active}`);else $('#address-search').removeAttribute('aria-activedescendant');
+}
+function useManualAddress(){const typed=addressFinder.query;setAddressMode('manual');if(typed&&!$('#address-line1').value.trim()&&!/^[A-Z]{1,2}\d/i.test(typed))$('#address-line1').value=typed;else if(typed&&validUkPostcode(typed)&&!$('#postcode').value.trim())$('#postcode').value=tidyPostcode(typed);$('#address-line1').focus();track('address_manual');}
+async function searchAddresses(query){
+ addressFinder.controller?.abort();const controller=new AbortController();addressFinder.controller=controller;
+ $('#address-spinner').hidden=false;
+ try{
+  const r=await fetch('/api/address/search?q='+encodeURIComponent(query),{signal:controller.signal});
+  const data=await r.json().catch(()=>({}));
+  if(controller!==addressFinder.controller)return;
+  if(!r.ok){addressFinder.available=r.status===429?addressFinder.available:false;$('#address-search-note').textContent=data.error||'Address search is unavailable. Enter the address instead.';useManualAddress();return;}
+  addressFinder.hits=data.hits||[];addressFinder.active=-1;renderAddressHits();
+  $('#address-search-note').textContent=addressFinder.hits.length?`${addressFinder.hits.length} matching addresses. Use the arrow keys or tap one.`:'No matches yet. Keep typing or enter it yourself.';
+ }catch(error){if(error.name!=='AbortError'){$('#address-search-note').textContent='Address search is unavailable. Enter the address instead.';}}
+ finally{if(controller===addressFinder.controller)$('#address-spinner').hidden=true;}
+}
+async function pickAddress(index){
+ const hit=addressFinder.hits[index];if(!hit)return;
+ $('#address-search').value=hit.suggestion;closeAddressResults();$('#address-spinner').hidden=false;$('#address-search-note').textContent='Getting the full address…';
+ try{
+  const r=await fetch('/api/address/resolve?id='+encodeURIComponent(hit.id),{signal:AbortSignal.timeout(8000)});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok||!data.address)throw new Error(data.error||'That address could not be loaded. Try again or enter it yourself.');
+  const a=data.address;$('#address-line1').value=a.line1;$('#address-line2').value=a.line2||'';$('#town').value=a.townOrCity;$('#postcode').value=tidyPostcode(a.postcode);
+  ['address-line1','address-line2','town','postcode'].forEach(id=>$('#'+id).dispatchEvent(new Event('input',{bubbles:true})));
+  $('#step-11-error').textContent='';$('#address-search').value='';$('#address-search-note').textContent='Try a postcode or the first line, like “12 Oak Road”.';
+  setAddressMode('card');$('#address-change').focus({preventScroll:true});track('address_picked');window.dispatchEvent(new Event('cq-draft-change'));
+ }catch(error){$('#address-search-note').textContent=error.message;$('#address-search').focus();}
+ finally{$('#address-spinner').hidden=true;}
+}
+$('#address-search').addEventListener('input',()=>{
+ const query=$('#address-search').value.trim();addressFinder.query=query;clearTimeout(addressFinder.timer);
+ if(query.length<3){addressFinder.controller?.abort();$('#address-spinner').hidden=true;closeAddressResults();return;}
+ addressFinder.timer=setTimeout(()=>void searchAddresses(query),180);
+});
+$('#address-search').addEventListener('keydown',event=>{
+ const open=!$('#address-results').hidden,count=addressFinder.hits.length+1;
+ if(event.key==='ArrowDown'||event.key==='ArrowUp'){if(!open)return;event.preventDefault();addressFinder.active=(addressFinder.active+(event.key==='ArrowDown'?1:-1)+count)%count;renderAddressHits();$('#address-results [aria-selected="true"]')?.scrollIntoView({block:'nearest'});}
+ else if(event.key==='Enter'){if(!open)return;event.preventDefault();const i=addressFinder.active<0?0:addressFinder.active;if(i>=addressFinder.hits.length)useManualAddress();else void pickAddress(i);}
+ else if(event.key==='Escape'&&open){event.preventDefault();closeAddressResults();}
+});
+$('#address-search').addEventListener('blur',()=>setTimeout(closeAddressResults,120));
+$('#address-search').addEventListener('focus',()=>{if(innerWidth<780)$('#address-finder').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});if(addressFinder.hits.length&&$('#address-search').value.trim().length>=3)renderAddressHits();});
+$('#address-change').addEventListener('click',()=>{setAddressMode('search');$('#address-search').focus();});
+$('#address-mode').addEventListener('click',()=>{if(addressFinder.mode==='manual'){setAddressMode(addressFilled()?'card':'search');if(addressFinder.mode==='search')$('#address-search').focus();}else useManualAddress();});
+$('#address-add-line').addEventListener('click',()=>{$('#address-line2-wrap').hidden=false;$('#address-add-line').hidden=true;$('#address-line2').focus();});
+$('#postcode').addEventListener('blur',()=>{const v=$('#postcode').value;if(v.trim())$('#postcode').value=tidyPostcode(v);});
