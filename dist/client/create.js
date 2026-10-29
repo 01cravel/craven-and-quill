@@ -527,11 +527,13 @@ function renderPreviewBook(){
  const spreads=state.storyDraft?.spreads||[{text:previewText(idea),image_scene:''}];
  const slides=[];
  const cover=make('figure','pbook-slide pbook-cover');cover.setAttribute('aria-label','Front cover');
- const board=make('div','pbook-board');board.append(make('p','pbook-for',`A story for ${fullNames()||state.names||'them'}`));
- const window_=make('div','pbook-window');
- state.characterImages.filter(Boolean).forEach((src,i)=>{const img=make('img');img.src=src;img.alt=i?`${state.secondName} as a character`:`${state.names} as a character`;window_.append(img);});
- window_.classList.toggle('two',state.characterImages.filter(Boolean).length>1);
- board.append(window_,make('h3','pbook-title',title),make('p','pbook-mark','Craven & Quill'));cover.append(board);slides.push(cover);
+ // Same design as the example books' covers: full picture, dark fade, dedication line, title, reading age.
+ const board=make('div','pbook-board');const pictures=state.characterImages.filter(Boolean);board.classList.toggle('two',pictures.length>1);
+ pictures.forEach((src,i)=>{const img=make('img');img.src=src;img.alt=i?`${state.secondName} as a character`:`${state.names} as a character`;board.append(img);});
+ const ages={'3-5':'age 3–5','6-8':'age 6–8','9-12':'age 9–12','teen-adult':'an adult'};
+ const copy=make('div','pbook-cover-copy');copy.append(make('p',null,`A personalised story for ${fullNames()||state.names||'them'}`),make('h3',null,title));
+ if(ages[state.age])copy.append(make('span',null,`Written for ${ages[state.age]}`));
+ board.append(copy);cover.append(board);slides.push(cover);
  spreads.forEach((spread,i)=>{
   const slide=make('article','pbook-slide pbook-spread');slide.setAttribute('aria-label',`Page ${i+1} of ${spreads.length}`);
   const words=make('div','pbook-page pbook-words');words.append(make('p','pbook-text',spread.text),make('span','pbook-folio',String(i*2+1)));
