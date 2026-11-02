@@ -56,7 +56,9 @@ h2{font:400 clamp(2.2rem,4.2vw,3.7rem)/1.04 var(--serif);letter-spacing:-.02em;m
 /* Hero */
 .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:clamp(32px,5vw,72px);align-items:center;padding-top:clamp(28px,5vw,64px)}
 .hero h1{font:400 clamp(2.9rem,6.2vw,5.6rem)/.98 var(--serif);letter-spacing:-.03em;margin:0;max-width:11ch}
-.hero-lede{font-size:clamp(1.05rem,1.4vw,1.2rem);color:var(--muted);max-width:32rem;margin:24px 0 32px}
+.hero-lede{font-size:clamp(1.05rem,1.4vw,1.2rem);color:var(--muted);max-width:32rem;margin:24px 0 0}
+.hero-price{font-size:clamp(1.05rem,1.4vw,1.2rem);color:var(--muted);max-width:32rem;margin:6px 0 32px}
+.hero-cover{display:none}
 .hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px 28px}
 .hero-notes{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:32px 0 0}
 .hero-notes li{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 10px;border-radius:999px;background:var(--white);font-size:.88rem;color:var(--muted)}
@@ -231,3 +233,22 @@ footer small{flex-basis:100%;font-size:.84rem}
 
 /* Supplied gold monogram: retain its full artwork and natural proportions. */
 .brand img,.footer-brand img,.drawing-brand img,img[src*="logo-header"]{object-fit:contain;mix-blend-mode:normal;height:auto;aspect-ratio:3/2;border-radius:3px}
+
+/* Phone hero: everything that sells the book (headline, a real cover, one line of copy and the button)
+   fits the first screen, centred. Price details follow just below the button. */
+@media (max-width:640px){
+  .hero{padding-top:14px;gap:40px}
+  .hero-copy{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .hero h1{font-size:clamp(2.05rem,9.6vw,2.5rem);line-height:1;letter-spacing:-.025em;max-width:none}
+  .hero-cover{display:block;position:relative;margin:14px 0 0;height:clamp(170px,calc(100svh - 380px),310px);aspect-ratio:4/5;border-radius:4px 12px 12px 4px;overflow:hidden;background:var(--dusk);box-shadow:var(--shadow-book)}
+  .hero-cover img{width:100%;height:100%;object-fit:cover;object-position:41% 50%}
+  .hero-cover::before{content:"";position:absolute;inset:0 auto 0 0;width:9%;z-index:1;background:linear-gradient(90deg,rgba(14,28,24,.32),rgba(255,255,255,.18) 55%,rgba(14,28,24,0))}
+  .hero-cover figcaption{position:absolute;inset:auto 0 0;display:grid;gap:3px;padding:38% 10% 9%;color:var(--white);background:linear-gradient(to top,rgba(14,28,24,.9),rgba(14,28,24,.5) 55%,transparent)}
+  .hero-cover figcaption span{font-size:.62rem;line-height:1.3;font-weight:500;opacity:.9}
+  .hero-cover figcaption strong{font:400 clamp(1rem,4.6vw,1.2rem)/1.05 var(--serif);text-wrap:balance}
+  .hero-lede{margin:14px 0 0;font-size:1rem;line-height:1.5;max-width:30ch}
+  .hero-actions{width:100%;margin-top:16px;justify-content:center}
+  .hero-price{order:1;margin:16px 0 0;font-size:.88rem;line-height:1.5;max-width:34ch}
+  .publishing-proof,.hero-notes{order:2}
+  .publishing-proof{text-align:left;width:100%}
+}

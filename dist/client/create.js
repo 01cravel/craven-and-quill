@@ -71,7 +71,7 @@ function showStep(number){
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
-  state.step=number;
+  state.step=number;keepStepFields();
   if(number===2){updatePhotoGate();renderPhotoThumbnails(state.photos);}
   if(number===9)configureBrief();
   if(number===6){window.cqMeasurement?.record('price_view');void saveQuote().catch(()=>{});}
@@ -216,6 +216,17 @@ $('#story-pages').addEventListener('keydown',event=>{
 });
 new ResizeObserver(()=>turnStoryPage(state.storyPage,'instant')).observe($('#story-pages'));
 
+// iPhone AutoFill on the delivery step can quietly fill fields on other, hidden steps too, turning the
+// hero's first name into the buyer's contact name. Only take changes to these fields while their own
+// step is on screen; anything else is put back.
+const stepFields=['names','second-name','sender-name','dedication'].map(id=>$('#'+id));
+const keptFieldValues=new Map();
+function keepStepFields(){stepFields.forEach(field=>keptFieldValues.set(field,field.value));}
+stepFields.forEach(field=>field.addEventListener('input',event=>{
+  if(!field.closest('.step').hidden){keptFieldValues.set(field,field.value);return;}
+  event.stopImmediatePropagation();field.value=keptFieldValues.get(field)??'';
+}));
+keepStepFields();
 $('#names').addEventListener('input',updateLive);
 $('#sender-name').addEventListener('input',updateGiftPage);
 $('#dedication').addEventListener('input',updateGiftPage);
@@ -519,8 +530,9 @@ examplesDialog.addEventListener('click',event=>{if(event.target===examplesDialog
 
 $('#show-offer-code').addEventListener('click',()=>{const field=$('#offer-code-field');field.hidden=false;$('#show-offer-code').setAttribute('aria-expanded','true');$('#show-offer-code').hidden=true;$('#offer-code').focus();});
 
-// Free preview book: the cover with their character, then each spread with the words on the left
-// and a sketch placeholder on the right, because we only paint the pages after an order.
+// Free preview book: the cover with their character, then each spread laid out like the printed book
+// (src/print-book.js): picture on the left, words on the right. The picture is a sketch placeholder
+// because we only paint the pages after an order. Folios match the printed interior page numbers.
 let previewBookPage=0;
 function renderPreviewBook(){
  const track=$('#pbook-track');if(!track)return;
@@ -538,12 +550,13 @@ function renderPreviewBook(){
  board.append(copy);cover.append(board);slides.push(cover);
  spreads.forEach((spread,i)=>{
   const slide=make('article','pbook-slide pbook-spread');slide.setAttribute('aria-label',`Page ${i+1} of ${spreads.length}`);
-  const words=make('div','pbook-page pbook-words');words.append(make('p','pbook-text',spread.text),make('span','pbook-folio',String(i*2+1)));
+  const body=make('div','pbook-body');body.append(make('p','pbook-text',spread.text));
+  const words=make('div','pbook-page pbook-words');words.append(make('p','pbook-head',title),body,make('span','pbook-folio',String(i*2+5)));
   const art=make('div','pbook-page pbook-art');const sketch=make('div','pbook-sketch');
   sketch.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20z"/><path d="M14 7l3 3"/></svg>';
   sketch.append(make('b',null,'Illustrated after you order'));
   const scene=String(spread.image_scene||'').trim();if(scene)sketch.append(make('i',null,scene.length>110?scene.slice(0,107).replace(/\s+\S*$/,'')+'…':scene));
-  art.append(sketch,make('span','pbook-folio',String(i*2+2)));slide.append(words,art);slides.push(slide);
+  art.append(sketch,make('span','pbook-folio',String(i*2+4)));slide.append(art,words);slides.push(slide);
  });
  track.replaceChildren(...slides);
  previewBookPage=Math.min(previewBookPage,slides.length-1);
