@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=book-20261102">
+  <link rel="stylesheet" href="create.css?v=trust-20261102">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -49,7 +49,7 @@
         <section class="step active" data-step="1" aria-labelledby="step-1-title">
           <p class="eyebrow">Start with the star</p>
           <h1 id="step-1-title">What’s their first name?</h1>
-          <p class="intro">Let’s make them the hero.</p><p class="quick-reassurance">Free preview · No card needed · For Christmas, order by 1 December</p><p class="privacy-line">Hardbacks from £39.99, including UK delivery.</p>
+          <p class="intro">Let’s make them the hero.</p><p class="quick-reassurance">Free preview · No card needed · For Christmas, order by 1 December</p><p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>3,000+ books sold</b> across our book catalogue</span></p><p class="privacy-line">Hardbacks from £39.99, including UK delivery.</p>
           <label for="names">First name <span>Required</span></label>
           <input id="names" enterkeyhint="next" name="names" maxlength="40" autocomplete="off" placeholder="For example, Leo" required>
 
@@ -76,6 +76,7 @@
           <p class="eyebrow">Create their character</p>
           <h1 id="step-2-title">Add a clear photo.</h1>
           <p class="intro">One clear face photo is enough. Extra angles can help us capture their likeness.</p>
+          <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>3,000+ books sold</b> across our book catalogue</span></p>
 
           <div id="second-person" hidden>
             <label for="second-name">Second first name <span>Required</span></label>
@@ -184,7 +185,7 @@
                 <figure class="preview-art" id="preview-art"><img id="preview-image" src="assets/storybook.webp" width="900" height="1125" alt="Sample personalised story illustration format"><img id="preview-image-second" width="900" height="1125" alt="" hidden><span>Free preview</span></figure>
                 <article class="preview-copy"><p class="chapter" id="preview-chapter">The adventure begins</p><p id="story-copy"></p></article>
               </div>
-              <p class="preview-explainer">After you order, we illustrate <strong id="illustration-count">10 story illustrations and a cover</strong> with this character. You approve the finished book before printing.</p><div id="locked-dots" hidden></div>
+              <p class="preview-explainer">After you order, we illustrate <strong id="illustration-count">10 story illustrations and a cover</strong> with this character. You approve the finished book before printing.</p><p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>3,000+ books sold</b> across our book catalogue</span></p><div id="locked-dots" hidden></div>
             </section>
 <div class="error" id="step-5-error" role="alert"></div>
             <div class="step-actions"><button class="back" type="button" data-back="10">Back</button><button class="next" id="choose-book" type="button" data-next="4" disabled>Next <span>→</span></button></div>
@@ -194,6 +195,7 @@
         <section class="step checkout-step" data-step="6" aria-labelledby="step-6-title" hidden>
           <h1 id="step-6-title">Choose their book.</h1>
           <p class="intro">Tap a size to continue. Both include UK delivery. Your full proof is ready within 7 calendar days of payment.</p>
+          <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>3,000+ books sold</b> across our book catalogue</span></p>
 
           <fieldset>
             <legend class="visually-hidden">Book format</legend>
@@ -248,13 +250,13 @@
             <label class="launch-consent"><input id="purchase-intent" type="checkbox"><span id="purchase-intent-label">I’ve checked their name and story. I’ll approve the finished proof before printing.</span></label>
             <div class="error" id="step-7-error" role="alert"></div>
             <button class="next checkout-button" id="join-launch" type="button">Next</button>
+            <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>3,000+ books sold</b> across our book catalogue</span></p>
             <div class="review-links"><button class="shuffle" type="button" id="open-examples" aria-haspopup="dialog">See example books</button><button class="shuffle" type="button" id="show-offer-code" aria-controls="offer-code-field" aria-expanded="false">Have a code?</button><button class="back" type="button" data-back="11">Back</button></div>
             <div class="review-details">
               <p class="intro" id="order-availability">Payments are not open yet. Save your book and delivery details now, with no charge or commitment.</p>
               <p class="privacy-line">Your full illustrated proof: within 7 calendar days of payment. Estimated UK delivery: 7–12 working days after you approve the proof. Our team checks every page before printing. Buying for Christmas? Order by 1 December for the best chance of arriving in time. Need it for another date? <a href="mailto:cravenluke@gmail.com">Check with us before ordering</a>.</p>
               <div class="review-detail-row"><div class="gift-page-preview" aria-label="Inside gift page preview"><p>A story just for</p><strong data-gift-name>Someone special</strong><p data-gift-sender hidden></p><p class="gift-message" data-gift-message hidden></p></div><div><p class="review-detail-label">Delivery</p><p id="delivery-summary" class="delivery-summary"></p><button class="shuffle" type="button" data-back="11">Edit delivery details</button><button class="shuffle" type="button" data-back="1">Edit gift page</button></div></div>
               <p class="privacy-line">We save this book, illustrated character, email and delivery details privately. We use your email for this book, not a marketing subscription. <a href="privacy.html" target="_blank" rel="noopener">Privacy details</a> · <a href="ordering.html" target="_blank" rel="noopener">Ordering and delivery</a></p>
-              <div class="publishing-proof" aria-label="Our publishing experience"><strong>Over 3,000 books sold</strong><span>Across our wider book catalogue.</span></div>
               <p class="under-button">UK delivery included. Secure payment with Ziina. The seller may appear as cravenluke (Luke Craven, Craven &amp; Quill). Nothing prints without your approval.</p>
             </div>
           </div>

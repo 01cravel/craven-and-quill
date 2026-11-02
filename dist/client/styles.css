@@ -252,3 +252,10 @@ footer small{flex-basis:100%;font-size:.84rem}
   .publishing-proof,.hero-notes{order:2}
   .publishing-proof{text-align:left;width:100%}
 }
+
+/* Trust line: one calm, honest reassurance repeated at the moments people hesitate. */
+.trust-line{display:flex;align-items:center;gap:9px;margin:10px 0 14px;font-size:.84rem;line-height:1.35;color:var(--muted)}
+.trust-line svg{flex:none;width:28px;height:28px;padding:6px;border-radius:50%;background:#efecf4;fill:none;stroke:#17332c;stroke-width:1.7;stroke-linejoin:round}
+.trust-line b{font-weight:700;color:#17332c}
+.hero-copy>.trust-line{margin:22px 0 0}
+@media (max-width:640px){.hero-copy>.trust-line{justify-content:center;margin:14px 0 0}}
