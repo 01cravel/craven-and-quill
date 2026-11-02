@@ -1,0 +1,55 @@
+/* Analytics view. Builds on orders-admin.css tokens so both owner pages read as one workspace. */
+:root{--bar:#365dbe;--bar-soft:#c9d6f4;--lost:#c24a3e}
+.page-heading h1{margin-bottom:4px}
+.panel{padding:18px 20px;margin-bottom:14px;min-width:0}.panel h2{font-size:15px;margin:0 0 2px;letter-spacing:-.01em}.sub{margin:0 0 12px;color:var(--muted);font-size:12px}
+.filters{display:flex;flex-wrap:wrap;align-items:end;gap:10px 14px;margin:0 0 16px}.filters label{display:grid;gap:4px;font-size:11px;font-weight:700;color:var(--muted)}.filters input,.filters select{border:1px solid var(--line);border-radius:8px;padding:8px 9px;background:#fff;color:var(--ink);min-width:0}.filters select{max-width:200px}.filters .button{margin:0}
+.presets{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}.presets button{border:0;border-right:1px solid var(--line);background:none;padding:8px 12px;color:var(--muted);font-weight:700}.presets button:last-child{border-right:0}.presets button[aria-pressed=true]{background:var(--blue-soft);color:var(--blue)}
+
+/* Headline: one strip, money figures last so the eye ends on cost per sale. */
+.headline{padding:0;overflow:hidden}.headline dl{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));margin:0}
+.headline div{padding:15px 16px;border-right:1px solid var(--line)}.headline div:last-child{border-right:0}
+.headline dt{font-size:11px;color:var(--muted);font-weight:650}.headline dd{margin:3px 0 0;font-size:24px;font-weight:750;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap}.headline dd small{display:block;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:0;white-space:normal}
+.headline .money{background:#fafbfd}
+
+.split{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:14px;align-items:start}.split>.panel{margin-bottom:14px}.split.even{grid-template-columns:1fr 1fr}
+
+/* The funnel is the page's one bold element: a shrinking stair with the loss called out in red. */
+.funnel{list-style:none;margin:6px 0 4px;padding:0;counter-reset:step}
+.funnel li{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr) 92px;align-items:center;gap:12px;padding:5px 0}
+.funnel .name{font-size:12.5px;font-weight:650;line-height:1.2}
+.funnel .track{position:relative;height:26px;border-radius:0 5px 5px 0;background:repeating-linear-gradient(90deg,#f1f4f9 0 2px,transparent 2px 25%)}
+.funnel .fill{height:100%;min-width:2px;background:var(--bar);border-radius:0 5px 5px 0;display:flex;align-items:center;justify-content:flex-end;padding:0 8px;color:#fff;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums;transition:width .45s cubic-bezier(.2,.7,.2,1)}
+.funnel .fill.narrow{justify-content:flex-start;padding:0;color:var(--ink);overflow:visible}.funnel .fill.narrow span{position:absolute;left:calc(var(--w) + 6px)}
+.funnel .lost{font-size:11.5px;color:var(--lost);font-weight:700;text-align:right;font-variant-numeric:tabular-nums;line-height:1.2}.funnel .lost small{display:block;color:var(--muted);font-weight:500}
+.funnel li.final .fill{background:var(--good)}
+@media (prefers-reduced-motion:reduce){.funnel .fill{transition:none}}
+
+table.compact th,table.compact td{padding:8px 7px;font-size:12px;white-space:nowrap}table.compact .num{text-align:right;font-variant-numeric:tabular-nums}table.compact tr.selected td{background:#f2f5ff}
+
+/* Column charts: one hue, baseline-anchored, rounded data end only. */
+.columns{display:flex;align-items:flex-end;gap:2px;height:186px;padding-top:20px;border-bottom:1px solid var(--line);position:relative}
+.columns .col{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;cursor:default;position:relative}
+.columns .col i{display:block;background:var(--bar-soft);border-radius:4px 4px 0 0}.columns .col i.part{background:var(--bar);border-radius:0}.columns .col i.part:first-child{border-radius:4px 4px 0 0}
+.columns .col:hover i,.columns .col:focus-visible i{filter:brightness(.9)}
+.axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:5px;font-variant-numeric:tabular-nums}
+.chart-max{position:absolute;top:0;left:0;font-size:10.5px;color:var(--muted)}
+
+.breakdowns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}.breakdowns h2{margin-bottom:8px}
+.bars{list-style:none;margin:0;padding:0}.bars li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;font-size:12px;padding:4px 0}.bars li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bars li b{font-variant-numeric:tabular-nums}.bars li b small{font-weight:500;color:var(--muted);margin-left:6px}.bars li i{grid-column:1/-1;display:block;height:5px;border-radius:0 3px 3px 0;background:var(--bar)}
+.bars .empty,.empty-row{color:var(--muted);font-size:12px}
+
+.lists{padding:0}.lists .detail-tabs{padding:0 20px}.lists .detail-tabs button span{display:inline-block;margin-left:5px;font-size:10.5px;color:var(--muted);background:#eef1f6;border-radius:999px;padding:1px 6px}
+#list{padding:12px 20px 18px}.list-tools{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}.list-tools input{border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:220px}.list-tools p{margin:0;color:var(--muted);font-size:12px}
+.steps{display:flex;gap:2px;align-items:center}.steps i{width:9px;height:9px;border-radius:2px;background:#e6eaf1}.steps i.on{background:var(--bar)}.steps i.paid{background:var(--good)}
+.tag{display:inline-block;border-radius:999px;padding:2px 7px;font-size:10.5px;font-weight:700;background:#eef1f6;color:#435167;margin:1px 3px 1px 0;white-space:nowrap}.tag.bad{background:var(--bad-soft);color:var(--bad)}.tag.good{background:var(--good-soft);color:var(--good)}.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.made{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}.made article{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px}.made img,.made .noimg{width:72px;height:96px;object-fit:contain;background:#f1f3f6;border-radius:6px}.made .noimg{display:grid;place-items:center;font-size:10px;color:var(--muted);text-align:center}.made h3{font-size:13px;margin:0 0 3px}.made p{margin:2px 0;font-size:12px;color:var(--muted)}.made p.syn{color:var(--ink)}
+.spend-form{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:4px 0 12px}.spend-form label{display:grid;gap:4px;font-size:11px;font-weight:700;color:var(--muted)}.spend-form input,.spend-form select{border:1px solid var(--line);border-radius:8px;padding:8px 9px;min-width:0}.spend-form input[type=number]{width:110px}.spend-form .button{margin:0}
+.list-title{font-size:13px;margin:16px 0 4px}.list-title:first-child{margin-top:4px}
+.notes{margin:6px 0 0;padding-left:18px;color:var(--muted);font-size:12.5px}.notes li{margin-bottom:6px}
+.tip{position:fixed;z-index:20;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;line-height:1.35;padding:7px 9px;border-radius:7px;max-width:220px;box-shadow:0 4px 16px #19253330}
+
+@media(max-width:1180px){.headline dl{grid-template-columns:repeat(5,minmax(0,1fr))}.headline div:nth-child(5){border-right:0}.headline div:nth-child(-n+5){border-bottom:1px solid var(--line)}.split,.split.even{grid-template-columns:1fr}.breakdowns{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.panel{padding:15px}.headline dl{grid-template-columns:1fr 1fr 1fr}.headline div{border-bottom:1px solid var(--line);padding:12px}.headline div:nth-child(3n){border-right:0}.headline div:nth-child(5){border-right:1px solid var(--line)}.headline dd{font-size:20px}
+ .funnel li{grid-template-columns:minmax(0,1fr) 70px;gap:3px 10px}.funnel .name{grid-column:1/-1}.funnel .lost{grid-column:2;grid-row:2}
+ .filters label{flex:1 1 130px}.filters select{max-width:none}.presets{flex:1 1 100%}.presets button{flex:1}.columns{height:130px}#list{padding:10px 15px 15px}.lists .detail-tabs{padding:0 15px}.list-tools input{min-width:0;flex:1}}
+@media(max-width:520px){.headline dl{grid-template-columns:1fr 1fr}.headline div:nth-child(n){border-right:1px solid var(--line)}.headline div:nth-child(2n){border-right:0}.headline div:last-child{grid-column:1/-1;border-bottom:0}.breakdowns{grid-template-columns:1fr}.made{grid-template-columns:1fr}}

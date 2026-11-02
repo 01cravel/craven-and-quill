@@ -5,3 +5,4 @@ const content=await Promise.all(names.map(name=>readFile(`marketing/follow-up-em
 await writeFile('src/followup-templates.generated.js',content.map((value,index)=>`export const template${index+1}=${JSON.stringify(value)};`).join('\n')+'\n');
 await build({entryPoints:['src/orders.js'],outfile:'dist/server/orders.js',bundle:true,format:'esm',platform:'browser',target:'es2022',minify:false});
 await copyFile('src/owner-auth.js','dist/server/owner-auth.js');
+await copyFile('src/analytics.js','dist/server/analytics.js');

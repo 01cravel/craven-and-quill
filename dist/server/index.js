@@ -1,6 +1,7 @@
 import {campaignApi,beginPreview,finishPreview} from './campaign.js';
 import {ordersApi,runFollowups,followupStatus,runArtworkJobs,claimBookSoldAlerts} from './orders.js';
 import {ownerAuth} from './owner-auth.js';
+import {analyticsApi} from './analytics.js';
 import {storyApi} from './story.js';
 import {addressApi} from './address.js';
 const RATE_WINDOW_MS=60*60*1000;
@@ -135,6 +136,7 @@ export default {async fetch(request,env){
   const url=new URL(request.url);
   if(url.pathname==='/mcp')return followupMcp(request,env);
   const ownerResponse=await ownerAuth(request,env);if(ownerResponse)return ownerResponse;
+  const analyticsResponse=await analyticsApi(request,env);if(analyticsResponse)return analyticsResponse;
   const orderResponse=await ordersApi(request,env);if(orderResponse)return orderResponse;
   const storyResponse=await storyApi(request,env);if(storyResponse)return storyResponse;
   const addressResponse=await addressApi(request,env);if(addressResponse)return addressResponse;
