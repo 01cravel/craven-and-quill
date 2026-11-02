@@ -9,6 +9,13 @@ test('invented route sends interests as the source of the plot, not a stock prem
  const b=brief('invent','funny','Football and fish and chips','A stale custom plot');
  assert.equal(b.details,'Football and fish and chips');assert.equal(b.mood,'funny');assert.match(b.idea,/one or two strongest details/);assert.ok(!b.idea.includes('stale'));
 });
-test('customer plot stays intact independently of selected tone',()=>{
- for(const tone of ['funny','adventure','classic']){const b=brief('plot',tone,'','Scores the winning goal at Wembley');assert.equal(b.idea,'Scores the winning goal at Wembley');assert.equal(b.mood,tone);}
+test('the story is always written from their description, kept believable',()=>{
+ const b=brief('invent','classic','Biscuit is our cocker spaniel. He loves the beach.','');
+ assert.equal(b.details,'Biscuit is our cocker spaniel. He loves the beach.');assert.match(b.idea,/follow that/);assert.match(b.idea,/believable/);
+});
+test('story prompt keeps animal heroes as animals and bans random magic',()=>{
+ const p=readFileSync(new URL('../dist/server/story.js',import.meta.url),'utf8');
+ assert.match(p,/never becomes a person/);assert.match(p,/never weird/);
+ const c=readFileSync(new URL('../dist/server/index.js',import.meta.url),'utf8');
+ assert.match(c,/never turn it into a person/);
 });

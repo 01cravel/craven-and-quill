@@ -112,7 +112,7 @@ test('exports the launch list as CSV only with the right token',async()=>{
 
 test('sends all three references in one drawing request for one person',async()=>{
  const original=globalThis.fetch;let calls=0;
- globalThis.fetch=async(_url,{body})=>{calls++;assert.equal(body.getAll('image[]').length,3);assert.match(body.get('prompt'),/SAME person/);assert.match(body.get('prompt'),/exactly one character/);return Response.json({data:[{b64_json:'dGVzdA=='}]});};
+ globalThis.fetch=async(_url,{body})=>{calls++;assert.equal(body.getAll('image[]').length,3);assert.match(body.get('prompt'),/SAME subject/);assert.match(body.get('prompt'),/exactly one character/);return Response.json({data:[{b64_json:'dGVzdA=='}]});};
  try{
   const form=new FormData();for(let i=0;i<3;i++)form.append('photo',new File(['image'+i],`face${i}.jpg`,{type:'image/jpeg'}));
   const response=await worker.fetch(new Request('https://example.com/api/generate-character',{method:'POST',headers:{'CF-Connecting-IP':'203.0.113.70'},body:form}),{DB:testDb(),OPENAI_API_KEY:'test'});

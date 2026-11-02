@@ -67,7 +67,7 @@ function scrollToStepTop(number){
 }
 
 function showStep(number){
-  const order=[1,8,2,12,9,3,10,5,4,6,11,7];
+  const order=[1,8,2,9,3,10,5,4,6,11,7];
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
@@ -77,7 +77,7 @@ function showStep(number){
   if(number===6){window.cqMeasurement?.record('price_view');void saveQuote().catch(()=>{});}
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
-  const names={1:'Their name',8:'Reading level',2:'Their photo',12:'Story approach',9:state.storyMode==='plot'?'Your idea':'About them',3:'Story tone',4:'Your story',10:'Your email',5:'Your character',6:'Book size',11:'Delivery',7:'Review & pay'};
+  const names={1:'Their name',8:'Reading level',2:'Their photo',9:'About them',3:'Story tone',4:'Your story',10:'Your email',5:'Your character',6:'Book size',11:'Delivery',7:'Review & pay'};
   const visibleStep=order.indexOf(number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
   $('.journey').setAttribute('aria-label',`Step ${visibleStep} of ${order.length}: ${names[number]}`);
   if(number===7)fillReview();
@@ -95,8 +95,8 @@ function configureBrief(){
  const own=state.storyMode==='plot';
  $('#interests-options').hidden=own;$('#own-options').hidden=!own;
  $('#step-9-title').textContent=own?'What should happen?':'What makes them, them?';
- $('#brief-intro').textContent=own?'Share your plot, even in one sentence. We’ll turn it into a complete story.':'One or two favourite things are perfect. We’ll build the adventure around the main ones.';
- $('#brief-help-copy').textContent=own?'Who is the hero? What do they want? What goes wrong? For example: they score the winning goal at Wembley, but their lucky boots have gone missing.':'What do they love most? One or two things, like a favourite team, place or pet, is plenty.';
+ $('#brief-intro').textContent=own?'Share your plot, even in one sentence. We’ll turn it into a complete story.':'Who they are, what they love, and anything you’d like to happen. We’ll write the story from this.';
+ $('#brief-help-copy').textContent=own?'Who is the hero? What do they want? What goes wrong? For example: they score the winning goal at Wembley, but their lucky boots have gone missing.':'Say who they are (a child, a grown-up or a pet), one or two things they love, and anything you’d like to happen.';
 }
 function validBrief(){
  const field=state.storyMode==='plot'?$('#own-idea'):$('#personal-details');
@@ -104,12 +104,13 @@ function validBrief(){
  showStep(9);$('#step-9-error').textContent=state.storyMode==='plot'?'Give us a sentence about what should happen.':'Tell us one thing about them so we can make it personal.';field.focus();return false;
 }
 function buildIdeas(){
- state.ideas=[['Their own adventure',state.storyMode==='plot'?$('#own-idea').value.trim():'Invent an original plot built around the one or two strongest details about them. Leave other details out rather than cramming them in, and do not substitute an unrelated stock plot.']];
+ if(state.storyMode==='plot'){const own=$('#own-idea').value.trim(),about=$('#personal-details');if(own&&!about.value.trim())about.value=own;state.storyMode='invent';state.details=about.value.trim();}
+ state.ideas=[['Their own adventure',state.storyMode==='plot'?$('#own-idea').value.trim():'Write the story from this description of them. If it says what should happen, follow that. Otherwise invent a simple, believable plot built around the one or two strongest details. Leave other details out rather than cramming them in, and do not substitute an unrelated stock plot.']];
  state.selected=0;configureBrief();updateLive();
 }
 
 let storyWriting=false,storyRequest=0;
-function storyBasis(){return JSON.stringify({names:state.names,secondName:state.secondName,age:state.age,mood:state.mood,details:state.details,idea:state.storyMode==='plot'?$('#own-idea').value.trim():'Invent an original plot built around the one or two strongest details about them. Leave other details out rather than cramming them in, and do not substitute an unrelated stock plot.'});}
+function storyBasis(){return JSON.stringify({names:state.names,secondName:state.secondName,age:state.age,mood:state.mood,details:state.details,idea:state.storyMode==='plot'?$('#own-idea').value.trim():'Write the story from this description of them. If it says what should happen, follow that. Otherwise invent a simple, believable plot built around the one or two strongest details. Leave other details out rather than cramming them in, and do not substitute an unrelated stock plot.'});}
 function draftValid(story){return Boolean(typeof story?.title==='string'&&story.title.trim()&&story.title.length<=120&&typeof story?.synopsis==='string'&&story.synopsis.trim()&&story.synopsis.length<=600&&Array.isArray(story.spreads)&&story.spreads.length===10&&story.spreads.every(page=>typeof page?.text==='string'&&page.text.trim()&&page.text.length<=1500&&typeof page?.image_scene==='string'&&page.image_scene.trim()&&page.image_scene.length<=800));}
 function updateStoryGate(){
   const outdated=Boolean(state.storyDraft&&(state.storyBasis!==storyBasis()||state.storylineNeedsUpdate));
@@ -240,7 +241,7 @@ async function inspectPhoto(file){
   if(contrast<22||edges<9)return{pass:false,message:'The photo is too soft. Use a sharper, clearer photo.'};
   let faceMessage='Light and sharpness passed. Confirm the face manually below.';
   if('FaceDetector' in window){
-    try{const detector=new FaceDetector({fastMode:true,maxDetectedFaces:5});const image=await createImageBitmap(file);const faces=await detector.detect(image);image.close();if(faces.length!==1)return{pass:false,message:faces.length===0?'No clear face was found. Use a front-facing photo.':'More than one face was found. Upload one person per photo.'};faceMessage='One clear face found. Confirm it manually below.';}catch{}
+    try{const detector=new FaceDetector({fastMode:true,maxDetectedFaces:5});const image=await createImageBitmap(file);const faces=await detector.detect(image);image.close();if(faces.length>1)return{pass:false,message:'More than one face was found. Upload one person per photo.'};faceMessage=faces.length?'One clear face found. Confirm it manually below.':'Light and sharpness passed. For a person, make sure the face is clear. Pets are welcome too.';}catch{}
   }
   return{pass:true,message:faceMessage};
 }
@@ -326,7 +327,7 @@ function previewText(idea){
 let drawingProgress=null,generationBusy=false;
 async function requestCharacter(file,name){
   const idea=selectedStory();const form=new FormData();
-  for(const photo of (Array.isArray(file)?file:[file]))form.append('photo',photo,photo.name||'photo.jpg');form.append('email',$('#email').value.trim().toLowerCase());form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',`${idea?.[1]||''} ${state.storyDraft?.spreads[0]?.text||''}`.slice(0,500));
+  for(const photo of (Array.isArray(file)?file:[file]))form.append('photo',photo,photo.name||'photo.jpg');form.append('email',$('#email').value.trim().toLowerCase());form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',`${state.details||$('#personal-details').value.trim()} ${state.storyDraft?.spreads[0]?.text||''}`.trim().slice(0,500));
   const data=await window.cqPreviewProgress.request(form,event=>drawingProgress?.update(event));
   state.previewId=data.previewId||null;
   return data.image;
@@ -390,7 +391,6 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     $('#step-1-error').textContent='';
   }
   if(state.step===8&&!$('input[name="age"]:checked')){$('#step-8-error').textContent='Choose a reading level.';return;}
-  if(state.step===12){const selected=$('input[name="story-mode"]:checked');if(!selected){$('#step-12-error').textContent='Choose how you’d like us to create the story.';return;}state.storyMode=selected.value;$('#step-12-error').textContent='';buildIdeas();}
   if(state.step===9){updateLive();const own=state.storyMode==='plot';const field=own?$('#own-idea'):$('#personal-details');if(!field.value.trim()){$('#step-9-error').textContent=own?'Give us a sentence about what should happen.':'Tell us one thing about them so we can make it personal.';field.focus();return;}$('#step-9-error').textContent='';buildIdeas();}
   if(state.step===11){
     const invalid=['recipient-name','address-line1','town','postcode'].find(id=>!$('#'+id).value.trim());
