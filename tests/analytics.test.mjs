@@ -158,3 +158,13 @@ test('visit detail is deleted after 90 days',async()=>{
   assert.deepEqual(env.DB.sqlite.prepare('SELECT visit_id FROM visit_details').all().map(x=>x.visit_id),['b']);
   assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM visit_links').get().n,0);
 });
+
+test('town falls back to visitor-location headers when the host sends them that way',async()=>{
+  const env=environment(),visitId=crypto.randomUUID();
+  const r=new Request('https://cq.test/api/campaign-event',{method:'POST',headers:{Origin:'https://cq.test','Content-Type':'application/json','CF-Connecting-IP':'81.2.69.142','cf-ipcity':'S%C3%A3o Paulo','cf-region':'Sao Paulo'},body:JSON.stringify({event:'maker_start',visitId,measurementConsent:true})});
+  assert.equal((await campaignApi(r,env)).status,200);
+  const row=env.DB.sqlite.prepare('SELECT town, region FROM visit_details').get();
+  assert.equal(row.town,'São Paulo');assert.equal(row.region,'Sao Paulo');
+  const d=await(await get(env)).json();
+  assert.deepEqual(d.hostLocation,{locationObject:false,town:false,townHeader:false,region:false,regionHeader:false});
+});

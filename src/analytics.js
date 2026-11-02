@@ -49,7 +49,7 @@ function range(url){
 function tally(list,key,value=1){const found=list.get(key)||0;list.set(key,found+value);}
 const sorted=map=>[...map].map(([key,count])=>({key,count})).sort((a,b)=>b.count-a.count||String(a.key).localeCompare(String(b.key)));
 
-export async function buildReport(env,url){
+export async function buildReport(env,url,req=null){
   const {from,to,since,until}=range(url);
   const filter={source:code(url.searchParams.get('source')),creative:code(url.searchParams.get('creative'))};
   const filtered=Boolean(filter.source||filter.creative);
@@ -150,6 +150,8 @@ export async function buildReport(env,url){
 
   return {
     range:{from,to},filter,zone:ZONE,generatedAt:new Date().toISOString(),
+    // What location detail the host attaches to requests, checked on the owner's own request.
+    hostLocation:req?{locationObject:Boolean(req.cf),town:Boolean(req.cf?.city),townHeader:Boolean(req.headers.get('cf-ipcity')),region:Boolean(req.cf?.region||req.cf?.regionCode),regionHeader:Boolean(req.headers.get('cf-region')||req.headers.get('cf-region-code'))}:null,
     options:{sources:[...new Set(options.map(o=>o.source))].sort(),creatives:[...new Set(options.map(o=>o.creative))].filter(c=>c!=='all').sort()},
     headline,funnel,errorVisits,
     traffic:{byDay:[...byDay.values()],byHour:[...byHour].map(([hour,visits])=>({hour,visits})),source:sorted(source),campaign:sorted(campaign),creative:sorted(creative),country:sorted(country),device:sorted(device)},
@@ -182,7 +184,7 @@ export async function analyticsApi(req,env){
   try{
     if(path==='/api/owner-analytics'){
       if(req.method!=='GET')return reply({error:'Method not allowed.'},405);
-      return reply(await buildReport(env,url));
+      return reply(await buildReport(env,url,req));
     }
     if(req.method!=='POST')return reply({error:'Method not allowed.'},405);
     if(!sameOrigin(req))return reply({error:'Reload the page and try again.'},403);

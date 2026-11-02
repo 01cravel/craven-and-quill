@@ -20,10 +20,12 @@ export function shortIp(value){
   const groups=ip.includes('::')?[...left,...Array(Math.max(0,8-left.length-right.length)).fill('0'),...right]:left;
   return groups.length===8?groups.slice(0,3).map(g=>g.toLowerCase().replace(/^0+(?=.)/,'')).join(':')+'::':null;
 }
-const place=value=>typeof value==='string'?value.replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,60)||null:null;
+const place=value=>{if(typeof value!=='string')return null;let text=value;try{text=decodeURIComponent(value);}catch{}return text.replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,60)||null;};
+// Town can arrive on the request's location object or as visitor-location headers, depending on the host.
+export function visitPlace(request){const cf=request.cf||{},h=name=>request.headers.get(name);return {town:place(cf.city)||place(h('cf-ipcity')),region:place(cf.region)||place(h('cf-region'))||place(cf.regionCode)||place(h('cf-region-code'))};}
 // Extra detail must never stop the visit event itself from being saved.
 export async function noteVisit(env,request,visitId){
-  try{await env.DB.prepare('INSERT INTO visit_details (visit_id, ip_prefix, town, region, created_at) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(visit_id) DO NOTHING').bind(visitId,shortIp(request.headers.get('CF-Connecting-IP')),place(request.cf?.city),place(request.cf?.region),new Date().toISOString()).run();}
+  try{await env.DB.prepare('INSERT INTO visit_details (visit_id, ip_prefix, town, region, created_at) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(visit_id) DO NOTHING').bind(visitId,shortIp(request.headers.get('CF-Connecting-IP')),...Object.values(visitPlace(request)),new Date().toISOString()).run();}
   catch{console.error('Visit detail not saved');}
 }
 export async function linkVisit(env,measurement,kind,ref){
