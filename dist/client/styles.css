@@ -258,4 +258,4 @@ footer small{flex-basis:100%;font-size:.84rem}
 .trust-line svg{flex:none;width:28px;height:28px;padding:6px;border-radius:50%;background:#efecf4;fill:none;stroke:#17332c;stroke-width:1.7;stroke-linejoin:round}
 .trust-line b{font-weight:700;color:#17332c}
 .hero-copy>.trust-line{margin:22px 0 0}
-@media (max-width:640px){.hero-copy>.trust-line{justify-content:center;margin:14px 0 0}}
+@media (max-width:640px){.hero-copy>.trust-line{max-width:330px;margin:14px 0 0;text-align:left}}
