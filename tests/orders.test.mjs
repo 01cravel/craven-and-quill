@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {PDFDocument} from 'pdf-lib';
-import {ordersApi,quoteOrder,runArtworkJobs} from '../src/orders.js';
+import {ordersApi,quoteOrder,runArtworkJobs,claimBookSoldAlerts} from '../src/orders.js';
 import {PRODUCTS,OWNER_TEST,sha,checkoutReady} from '../src/catalog.js';
 import {printBook,validatePdf} from '../src/print-book.js';
 import {testDb} from './sqlite-d1.mjs';
+import worker from '../dist/server/index.js';
 const ownerToken='a'.repeat(64),origin='https://cq.test',owner={Cookie:'__Host-cq_owner='+ownerToken},token=crypto.randomUUID()+crypto.randomUUID();
 const story={title:'Jamie and the Missing Sandwich',synopsis:'Jamie follows a trail and finds the picnic.',spreads:Array.from({length:10},(_,i)=>({text:'Jamie followed the trail. The sandwich was not far away. Everyone laughed and shared their picnic.',image_scene:'Jamie at the picnic, scene '+i}))};
 const jpeg=readFileSync(new URL('../dist/client/assets/amara-book-portrait/page-01.jpg',import.meta.url));
@@ -23,6 +24,40 @@ function quoteResponse(tax='0.00'){return {quotes:[{shipmentMethod:'Standard',co
 function connected(env){Object.assign(env,{ORDERS_ENABLED:'true',ORDER_TAX_CONFIRMED:'true',STRIPE_SECRET_KEY:'sk_live_test',STRIPE_WEBHOOK_SECRET:'whsec_test',PRODIGI_API_KEY:'printer-test-key',RESEND_API_KEY:'email-test-key',ORDER_EMAIL_FROM:'books@example.test'});}
 function liveFetch(env,{timeout=false,refunded=false}={}){env.fetch=async(url,opts={})=>{env.calls.push({url,opts});if(url.includes('/checkout/sessions/'))return Response.json({id:'cs_live_test',client_reference_id:env.orderId,amount_total:3999,currency:'gbp',metadata:{cq_order_id:env.orderId},payment_status:'paid',livemode:true,payment_intent:'pi_test'});if(url.includes('/payment_intents/'))return Response.json({status:'succeeded',amount_received:3999,currency:'gbp',metadata:{cq_order_id:env.orderId},latest_charge:{refunded,disputed:false,amount_refunded:refunded?3999:0}});if(url.endsWith('/quotes'))return Response.json(quoteResponse());if(url.endsWith('/products/spine'))return Response.json({success:true,spineInfo:{widthMm:4}});if(url.endsWith('/orders')){if(timeout)throw new Error('network timeout');const b=JSON.parse(opts.body);return Response.json({order:{id:'ord_test',merchantReference:b.merchantReference,status:{stage:'InProgress'}}});}throw new Error('Unexpected route '+url);};}
 async function signedEvent(env,e){const raw=JSON.stringify(e),t=String(Math.floor(Date.now()/1000)),key=await crypto.subtle.importKey('raw',new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);const sig=Buffer.from(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(t+'.'+raw))).toString('hex');return ordersApi(new Request(origin+'/api/orders/payment-webhook',{method:'POST',headers:{'stripe-signature':`t=${t},v1=${sig}`},body:raw}),env);}
+
+test('Dot book sale alert is claimed once for a live Stripe sale and never for a test payment',async()=>{
+ const live=environment(),{id}=await create(live);connected(live);
+ live.DB.sqlite.prepare("UPDATE customer_orders SET status='awaiting_payment',session_id='cs_live_test' WHERE id=?").run(id);
+ const event={id:'evt_sale_alert',type:'checkout.session.completed',livemode:true,data:{object:{id:'cs_live_test',client_reference_id:id,metadata:{cq_order_id:id},amount_total:3999,currency:'gbp',payment_status:'paid'}}};
+ assert.equal((await signedEvent(live,event)).status,200);
+ assert.equal((await state(live,id)).data.bookSoldAlert.status,'pending');
+ assert.deepEqual(await claimBookSoldAlerts(live),{alerts:[{orderId:id,message:'CONGRATULATIONS! 🎉 Book sold\nJamie and the Missing Sandwich · A5 · £39.99 · qa-order@example.test\nhttps://cravenandquill.com/orders'}]});
+ assert.equal((await state(live,id)).data.bookSoldAlert.status,'claimed');
+ assert.equal((await signedEvent(live,event)).status,200);
+ assert.deepEqual(await claimBookSoldAlerts(live),{alerts:[]});
+ const testEnv=environment(),testOrder=await create(testEnv);connected(testEnv);testEnv.STRIPE_SECRET_KEY='sk_test_example';
+ testEnv.DB.sqlite.prepare("UPDATE customer_orders SET status='awaiting_payment',session_id='cs_live_test' WHERE id=?").run(testOrder.id);
+ const testEvent={...event,livemode:false,data:{object:{...event.data.object,client_reference_id:testOrder.id,metadata:{cq_order_id:testOrder.id}}}};
+ assert.equal((await signedEvent(testEnv,testEvent)).status,200);
+ assert.equal((await state(testEnv,testOrder.id)).data.bookSoldAlert,undefined);
+ assert.deepEqual(await claimBookSoldAlerts(testEnv),{alerts:[]});
+});
+test('Dot book sale tool is available only to the Site owner',async()=>{
+ const env=environment(),body=JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list'});
+ const call=headers=>worker.fetch(new Request(origin+'/mcp',{method:'POST',headers:{'Content-Type':'application/json',...headers},body}),env);
+ assert.equal((await call({})).status,403);
+ const response=await call({'oai-authenticated-user-email':env.ORDERS_ADMIN_EMAIL});
+ assert.equal(response.status,200);
+ assert.ok((await response.json()).result.tools.some(tool=>tool.name==='book_sold_alerts'));
+ const {id}=await create(env);connected(env);
+ env.DB.sqlite.prepare("UPDATE customer_orders SET status='awaiting_payment',session_id='cs_live_test' WHERE id=?").run(id);
+ const event={id:'evt_mcp_alert',type:'checkout.session.completed',livemode:true,data:{object:{id:'cs_live_test',client_reference_id:id,metadata:{cq_order_id:id},amount_total:3999,currency:'gbp',payment_status:'paid'}}};
+ assert.equal((await signedEvent(env,event)).status,200);
+ const callAlerts=()=>worker.fetch(new Request(origin+'/mcp',{method:'POST',headers:{'Content-Type':'application/json','oai-authenticated-user-email':env.ORDERS_ADMIN_EMAIL},body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:'book_sold_alerts',arguments:{}}})}),env);
+ const first=await callAlerts();assert.equal(first.status,200);
+ assert.equal(JSON.parse((await first.json()).result.content[0].text).alerts[0].orderId,id);
+ const second=await callAlerts();assert.deepEqual(JSON.parse((await second.json()).result.content[0].text),{alerts:[]});
+});
 
 test('server prices both sizes, includes delivery, ignores customer price, and retry cannot duplicate a saved order',async()=>{const env=environment(),c=await create(env);assert.equal(c.order.amount,3999);const r=await request(env,'',{...c.body,amount:1});assert.equal(r.status,200);assert.equal((await r.json()).order.amount,3999);assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM customer_orders').get().n,1);const second=await create(env,'a4');assert.equal(second.order.amount,4799);assert.equal(env.calls.length,0);});
 test('private order and artwork require its secret or the actual owner; public catalogue has no private data',async()=>{const env=environment(),{id}=await create(env);assert.equal((await request(env,'/'+id,null,{auth:false})).status,404);assert.equal((await request(env,'/admin',null,{auth:false})).status,401);assert.equal((await request(env,'/admin',null,{auth:false,headers:{'oai-authenticated-user-email':'owner@example.com'}})).status,401);assert.equal((await request(env,'/admin',null,{auth:false,headers:{'oai-authenticated-user-id':'owner-id','oai-authenticated-user-email':'owner@example.com'}})).status,401);const r=await request(env,'/'+id);const o=await r.json();assert.equal(o.email,undefined);assert.equal(o.art,undefined);const row=await state(env,id);assert.ok(!row.state.includes(token));assert.equal((await request(env,'/'+id+'/file?file='+row.data.characters[0])).status,404);assert.equal((await request(env,'/'+id+'/file?file='+row.data.characters[0],null,{admin:true})).status,200);});
@@ -42,6 +77,24 @@ test('A5 and A4 PDFs have exactly 28 single pages, embedded font, honest image q
 
 function ziinaConnected(env,mode='test'){connected(env);Object.assign(env,{PAYMENT_PROVIDER:'ziina',ZIINA_MODE:mode,ZIINA_ACCESS_TOKEN:'test-token',ZIINA_ACCOUNT_ID:'merchant-test',ZIINA_WEBHOOK_SECRET:'test-webhook'});}
 function intent(env,amount=3999,status='requires_payment_instrument'){return {id:'ziina-intent',account_id:env.ZIINA_ACCOUNT_ID,amount,currency_code:'GBP',tip_amount:0,vat_amount:0,status,redirect_url:'https://pay.ziina.com/test'};}
+async function signedZiinaEvent(env,data){const raw=JSON.stringify({event:'payment_intent.status.updated',data}),key=await crypto.subtle.importKey('raw',new TextEncoder().encode(env.ZIINA_WEBHOOK_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);const sig=Buffer.from(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(raw))).toString('hex');return ordersApi(new Request(origin+'/api/orders/ziina-webhook',{method:'POST',headers:{'cf-connecting-ip':'3.29.184.186','x-hmac-signature':sig},body:raw}),env);}
+test('Dot book sale alert is claimed once for a live Ziina webhook; an alert failure leaves payment paid',async()=>{
+ const env=environment(),{id,order}=await create(env);ziinaConnected(env,'live');
+ env.fetch=async(url)=>url.includes('api-v2.ziina.com')?Response.json(intent(env,3999,'completed')):Response.json({id:'email-test'});
+ assert.equal((await request(env,'/'+id+'/checkout',{revision:order.revision})).status,200);
+ assert.equal((await signedZiinaEvent(env,intent(env,3999,'completed'))).status,200);
+ assert.equal((await state(env,id)).payment_status,'paid');
+ await assert.rejects(()=>claimBookSoldAlerts({...env,DB:{prepare(){throw Error('Dot check failed');}}}),/Dot check failed/);
+ assert.equal((await state(env,id)).payment_status,'paid');
+ const first=await claimBookSoldAlerts(env);assert.equal(first.alerts.length,1);assert.equal(first.alerts[0].orderId,id);
+ assert.equal((await signedZiinaEvent(env,intent(env,3999,'completed'))).status,200);
+ assert.deepEqual(await claimBookSoldAlerts(env),{alerts:[]});
+ const testEnv=environment(),testOrder=await create(testEnv);ziinaConnected(testEnv,'test');
+ testEnv.fetch=async(url)=>url.includes('api-v2.ziina.com')?Response.json(intent(testEnv,3999,'completed')):Response.json({id:'email-test'});
+ assert.equal((await request(testEnv,'/'+testOrder.id+'/checkout',{revision:testOrder.order.revision})).status,200);
+ assert.equal((await signedZiinaEvent(testEnv,intent(testEnv,3999,'completed'))).status,200);
+ assert.deepEqual(await claimBookSoldAlerts(testEnv),{alerts:[]});
+});
 test('Ziina prices are server owned, repeated checkout reuses intent, completion never prints and test mode is pinned',async()=>{const env=environment(),{id,order}=await create(env);ziinaConnected(env);let completed=false;env.fetch=async(url,opts)=>{env.calls.push({url,opts});if(opts.method==='POST'){const b=JSON.parse(opts.body);assert.equal(b.amount,3999);assert.equal(b.currency_code,'GBP');assert.equal(b.test,true);return Response.json(intent(env));}return Response.json(intent(env,3999,completed?'completed':'requires_payment_instrument'));};let r=await request(env,'/'+id+'/checkout',{revision:order.revision,amount:1});assert.equal(r.status,200);let o=await state(env,id);r=await request(env,'/'+id+'/checkout',{revision:o.revision});assert.equal(r.status,200);assert.equal(env.calls.filter(x=>x.opts.method==='POST').length,1);env.ZIINA_MODE='live';completed=true;r=await request(env,'/'+id+'/check-payment',{revision:o.revision});assert.equal(r.status,200);o=await state(env,id);assert.equal(o.payment_mode,'test');assert.equal(o.status,'awaiting_review');assert.ok(env.calls.every(x=>x.url.includes('ziina.com')));});
 test('uncertain Ziina creation cannot be retried and wrong merchant or amount cannot mark an order paid',async()=>{const env=environment(),{id,order}=await create(env);ziinaConnected(env);env.fetch=async()=>{throw Error('timeout');};assert.equal((await request(env,'/'+id+'/checkout',{revision:order.revision})).status,502);let o=await state(env,id);assert.equal(o.status,'checkout_pending');assert.equal((await request(env,'/'+id+'/checkout',{revision:o.revision})).status,409);env.DB.sqlite.prepare("UPDATE customer_orders SET session_id='ziina-intent',status='awaiting_payment' WHERE id=?").run(id);env.fetch=async()=>Response.json({...intent(env,1,'completed')});assert.equal((await request(env,'/'+id+'/check-payment',{revision:o.revision})).status,409);env.fetch=async()=>Response.json({...intent(env,3999,'completed'),account_id:'wrong'});assert.equal((await request(env,'/'+id+'/check-payment',{revision:o.revision})).status,409);assert.equal((await state(env,id)).payment_status,'unpaid');});
 test('Ziina webhook rejects spoofed signatures and source IPs',async()=>{const env=environment();ziinaConnected(env);for(const headers of [{},{'cf-connecting-ip':'3.29.184.186','x-hmac-signature':'bad'}]){const r=await ordersApi(new Request(origin+'/api/orders/ziina-webhook',{method:'POST',headers,body:'{}'}),env);assert.equal(r.status,403);}});

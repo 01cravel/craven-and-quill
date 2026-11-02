@@ -52864,6 +52864,23 @@ async function measurePaid(env2, o) {
   } catch {
   }
 }
+async function claimBookSoldAlerts(env2) {
+  const rows = (await q(env2, "SELECT id,size,amount,email,state FROM customer_orders WHERE payment_status='paid' AND payment_mode='live' AND json_extract(state,'$.bookSoldAlert.status')='pending' ORDER BY created_at LIMIT 20").all()).results || [];
+  const alerts = [];
+  for (const row of rows) {
+    try {
+      const title2 = String(JSON.parse(row.state).story?.title || "Untitled book").replace(/[\r\n\t]+/g, " ").trim();
+      const message2 = `CONGRATULATIONS! \u{1F389} Book sold
+${title2} \xB7 ${row.size.toUpperCase()} \xB7 \xA3${(row.amount / 100).toFixed(2)} \xB7 ${row.email}
+https://cravenandquill.com/orders`;
+      const claimed = await q(env2, "UPDATE customer_orders SET state=json_set(state,'$.bookSoldAlert.status','claimed','$.bookSoldAlert.claimedAt',?1),revision=revision+1,updated_at=?1 WHERE id=?2 AND payment_status='paid' AND payment_mode='live' AND json_extract(state,'$.bookSoldAlert.status')='pending' RETURNING id", now2(), row.id).first();
+      if (claimed) alerts.push({ orderId: row.id, message: message2 });
+    } catch (error2) {
+      console.error("Book sold alert claim failed", row.id, error2);
+    }
+  }
+  return { alerts };
+}
 async function receiptEmail(env2, o, kind = "receipt") {
   await measurePaid(env2, o);
   if (o.payment_status !== "paid" || o.payment_mode !== "live" || o.data.emails?.[kind]?.sent) return o;
@@ -52896,8 +52913,12 @@ async function verifyPayment(req, env2) {
   requireThat(s.id === o.session_id && s.payment_status === "paid" && s.currency === "gbp" && s.amount_total === o.amount && s.client_reference_id === o.id, "Payment did not match this order.");
   if (o.payment_status === "paid") return { ok: true, duplicate: true };
   requireThat(o.status === "awaiting_payment", "Order is not awaiting payment.", 409);
-  if (live) o.data.autoGeneration = { status: "pending", queuedAt: now2() };
-  await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND payment_status='unpaid' AND session_id=?5", live ? "live" : "test", JSON.stringify(o.data), now2(), o.id, s.id).run();
+  if (live) {
+    o.data.autoGeneration = { status: "pending", queuedAt: now2() };
+    o.data.bookSoldAlert = { status: "pending", queuedAt: now2() };
+  }
+  const changed = await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND payment_status='unpaid' AND session_id=?5 RETURNING id", live ? "live" : "test", JSON.stringify(o.data), now2(), o.id, s.id).first();
+  if (!changed) return { ok: true, duplicate: true };
   await audit(env2, o.id, "payment_confirmed", "stripe", { event: e.id, mode: live ? "live" : "test" });
   return { ok: true };
 }
@@ -52930,9 +52951,12 @@ async function ziinaSync(env2, o) {
 async function ziinaConfirm(env2, o) {
   const p = await ziinaSync(env2, o);
   if (p.status === "completed" && o.payment_status === "unpaid" && o.status === "awaiting_payment") {
-    if (o.data.payment.mode === "live") o.data.autoGeneration = { status: "pending", queuedAt: now2() };
-    await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid'", o.data.payment.mode, JSON.stringify(o.data), now2(), o.id, o.revision).run();
-    await audit(env2, o.id, "payment_confirmed", "ziina", { mode: o.data.payment.mode });
+    if (o.data.payment.mode === "live") {
+      o.data.autoGeneration = { status: "pending", queuedAt: now2() };
+      o.data.bookSoldAlert = { status: "pending", queuedAt: now2() };
+    }
+    const changed = await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' RETURNING id", o.data.payment.mode, JSON.stringify(o.data), now2(), o.id, o.revision).first();
+    if (changed) await audit(env2, o.id, "payment_confirmed", "ziina", { mode: o.data.payment.mode });
   }
   return receiptEmail(env2, await get(env2, o.id));
 }
@@ -53655,6 +53679,7 @@ You can stop offer emails here: ${unsubscribe}`;
   }
 }
 export {
+  claimBookSoldAlerts,
   followupStatus,
   matchZiina,
   ordersApi,

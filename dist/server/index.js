@@ -1,5 +1,5 @@
 import {campaignApi,beginPreview,finishPreview} from './campaign.js';
-import {ordersApi,runFollowups,followupStatus,runArtworkJobs} from './orders.js';
+import {ordersApi,runFollowups,followupStatus,runArtworkJobs,claimBookSoldAlerts} from './orders.js';
 import {ownerAuth} from './owner-auth.js';
 import {storyApi} from './story.js';
 import {addressApi} from './address.js';
@@ -119,13 +119,14 @@ async function followupMcp(request,env){
   if(method==='tools/list')return ok({tools:[
     {name:'followup_status',description:'Read whether follow-up sending is enabled and summary counts.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
     {name:'run_followups',description:'Send due follow-up emails only when the production sending switch is enabled.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
-    {name:'run_artwork_jobs',description:'Generate one image or proof for a verified live paid order awaiting automatic artwork. Never submits a book to the printer.',inputSchema:{type:'object',properties:{},additionalProperties:false}}
+    {name:'run_artwork_jobs',description:'Generate one image or proof for a verified live paid order awaiting automatic artwork. Never submits a book to the printer.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
+    {name:'book_sold_alerts',description:'Claim new real live paid sales for Luke, at most once per order. If alerts are returned, send each message exactly as provided. Stay quiet when the list is empty.',inputSchema:{type:'object',properties:{},additionalProperties:false}}
   ]});
   if(method==='tools/call'){
     const name=input.params?.name;
-    if(!['followup_status','run_followups','run_artwork_jobs'].includes(name))return json({jsonrpc:'2.0',id,error:{code:-32601,message:'Unknown tool.'}});
-    try{const data=name==='followup_status'?await followupStatus(env):name==='run_followups'?await runFollowups(env):await runArtworkJobs(env);return ok({content:[{type:'text',text:JSON.stringify(data)}]});}
-    catch(error){return ok({content:[{type:'text',text:error?.message||'Follow-up task failed.'}],isError:true});}
+    if(!['followup_status','run_followups','run_artwork_jobs','book_sold_alerts'].includes(name))return json({jsonrpc:'2.0',id,error:{code:-32601,message:'Unknown tool.'}});
+    try{const data=name==='followup_status'?await followupStatus(env):name==='run_followups'?await runFollowups(env):name==='run_artwork_jobs'?await runArtworkJobs(env):await claimBookSoldAlerts(env);return ok({content:[{type:'text',text:JSON.stringify(data)}]});}
+    catch(error){console.error('Site tool failed',name,error?.message||'unknown error');return ok({content:[{type:'text',text:error?.message||'Site tool failed.'}],isError:true});}
   }
   return json({jsonrpc:'2.0',id,error:{code:-32601,message:'Unknown method.'}});
 }
