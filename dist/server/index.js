@@ -1,4 +1,4 @@
-import {campaignApi,beginPreview,finishPreview} from './campaign.js';
+import {campaignApi,beginPreview,finishPreview,linkVisit} from './campaign.js';
 import {ordersApi,runFollowups,followupStatus,runArtworkJobs,claimBookSoldAlerts} from './orders.js';
 import {ownerAuth} from './owner-auth.js';
 import {analyticsApi} from './analytics.js';
@@ -47,6 +47,7 @@ async function generateCharacter(request,env){
   if(photos.length<1||photos.length>3||photos.some(photo=>!(photo instanceof File)||!['image/jpeg','image/png','image/webp'].includes(photo.type)||photo.size<1||photo.size>8*1024*1024))return json({error:'Use a JPG, PNG or WebP photo under 8 MB.'},400);
   const previewEmail=String(input.get('email')||'').trim().toLowerCase();
   let previewId;try{previewId=await beginPreview(env,/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(previewEmail)?previewEmail:null);}catch(error){return json({error:error.message||'Previews are temporarily unavailable.'},503);}
+  await linkVisit(env,{measurementConsent:input.get('measurementConsent')==='true',visitId:String(input.get('visitId')||'')},'preview',previewId);
   const details={name:clean(input.get('name'),60),age:clean(input.get('age'),30),mood:clean(input.get('mood'),30),story:clean(input.get('story'),500),adjustment:clean(input.get('adjustment'),30)};
   const form=new FormData();form.append('model','gpt-image-2');photos.forEach((photo,index)=>form.append('image[]',photo,`reference-${index+1}.jpg`));form.append('prompt',characterPrompt(details));form.append('size','1024x1536');form.append('quality','medium');form.append('output_format','jpeg');form.append('output_compression','85');
   let response;try{response=await fetch('https://api.openai.com/v1/images/edits',{method:'POST',headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`},body:form});}catch{await finishPreview(env,previewId,'failed').catch(()=>{});return json({error:'The drawing service did not respond. Please try again.'},502);}

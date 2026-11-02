@@ -2,6 +2,7 @@
 const FLOW=['landing_view','maker_start','step_1','step_2','preview_start','preview_success','step_5','step_4','story_generated','price_view','step_7','checkout_start'];
 const ADS=[['meta','paid_social','cq_d_drop_photo','d_video'],['meta','paid_social','cq_d_drop_photo','d_static'],['direct','none','organic','none'],['instagram','social','organic','bio_link']];
 const COUNTRIES=['GB','GB','GB','GB','GB','IE','US','AE'];
+const TOWNS={GB:[['Leeds','England'],['Manchester','England'],['Glasgow','Scotland'],['Bristol','England'],['Cardiff','Wales']],IE:[['Dublin','Leinster']],US:[['Austin','Texas']],AE:[['Dubai','Dubai']]};
 
 // Deterministic so tests and screenshots are repeatable.
 function random(seed){let x=seed>>>0;return ()=>{x=(x*1664525+1013904223)>>>0;return x/4294967296;};}
@@ -12,6 +13,7 @@ export function seedAnalytics(DB,{now=Date.now(),days=7,visits=140}={}){
   const receipt=db.prepare('INSERT INTO preview_receipts (id, status, created_at, email) VALUES (?,?,?,?)');
   const contact=db.prepare('INSERT OR IGNORE INTO preview_contacts (email, source, medium, campaign, creative, country, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)');
   const order=db.prepare('INSERT INTO customer_orders (id, token_hash, email, size, amount, status, payment_status, payment_mode, revision, state, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,1,?,?,?)');
+  const detail=db.prepare('INSERT INTO visit_details (visit_id, ip_prefix, town, region, created_at) VALUES (?,?,?,?,?)'),link=db.prepare('INSERT OR IGNORE INTO visit_links (visit_id, kind, ref, created_at) VALUES (?,?,?,?)');
   const names=['Amara','Jamie','Olly','Ruby','Teddy','Isla','Biscuit','Leo','Poppy','Max'];
   const created=[];
   for(let i=0;i<visits;i++){
@@ -23,12 +25,14 @@ export function seedAnalytics(DB,{now=Date.now(),days=7,visits=140}={}){
     const steps=FLOW.slice(start,depth+1);
     const failed=steps.includes('preview_start')&&!steps.includes('preview_success')&&r()<.6;
     for(const step of steps)event.run(visit+':'+step,visit,step,...ad,country,at());
+    const town=TOWNS[country][Math.floor(r()*TOWNS[country].length)];detail.run(visit,`${80+Math.floor(r()*90)}.${Math.floor(r()*255)}.${Math.floor(r()*255)}.0`,...town,new Date(t).toISOString());
     event.run(visit+':device',visit,r()<.78?'device_mobile':'device_desktop',...ad,country,at());
     if(failed)event.run(visit+':preview_error',visit,'preview_error',...ad,country,at());
     if(steps.includes('preview_start')){
       const email=`reader${i}@example.test`;
-      receipt.run(crypto.randomUUID(),steps.includes('preview_success')?'succeeded':failed?'failed':'started',new Date(t-60000).toISOString(),email);
-      contact.run(email,...ad,country,new Date(t-90000).toISOString(),new Date(t-90000).toISOString());
+      const tries=failed&&r()<.5?2:1;
+      for(let n=0;n<tries;n++){const id=crypto.randomUUID(),status=n<tries-1?'failed':steps.includes('preview_success')?'succeeded':failed?'failed':'started';receipt.run(id,status,new Date(t-60000+n).toISOString(),email);link.run(visit,'preview',id,new Date(t-60000+n).toISOString());}
+      contact.run(email,...ad,country,new Date(t-90000).toISOString(),new Date(t-90000).toISOString());link.run(visit,'contact',email,new Date(t-90000).toISOString());
       if(steps.includes('checkout_start')){
         const paid=r()<.55,id=crypto.randomUUID(),name=names[i%names.length],when=at();
         const state={names:name,age:r()<.5?'3-5':'6-8',story:{title:`${name} and the ${['Moonlit Picnic','Missing Sandwich','Brave Little Boat','Secret Garden Door'][i%4]}`,synopsis:`${name} sets off on a small adventure that ends with everyone laughing.`},characters:[],measurement:{visitId:visit,source:ad[0],medium:ad[1],campaign:ad[2],creative:ad[3],country}};

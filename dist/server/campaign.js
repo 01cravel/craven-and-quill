@@ -10,6 +10,28 @@ const country=request=>code(request.headers.get('CF-IPCountry'),'unknown');
 function authorized(request,env){const token=request.headers.get('Authorization')?.replace(/^Bearer /,'');return Boolean(env.SIGNUPS_EXPORT_TOKEN&&token===env.SIGNUPS_EXPORT_TOKEN);}
 async function body(request){if(Number(request.headers.get('Content-Length')||0)>4096)throw new Error('Too much data.');const raw=await request.text();if(raw.length>4096)throw new Error('Too much data.');return JSON.parse(raw);}
 
+// Only for visitors who allowed site measurement. The IP is shortened before it is saved so it
+// points to a network area, never one device: IPv4 keeps three parts, IPv6 its first three groups.
+export function shortIp(value){
+  const ip=String(value||'').trim();
+  if(/^\d{1,3}(\.\d{1,3}){3}$/.test(ip))return ip.split('.').slice(0,3).join('.')+'.0';
+  if(!/^[0-9a-f:]{2,39}$/i.test(ip)||!ip.includes(':'))return null;
+  const [head,tail='']=ip.split('::');const left=head?head.split(':'):[],right=tail?tail.split(':'):[];
+  const groups=ip.includes('::')?[...left,...Array(Math.max(0,8-left.length-right.length)).fill('0'),...right]:left;
+  return groups.length===8?groups.slice(0,3).map(g=>g.toLowerCase().replace(/^0+(?=.)/,'')).join(':')+'::':null;
+}
+const place=value=>typeof value==='string'?value.replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,60)||null:null;
+// Extra detail must never stop the visit event itself from being saved.
+export async function noteVisit(env,request,visitId){
+  try{await env.DB.prepare('INSERT INTO visit_details (visit_id, ip_prefix, town, region, created_at) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(visit_id) DO NOTHING').bind(visitId,shortIp(request.headers.get('CF-Connecting-IP')),place(request.cf?.city),place(request.cf?.region),new Date().toISOString()).run();}
+  catch{console.error('Visit detail not saved');}
+}
+export async function linkVisit(env,measurement,kind,ref){
+  if(measurement?.measurementConsent!==true||!UUID.test(measurement.visitId||'')||!ref)return;
+  try{await env.DB.prepare('INSERT INTO visit_links (visit_id, kind, ref, created_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT DO NOTHING').bind(measurement.visitId,kind,ref,new Date().toISOString()).run();}
+  catch{console.error('Visit link not saved');}
+}
+
 // A durable daily ceiling bounds drawing-service usage across Worker instances.
 export async function beginPreview(env,email=null){
   if(!env.DB)throw new Error('Previews are temporarily unavailable. Please try again later.');
@@ -68,6 +90,7 @@ export async function campaignApi(request,env){
       if(input.measurementConsent!==true||!UUID.test(input.visitId)||!EVENTS.has(input.event))return reply({error:'Invalid measurement.'},400);
       const result=await env.DB.prepare('INSERT INTO campaign_events (id, visit_id, event, source, medium, campaign, creative, country, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) ON CONFLICT(id) DO NOTHING').bind(`${input.visitId}:${input.event}`,input.visitId,input.event,...attribution(input),country(request),new Date().toISOString()).run();
       if(result.success===false)throw new Error('Event write failed');
+      await noteVisit(env,request,input.visitId);
       return reply({ok:true});
     }
     if(path==='/api/unsubscribe'){
@@ -82,6 +105,7 @@ export async function campaignApi(request,env){
       const now=new Date().toISOString();
       const result=await env.DB.prepare('INSERT INTO preview_contacts (email, source, medium, campaign, creative, country, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7) ON CONFLICT(email) DO UPDATE SET updated_at=excluded.updated_at').bind(email,...attribution(input.measurementConsent===true?input:{}),country(request),now).run();
       if(result.success===false)throw new Error('Preview email write failed');
+      await linkVisit(env,input,'contact',email);
       return reply({ok:true});
     }
     if(input.consent!==true||input.consentVersion!==CONSENT_VERSION)return reply({error:'Please tick the email permission box to join the launch list.'},400);

@@ -50,6 +50,13 @@
       "when": 1793007151966,
       "tag": "0006_slow_mimic",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793612372317,
+      "tag": "0007_flippant_vision",
+      "breakpoints": true
     }
   ]
 }

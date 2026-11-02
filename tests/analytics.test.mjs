@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {analyticsApi,ukMidnight,ukDay,FUNNEL} from '../src/analytics.js';
+import {campaignApi,shortIp} from '../dist/server/campaign.js';
 import worker from '../dist/server/index.js';
 import {testDb} from './sqlite-d1.mjs';
 
@@ -54,9 +55,9 @@ test('funnel counts each visit once per step, shows losses and links measured pa
   assert.equal(d.journeys[0].device!==undefined,true);
   assert.equal(d.journeys.find(j=>j.steps.includes('paid')).furthest,'Paid');
   assert.ok(d.errors.some(e=>e.kind==='Preview failed'));
-  // Journeys never carry the visit id, names or emails of buyers.
-  const text=JSON.stringify(d.journeys);assert.ok(!text.includes(buyer));assert.ok(!text.includes('buyer@example.test'));
-  assert.equal(d.orders[0].visitId,undefined);
+  // A measured buyer's journey shows the book they saved; the raw visit id is never sent to the page.
+  const bought=d.journeys.find(j=>j.made?.book);assert.equal(bought.made.book.title,'Ruby and the Moon');assert.equal(bought.made.book.paid,true);assert.equal(bought.made.email,'buyer@example.test');
+  assert.ok(!JSON.stringify(d).includes(buyer));assert.equal(d.orders[0].visitId,undefined);
 });
 
 test('ad filter narrows funnel, sales and spend, and cost per sale uses entered spend',async()=>{
@@ -109,4 +110,51 @@ test('previews, emails, quotes and failures appear in what people made',async()=
   assert.equal(d.orders[0].names,'Ruby');assert.equal(d.orders[0].title,'Ruby and the Moon');
   assert.ok(d.errors.some(e=>e.kind==='Daily free preview limit reached'));
   assert.ok(d.errors.some(e=>e.kind==='Drawing service refused or failed'));
+});
+
+const post=(path,input,{ip='81.2.69.142',cf={city:'Leeds',region:'England'}}={})=>{const r=new Request('https://cq.test/api/'+path,{method:'POST',headers:{Origin:'https://cq.test','Content-Type':'application/json','CF-IPCountry':'GB','CF-Connecting-IP':ip},body:JSON.stringify(input)});Object.defineProperty(r,'cf',{value:cf});return r;};
+
+test('IP addresses are shortened before saving',()=>{
+  assert.equal(shortIp('81.2.69.142'),'81.2.69.0');
+  assert.equal(shortIp('2a00:23c5:9f01:4b00:1d2c:aa:bb:cc'),'2a00:23c5:9f01::');
+  assert.equal(shortIp('2001:db8::1'),'2001:db8:0::');
+  assert.equal(shortIp('::1'),'0:0:0::');
+  for(const bad of ['','unknown','1.2.3','<script>','1:2'])assert.equal(shortIp(bad),null);
+});
+
+test('shortened IP, town and links are saved only for visitors who allowed measurement',async()=>{
+  const env=environment(),visitId=crypto.randomUUID(),other=crypto.randomUUID();
+  assert.equal((await campaignApi(post('campaign-event',{event:'maker_start',visitId,measurementConsent:true,creative:'d_static'}),env)).status,200);
+  assert.equal((await campaignApi(post('campaign-event',{event:'step_1',visitId,measurementConsent:true},{ip:'9.9.9.9',cf:{city:'York'}}),env)).status,200);
+  assert.equal((await campaignApi(post('campaign-event',{event:'maker_start',visitId:other,measurementConsent:false}),env)).status,400);
+  const rows=env.DB.sqlite.prepare('SELECT * FROM visit_details').all();
+  assert.equal(rows.length,1);assert.equal(rows[0].ip_prefix,'81.2.69.0');assert.equal(rows[0].town,'Leeds');assert.equal(rows[0].region,'England');
+  assert.ok(!JSON.stringify(rows).includes('81.2.69.142'));
+  assert.equal((await campaignApi(post('preview-email',{email:'Maker@Example.test',visitId,measurementConsent:true}),env)).status,200);
+  assert.equal((await campaignApi(post('preview-email',{email:'quiet@example.test',visitId:other,measurementConsent:false}),env)).status,200);
+  assert.deepEqual(env.DB.sqlite.prepare('SELECT visit_id, kind, ref FROM visit_links').all().map(x=>({...x})),[{visit_id:visitId,kind:'contact',ref:'maker@example.test'}]);
+  const d=await(await get(env)).json();const j=d.journeys[0];
+  assert.deepEqual(j.where,{town:'Leeds',region:'England',ip:'81.2.69.0'});assert.equal(j.made.email,'maker@example.test');
+  assert.equal(d.contacts.find(c=>c.email==='maker@example.test').where.town,'Leeds');assert.equal(d.contacts.find(c=>c.email==='quiet@example.test').where,null);
+});
+
+test('a preview request links to the visit only with measurement permission',async()=>{
+  const env={...environment(),OPENAI_API_KEY:'test-only'},visitId=crypto.randomUUID(),real=globalThis.fetch;
+  const photo=()=>new File([new Uint8Array([255,216,255,217])],'p.jpg',{type:'image/jpeg'});
+  const send=fields=>{const form=new FormData();form.append('photo',photo());for(const [k,v] of Object.entries(fields))form.append(k,v);return worker.fetch(new Request('https://cq.test/api/generate-character',{method:'POST',headers:{Origin:'https://cq.test','CF-Connecting-IP':'10.0.0.'+Math.floor(Math.random()*250)},body:form}),env);};
+  globalThis.fetch=async()=>Response.json({error:{code:'server_error'}},{status:500});
+  try{await send({name:'Ruby',visitId,measurementConsent:'true'});await send({name:'Ruby',visitId});}finally{globalThis.fetch=real;}
+  const links=env.DB.sqlite.prepare("SELECT visit_id, kind FROM visit_links").all();
+  assert.equal(links.length,1);assert.equal(links[0].visit_id,visitId);assert.equal(links[0].kind,'preview');
+  assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM preview_receipts').get().n,2);
+});
+
+test('visit detail is deleted after 90 days',async()=>{
+  const env=environment(),old=new Date(Date.now()-91*86400000).toISOString(),fresh=new Date().toISOString();
+  env.DB.sqlite.prepare('INSERT INTO visit_details VALUES (?,?,?,?,?)').run('a','1.2.3.0','Leeds','England',old);
+  env.DB.sqlite.prepare('INSERT INTO visit_details VALUES (?,?,?,?,?)').run('b','1.2.4.0','York','England',fresh);
+  env.DB.sqlite.prepare('INSERT INTO visit_links VALUES (?,?,?,?)').run('a','contact','old@example.test',old);
+  await get(env);
+  assert.deepEqual(env.DB.sqlite.prepare('SELECT visit_id FROM visit_details').all().map(x=>x.visit_id),['b']);
+  assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM visit_links').get().n,0);
 });

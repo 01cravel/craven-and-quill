@@ -1,14 +1,14 @@
 import {ownerSession} from './owner-auth.js';
 
-// Owner-only analytics. Reads what the site already stores; it adds no new visitor collection.
-// Journey events exist only for visitors who allowed site measurement. They hold no IP address,
-// names, emails or story text, so a visit is linked to a person only where the privacy notice allows
-// (launch-list signups). Paid orders count towards the funnel and ad totals without naming the visit.
+// Owner-only analytics. Journeys exist only for visitors who allowed site measurement. For those
+// visitors the privacy notice allows a shortened IP, town, and links from the visit to its previews,
+// preview email, saved book and launch-list signup. That extra detail is deleted after 90 days.
 const OWNER_EMAIL='cravenluke@gmail.com';
 const ZONE='Europe/London';
 const SPEND_TABLE='CREATE TABLE IF NOT EXISTS owner_ad_spend (day TEXT NOT NULL, creative TEXT NOT NULL, pence INTEGER NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (day, creative))';
 const SIGNUPS_TABLE='CREATE TABLE IF NOT EXISTS signups (email TEXT PRIMARY KEY, interest TEXT NOT NULL, page TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)';
 const LIST_LIMIT=300;
+const DETAIL_DAYS=90;
 // Builder pages in the order a visitor meets them. Pages 3 and 8 to 11 are not measured by the builder.
 export const FUNNEL=[
   ['visit','Arrived on the site'],['maker_start','Opened the book maker'],['step_1','Name page'],['step_2','Photo page'],
@@ -33,6 +33,8 @@ export function ukMidnight(day){
 const addDays=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*86400000).toISOString().slice(0,10);
 const json=value=>{try{return JSON.parse(value);}catch{return {};}};
 const rows=async statement=>(await statement.all()).results||[];
+// Visit detail tables arrive with a migration; until it runs the report still works without them.
+const optional=async statement=>{try{return await rows(statement);}catch{return [];}};
 function sameOrigin(req){const origin=req.headers.get('Origin');return req.headers.get('Sec-Fetch-Site')!=='cross-site'&&origin===new URL(req.url).origin;}
 
 function range(url){
@@ -54,7 +56,10 @@ export async function buildReport(env,url){
   const matches=a=>Boolean(a)&&(!filter.source||a.source===filter.source)&&(!filter.creative||a.creative===filter.creative);
   await env.DB.prepare(SPEND_TABLE).run();await env.DB.prepare(SIGNUPS_TABLE).run();
   const q=(sql,...v)=>env.DB.prepare(sql).bind(...v);
-  const [events,receipts,contacts,leads,quotes,orderRows,spendRows,usage,signups,options]=await Promise.all([
+  const expired=new Date(Date.now()-DETAIL_DAYS*86400000).toISOString();
+  try{await q('DELETE FROM visit_details WHERE created_at < ?1',expired).run();await q('DELETE FROM visit_links WHERE created_at < ?1',expired).run();}catch{}
+  const inRange='SELECT DISTINCT visit_id FROM campaign_events WHERE created_at >= ?1 AND created_at < ?2';
+  const [events,receipts,contacts,leads,quotes,orderRows,spendRows,usage,signups,options,detailRows,linkRows]=await Promise.all([
     rows(q('SELECT visit_id, event, source, medium, campaign, creative, country, created_at FROM campaign_events WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at LIMIT 200000',since,until)),
     rows(q('SELECT id, status, created_at, email FROM preview_receipts WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
     rows(q('SELECT email, source, medium, campaign, creative, country, created_at, updated_at FROM preview_contacts WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
@@ -65,6 +70,8 @@ export async function buildReport(env,url){
     rows(q('SELECT day, attempts FROM preview_daily_usage WHERE day >= ?1 AND day <= ?2 ORDER BY day',from,to)),
     rows(q('SELECT email, interest, page, created_at FROM signups WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
     rows(q("SELECT DISTINCT source, creative FROM campaign_events WHERE created_at >= ?1 UNION SELECT DISTINCT 'meta', creative FROM owner_ad_spend",new Date(Date.now()-180*86400000).toISOString())),
+    optional(q(`SELECT visit_id, ip_prefix, town, region FROM visit_details WHERE visit_id IN (${inRange})`,since,until)),
+    optional(q(`SELECT l.visit_id, l.kind, l.ref, l.created_at, r.status FROM visit_links l LEFT JOIN preview_receipts r ON l.kind='preview' AND r.id=l.ref WHERE l.visit_id IN (${inRange}) ORDER BY l.created_at`,since,until)),
   ]);
 
   // One journey per random visit id. Attribution comes from the visit's first event.
@@ -119,11 +126,17 @@ export async function buildReport(env,url){
     costPerVisitPence:scope.length&&spendPence?Math.round(spendPence/scope.length):null,testOrders:scopedOrders.filter(o=>o.ownerTest).length};
 
   const leadByVisit=new Map(leads.filter(l=>l.visit_id).map(l=>[l.visit_id,l]));
+  const detailByVisit=new Map(detailRows.map(x=>[x.visit_id,x]));
+  const madeByVisit=new Map(),visitByRef=new Map();
+  const made=id=>{if(!madeByVisit.has(id))madeByVisit.set(id,{previews:[],email:null,book:null});return madeByVisit.get(id);};
+  for(const l of linkRows){visitByRef.set(l.kind+':'+l.ref,l.visit_id);if(l.kind==='preview')made(l.visit_id).previews.push({at:l.created_at,status:l.status||'unknown'});else if(l.kind==='contact')made(l.visit_id).email=l.ref;}
+  for(const o of orders)if(o.visitId){const m=made(o.visitId);if(!m.book)m.book={title:o.title,names:o.names,paid:o.paymentStatus==='paid',test:o.ownerTest};m.email||=o.email;}
+  const place=visitId=>{const d=visitId&&detailByVisit.get(visitId);return d?{town:d.town||null,region:d.region||null,ip:d.ip_prefix||null}:null;};
   const journeys=scope.sort((a,b)=>b.firstAt.localeCompare(a.firstAt)).slice(0,LIST_LIMIT).map(v=>{const last=furthest(v),lead=leadByVisit.get(v.id);return {
     firstAt:v.firstAt,lastAt:v.lastAt,source:v.source,medium:v.medium,campaign:v.campaign,creative:v.creative,country:v.country,device:v.device,
     furthest:last[1],furthestIndex:FUNNEL.indexOf(last),steps:FUNNEL.filter(([s])=>reached(v,s)).map(([s])=>s),
     errors:Object.keys(ERRORS).filter(k=>v.events.has(k)).map(k=>ERRORS[k]),extras:['story_generated','story_edited'].filter(k=>v.events.has(k)),
-    signup:lead?{email:lead.email,product:lead.product}:null};});
+    signup:lead?{email:lead.email,product:lead.product}:null,where:place(v.id),made:madeByVisit.get(v.id)||null};});
 
   const previewsByEmail=new Map();for(const r of receipts)if(r.email)tally(previewsByEmail,r.email);
   const contactByEmail=new Map(contacts.map(c=>[c.email,c]));
@@ -142,10 +155,10 @@ export async function buildReport(env,url){
     traffic:{byDay:[...byDay.values()],byHour:[...byHour].map(([hour,visits])=>({hour,visits})),source:sorted(source),campaign:sorted(campaign),creative:sorted(creative),country:sorted(country),device:sorted(device)},
     ads:[...ads.values()].sort((a,b)=>b.visits-a.visits||a.creative.localeCompare(b.creative)),
     journeys,journeyTotal:scope.length,
-    previews:receipts.slice(0,LIST_LIMIT).map(r=>{const c=r.email&&contactByEmail.get(r.email),o=r.email&&ordersByEmail.get(r.email);return {at:r.created_at,status:r.status,email:r.email||null,creative:c?.creative||null,country:c?.country||null,triesByEmail:r.email?previewsByEmail.get(r.email):null,savedBook:o?o.title||'Saved':null};}),
+    previews:receipts.slice(0,LIST_LIMIT).map(r=>{const c=r.email&&contactByEmail.get(r.email),o=r.email&&ordersByEmail.get(r.email);return {at:r.created_at,status:r.status,email:r.email||null,where:place(visitByRef.get('preview:'+r.id)),creative:c?.creative||null,country:c?.country||null,triesByEmail:r.email?previewsByEmail.get(r.email):null,savedBook:o?o.title||'Saved':null};}),
     previewTotal:receipts.length,
     orders:scopedOrders.slice(0,LIST_LIMIT).map(({visitId,...o})=>o),
-    contacts:scopedContacts.slice(0,LIST_LIMIT).map(c=>({email:c.email,source:c.source,creative:c.creative,country:c.country,at:c.created_at,previews:previewsByEmail.get(c.email)||0,savedBook:ordersByEmail.get(c.email)?.title||null})),
+    contacts:scopedContacts.slice(0,LIST_LIMIT).map(c=>({where:place(visitByRef.get('contact:'+c.email)),email:c.email,source:c.source,creative:c.creative,country:c.country,at:c.created_at,previews:previewsByEmail.get(c.email)||0,savedBook:ordersByEmail.get(c.email)?.title||null})),
     quotes:quotes.slice(0,LIST_LIMIT).map(x=>({email:x.email,size:x.size,pricePence:x.price_pence,firstAt:x.first_shown_at,lastAt:x.last_shown_at,offerConsent:!!x.offer_consent_at,offerEmail:x.email_status||null,bought:!!x.redeemed_order_id||orders.some(o=>o.email===x.email&&o.paymentStatus==='paid')})),
     launchSignups:scopedLeads.slice(0,LIST_LIMIT).map(l=>({email:l.email,product:l.product,pricePence:l.price_pence,source:l.source,creative:l.creative,country:l.country,at:l.created_at,unsubscribed:!!l.unsubscribed_at,linkedVisit:!!l.visit_id})),
     colouringSignups:signups.slice(0,LIST_LIMIT).map(s=>({email:s.email,interest:s.interest,page:s.page,at:s.created_at})),
@@ -154,7 +167,7 @@ export async function buildReport(env,url){
     notes:[
       'Journeys, funnel and traffic count only visitors who pressed Accept all or Site only. Rejected visitors are invisible here.',
       'Steps a visitor reached before choosing on the cookie banner are timed at the moment they chose.',
-      'No IP addresses, names, emails or story text are stored with journeys. Country comes from Cloudflare.',
+      'For visitors who allowed measurement, the IP is shortened before saving (it points to a network area, not one device) and town comes from Cloudflare. Previews, emails and books link to a visit from 2 November 2026 on. This detail is deleted after 90 days.',
       'Builder pages for reading level, description, story feel, email and delivery address are not measured.',
       'Preview totals without an ad filter count every drawing request on the site, including retries and people who declined measurement.',
     ],

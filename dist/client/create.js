@@ -328,6 +328,8 @@ let drawingProgress=null,generationBusy=false;
 async function requestCharacter(file,name){
   const idea=selectedStory();const form=new FormData();
   for(const photo of (Array.isArray(file)?file:[file]))form.append('photo',photo,photo.name||'photo.jpg');form.append('email',$('#email').value.trim().toLowerCase());form.append('name',name);form.append('age',state.age);form.append('mood',state.mood);form.append('story',`${state.details||$('#personal-details').value.trim()} ${state.storyDraft?.spreads[0]?.text||''}`.trim().slice(0,500));
+  // Links this preview to the visit only when the visitor allowed site measurement.
+  const visit=window.cqMeasurement?.context();if(visit?.measurementConsent&&visit.visitId){form.append('measurementConsent','true');form.append('visitId',visit.visitId);}
   const data=await window.cqPreviewProgress.request(form,event=>drawingProgress?.update(event));
   state.previewId=data.previewId||null;
   return data.image;

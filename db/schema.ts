@@ -1,4 +1,4 @@
-import {sqliteTable,text,integer,index} from 'drizzle-orm/sqlite-core';
+import {sqliteTable,text,integer,index,primaryKey} from 'drizzle-orm/sqlite-core';
 
 // Existing colouring-book signups are intentionally separate from qualified storybook leads.
 export const launchLeads=sqliteTable('launch_leads',{
@@ -52,3 +52,13 @@ export const customerQuotes=sqliteTable('customer_quotes',{
  discountCode:text('discount_code').unique(),discountPence:integer('discount_pence'),codeExpiresAt:text('code_expires_at'),
  emailStatus:text('email_status'),emailSentAt:text('email_sent_at'),emailProviderId:text('email_provider_id'),redeemedOrderId:text('redeemed_order_id'),
 },t=>[index('customer_quotes_last_shown_idx').on(t.lastShownAt)]);
+
+// Extra visit detail, only for visitors who allowed site measurement. Deleted after 90 days.
+// The IP is shortened before saving (IPv4 last part zeroed, IPv6 kept to its first three groups).
+export const visitDetails=sqliteTable('visit_details',{
+ visitId:text('visit_id').primaryKey(),ipPrefix:text('ip_prefix'),town:text('town'),region:text('region'),createdAt:text('created_at').notNull(),
+},t=>[index('visit_details_created_idx').on(t.createdAt)]);
+// Links a measured visit to what it made: a preview receipt id or a preview email.
+export const visitLinks=sqliteTable('visit_links',{
+ visitId:text('visit_id').notNull(),kind:text('kind').notNull(),ref:text('ref').notNull(),createdAt:text('created_at').notNull(),
+},t=>[primaryKey({columns:[t.visitId,t.kind,t.ref]}),index('visit_links_created_idx').on(t.createdAt)]);

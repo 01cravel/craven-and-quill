@@ -134,18 +134,28 @@ function tools(root,placeholder,note,redraw){
 }
 const matches=(...values)=>{const q=S.search.trim().toLowerCase();return !q||values.some(v=>String(v??'').toLowerCase().includes(q));};
 function tag(text,kind=''){return E('span',text,'tag '+kind);}
+// Town and shortened IP, only saved for visitors who allowed measurement.
+function where(w,country){if(!w)return country||'—';const box=E('span',[w.town,w.region].filter(Boolean).join(', ')||country||'—','where');if(w.ip)box.append(E('small',w.ip));return box;}
+const whereText=w=>w?[w.town,w.region,w.ip].filter(Boolean).join(' '):'';
+function madeCell(m){
+  if(!m)return '—';const box=E('span',undefined,'made-cell'),ok=m.previews.filter(p=>p.status==='succeeded').length,bad=m.previews.filter(p=>p.status==='failed').length;
+  if(m.previews.length)box.append(E('span',`${m.previews.length} preview${m.previews.length>1?'s':''}${bad?`, ${bad} failed`:''}${ok&&bad?`, ${ok} made`:''}`));
+  if(m.email)box.append(E('small',m.email));
+  if(m.book){const b=E('span',`${m.book.title||'Untitled book'}${m.book.names?' ('+m.book.names+')':''}`,'book');b.append(tag(m.book.paid?(m.book.test?'Test payment':'Paid'):'Saved, not paid',m.book.paid&&!m.book.test?'good':''));box.append(b);}
+  return box.childNodes.length?box:'—';
+}
 function steps(j,d){const box=E('span',undefined,'steps');box.dataset.tip=`Reached: ${j.furthest}`;box.tabIndex=0;d.funnel.forEach((f,i)=>box.append(E('i',undefined,j.steps.includes(f.step)?(f.step==='paid'?'on paid':'on'):'')));return box;}
 function visits(root,d){
   const body=E('div');
-  const draw=()=>{body.replaceChildren();const list=d.journeys.filter(j=>matches(j.creative,j.source,j.country,j.furthest,j.campaign,j.device,j.signup?.email));
-    table(body,['Arrived','Pages reached','Got as far as','Ad','Source','Device','Country','Notes'],list.map(j=>[when(j.firstAt),steps(j,d),j.furthest,adName(j.creative),j.source,j.device==='mobile'?'Phone':j.device==='desktop'?'Computer':'—',j.country,[...j.errors.map(e=>tag(e,'bad')),...(j.steps.includes('paid')?[tag('Paid','good')]:[]),...(j.extras.includes('story_edited')?[tag('Edited story')]:[]),...(j.signup?[tag('Launch list: '+j.signup.email,'warn')]:[])]]),'No visits match.');};
-  tools(root,'Filter by ad, country, page…',`Newest ${num(d.journeys.length)} of ${num(d.journeyTotal)} visits. Each square is one page in the funnel above.`,draw);root.append(body);draw();
+  const draw=()=>{body.replaceChildren();const list=d.journeys.filter(j=>matches(j.creative,j.source,j.country,j.furthest,j.campaign,j.device,j.signup?.email,whereText(j.where),j.made?.email,j.made?.book?.title,j.made?.book?.names));
+    table(body,['Arrived','Pages reached','Got as far as','What they made','Ad','Device','Where','Notes'],list.map(j=>[when(j.firstAt),steps(j,d),j.furthest,madeCell(j.made),[E('span',adName(j.creative)),E('small',j.source)],j.device==='mobile'?'Phone':j.device==='desktop'?'Computer':'—',where(j.where,j.country),[...j.errors.map(e=>tag(e,'bad')),...(j.steps.includes('paid')?[tag('Paid','good')]:[]),...(j.extras.includes('story_edited')?[tag('Edited story')]:[]),...(j.signup?[tag('Launch list: '+j.signup.email,'warn')]:[])]]),'No visits match.');};
+  tools(root,'Filter by ad, town, email, book…',`Newest ${num(d.journeys.length)} of ${num(d.journeyTotal)} visits. Each square is one page in the funnel above.`,draw);root.append(body);draw();
 }
 function previews(root,d){
   const body=E('div'),status={succeeded:['Made','good'],failed:['Failed','bad'],started:['Unfinished','warn']};
-  const draw=()=>{body.replaceChildren();const list=d.previews.filter(p=>matches(p.email,p.status,p.creative,p.savedBook));
-    table(body,['When','Result','Email','Tries by this email','Ad','Saved book'],list.map(p=>[when(p.at),tag(...(status[p.status]||[p.status])),p.email||'Not given',p.triesByEmail??'—',p.creative?adName(p.creative):'—',p.savedBook||'—']),'No previews in this range.');};
-  tools(root,'Filter by email or ad…',`Every drawing request, newest first. Names and story choices are only kept once a book is saved.`,draw);root.append(body);draw();
+  const draw=()=>{body.replaceChildren();const list=d.previews.filter(p=>matches(p.email,p.status,p.creative,p.savedBook,whereText(p.where)));
+    table(body,['When','Result','Email','Tries by this email','Ad','Where','Saved book'],list.map(p=>[when(p.at),tag(...(status[p.status]||[p.status])),p.email||'Not given',p.triesByEmail??'—',p.creative?adName(p.creative):'—',where(p.where,p.country),p.savedBook||'—']),'No previews in this range.');};
+  tools(root,'Filter by email or ad…',`Every drawing request, newest first. Names and story choices are only kept once a book is saved. Where shows only for visitors who allowed measurement.`,draw);root.append(body);draw();
 }
 function books(root,d){
   const body=E('div');
@@ -165,7 +175,7 @@ function people(root,d){
   const body=E('div');
   const draw=()=>{body.replaceChildren();
     body.append(E('h3','Left an email for a preview','list-title'));
-    table(body,['When','Email','Previews','Ad','Country','Saved book'],d.contacts.filter(c=>matches(c.email,c.creative,c.country)).map(c=>[when(c.at),c.email,c.previews,adName(c.creative),c.country,c.savedBook||'—']),'None in this range.');
+    table(body,['When','Email','Previews','Ad','Where','Saved book'],d.contacts.filter(c=>matches(c.email,c.creative,c.country,whereText(c.where))).map(c=>[when(c.at),c.email,c.previews,adName(c.creative),where(c.where,c.country),c.savedBook||'—']),'None in this range.');
     body.append(E('h3','Saw a price','list-title'));
     table(body,['Last saw','Email','Book','Price','Offer emails allowed','Bought'],d.quotes.filter(q=>matches(q.email,q.size)).map(q=>[when(q.lastAt),q.email,q.size.toUpperCase(),pounds(q.pricePence),q.offerConsent?'Yes':'No',q.bought?tag('Bought','good'):'No']),'None in this range.');
     body.append(E('h3','Storybook launch list','list-title'));
