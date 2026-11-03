@@ -59,7 +59,9 @@
     const click=query.get('fbclid');if(click&&/^[a-zA-Z0-9_.-]{1,500}$/.test(click))url.searchParams.set('fbclid',click);
     link.href=url.pathname+url.search;
   });
-  const banner=document.createElement('section');banner.setAttribute('aria-label','Cookie choices');banner.className='cq-measurement';banner.hidden=Boolean(preference);
+  const banner=document.createElement('section');banner.setAttribute('aria-label','Cookie choices');banner.className='cq-measurement';
+  // Never pops up: on phones it covered the builder's Continue button. Opens only from the footer link.
+  banner.hidden=true;
   banner.innerHTML='<div><strong>Cookies</strong><p>We use cookies to improve the site and see which ads bring people here. Meta gets visit data only, never your photos, names, email or story. All optional. <a href="privacy.html">Privacy details</a></p></div><div><button type="button" data-choice="ads">Accept all</button><button type="button" data-choice="site">Site only</button><button type="button" data-choice="no">Reject all</button></div>';
   document.body.append(banner);
   const style=document.createElement('style');style.textContent='.cq-measurement{position:fixed;z-index:100;bottom:12px;left:12px;right:12px;margin:auto;max-width:700px;max-height:75vh;overflow:auto;border:1px solid #dce2da;border-radius:20px;background:#fff;box-shadow:0 8px 40px #17332c25;color:#17332c;padding:18px;font:16px/1.4 Figtree,Arial,sans-serif}.cq-measurement[hidden]{display:none}.cq-measurement p{margin:4px 0 0}.cq-measurement a{color:inherit;text-decoration:underline}.cq-measurement>div:last-child{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.cq-measurement button{border:1px solid #17332c;background:#fff;color:#17332c;padding:12px 14px;border-radius:999px;font:600 14px Figtree,Arial,sans-serif;cursor:pointer}';document.head.append(style);
