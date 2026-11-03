@@ -67,7 +67,7 @@ function scrollToStepTop(number){
 }
 
 function showStep(number){
-  const order=[1,8,2,9,3,10,5,4,6,11,7];
+  const order=[2,1,10,5,8,9,3,4,6,11,7];
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
@@ -122,7 +122,7 @@ function updateStoryGate(){
   $('#generate-story').disabled=storyWriting;
   $('#revise-story').disabled=storyWriting||state.rewritesRemaining<=0;
   $('#rewrite-label').textContent=state.rewritesRemaining>0?`Rewrite story · ${state.rewritesRemaining} left`:'No rewrites left · you can still edit';
-  $('#generate-story').textContent=storyWriting?'Writing your story…':state.storyDraft?'Update my preview':'Continue';
+  $('#generate-story').textContent=storyWriting?'Writing your story…':state.storyDraft?'Update my story':'Write their story';
 }
 function invalidatePreview(){state.characterImages=[];state.previewId=null;$('#choose-book').disabled=true;}
 function editDraft(){
@@ -188,7 +188,7 @@ async function writeStory(revision=false){
     if(!revision)state.storyPage=0;
     state.storyDraft=result.story;state.storyBasis=capturedBasis;state.storylineNeedsUpdate=false;renderStoryDraft();
     window.dispatchEvent(new Event('cq-draft-change'));$('#story-changes').value='';$('#story-writing-status').textContent='';
-    track('story_generated');if(!revision){$('#story-editor').open=false;if(!state.characterImages.length&&!state.photos.length){showStep(2);$('#step-2-error').textContent='Add your photo again to create a new preview. Your story is saved.';}else{showStep(5);void preparePreview();}}else{$('#story-editor').open=true;$('.rewrite-options').open=false;}
+    track('story_generated');if(!revision){$('#story-editor').open=false;if(state.characterImages.length)renderPreviewBook();else if(!state.photos.length){showStep(2);$('#step-2-error').textContent='Add your photo again to create a new preview. Your story is saved.';}else{showStep(5);void preparePreview();}}else{$('#story-editor').open=true;$('.rewrite-options').open=false;}
   }catch(cause){error.textContent=cause.name==='TimeoutError'?'The story took too long. Your draft has not changed. Please try again.':cause.message||'We could not write the story. Your draft has not changed.';$('#story-writing-status').textContent='';}
   finally{storyWriting=false;$$('#story-editor input,#story-editor textarea').forEach(field=>field.disabled=false);updateStoryGate();}
 }
@@ -198,11 +198,11 @@ $('#story-title').addEventListener('input',editDraft);$('#story-synopsis').addEv
 $('#generate-story').addEventListener('click',()=>{
   updateLive();if(!validBrief())return;
   if(!JSON.parse(storyBasis()).idea){$('#step-4-error').textContent='Add a starting idea first.';$('#own-idea').focus();return;}
-  showStep(10);
+  void writeStory(draftValid(state.storyDraft));
 });
 $('#start-preview').addEventListener('click',()=>{
   if(!validPreviewEmail()){$('#step-10-error').textContent='Enter a valid email address to keep your preview.';$('#email').focus();return;}
-  $('#step-10-error').textContent='';if(state.storyDraft&&state.storyBasis===storyBasis()){showStep(5);void preparePreview();}else{showStep(4);void writeStory(!!state.storyDraft);}
+  $('#step-10-error').textContent='';showStep(5);void preparePreview();
 });
 $('#revise-story').addEventListener('click',()=>{void writeStory(true);});
 $('#story-previous').addEventListener('click',()=>turnStoryPage(state.storyPage-1));
@@ -440,6 +440,8 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   if(state.step===5&&!state.characterImages[0]){$('#step-5-error').textContent='Wait for the first page to finish before choosing your book.';return;}
   if(state.step===6)updateProduct();
   showStep(next);
+  // The story is written once the reading level, description and tone are in.
+  if(next===4&&!storyWriting&&(!draftValid(state.storyDraft)||state.storyBasis!==storyBasis()))void writeStory(draftValid(state.storyDraft));
 }));
 
 $$('[data-back]').forEach(button=>button.addEventListener('click',()=>{if(state.step===5&&button.dataset.back==='4')$('#story-editor').open=true;showStep(Number(button.dataset.back));}));
@@ -505,7 +507,7 @@ new ResizeObserver(fitCoverName).observe($('#mini-cover'));
 document.fonts.ready.then(fitCoverName);
 
 let quickAdvanceTimer;
-for(const [name,step,next] of [['age',8,2],['mood',3,10],['story-mode',12,9],['product',6,11]]){
+for(const [name,step,next] of [['age',8,9],['mood',3,4],['story-mode',12,9],['product',6,11]]){
   for(const input of $$(`input[name="${name}"]`))input.addEventListener('click',()=>{
     if(state.step!==step)return;
     clearTimeout(quickAdvanceTimer);
@@ -514,7 +516,7 @@ for(const [name,step,next] of [['age',8,2],['mood',3,10],['story-mode',12,9],['p
 }
 $('#names').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();document.querySelector('[data-step="1"] [data-next]').click();}});
 $('#story-maker').addEventListener('submit',event=>event.preventDefault());
-showStep(1);
+showStep(2);
 
 function fillReview(){
   const name=fullNames()||'your character';
@@ -537,15 +539,15 @@ let previewBookPage=0;
 function renderPreviewBook(){
  const track=$('#pbook-track');if(!track)return;
  const make=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!=null)el.textContent=text;return el;};
- const idea=selectedStory();const title=state.storyDraft?.title||idea?.[0]||'Their story';
- const spreads=state.storyDraft?.spreads||[{text:previewText(idea),image_scene:''}];
+ const title=state.storyDraft?.title||'';
+ const spreads=state.storyDraft?.spreads||[];
  const slides=[];
  const cover=make('figure','pbook-slide pbook-cover');cover.setAttribute('aria-label','Front cover');
  // Same design as the example books' covers: full picture, dark fade, dedication line, title, reading age.
  const board=make('div','pbook-board');const pictures=state.characterImages.filter(Boolean);board.classList.toggle('two',pictures.length>1);
  pictures.forEach((src,i)=>{const img=make('img');img.src=src;img.alt=i?`${state.secondName} as a character`:`${state.names} as a character`;board.append(img);});
  const ages={'3-5':'age 3–5','6-8':'age 6–8','9-12':'age 9–12','teen-adult':'an adult'};
- const copy=make('div','pbook-cover-copy');copy.append(make('p',null,`A personalised story for ${fullNames()||state.names||'them'}`),make('h3',null,title));
+ const copy=make('div','pbook-cover-copy');copy.append(make('p',null,`A personalised story for ${fullNames()||state.names||'them'}`));if(title)copy.append(make('h3',null,title));
  if(ages[state.age])copy.append(make('span',null,`Written for ${ages[state.age]}`));
  board.append(copy);cover.append(board);slides.push(cover);
  spreads.forEach((spread,i)=>{
@@ -559,6 +561,7 @@ function renderPreviewBook(){
   art.append(sketch,make('span','pbook-folio',String(i*2+4)));slide.append(art,words);slides.push(slide);
  });
  track.replaceChildren(...slides);
+ $('.pbook-nav').hidden=slides.length<2;
  previewBookPage=Math.min(previewBookPage,slides.length-1);
  requestAnimationFrame(()=>turnPreviewBook(previewBookPage,'instant'));
 }

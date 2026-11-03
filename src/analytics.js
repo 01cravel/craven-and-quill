@@ -11,13 +11,13 @@ const LIST_LIMIT=300;
 const DETAIL_DAYS=90;
 // Builder pages in the order a visitor meets them. Pages 3 and 8 to 11 are not measured by the builder.
 export const FUNNEL=[
-  ['visit','Arrived on the site'],['maker_start','Opened the book maker'],['step_1','Name page'],['step_2','Photo page'],
-  ['preview_start','Asked for a free preview'],['preview_success','Got their character'],['step_5','Saw the preview book'],
+  ['visit','Arrived on the site'],['maker_start','Opened the book maker'],['step_2','Photo page'],['step_1','Name page'],
+  ['preview_start','Asked for a free preview'],['preview_success','Got their character'],['step_5','Saw their character'],
   ['step_4','Read their story'],['price_view','Saw the prices'],['step_7','Reached review and pay'],['checkout_start','Pressed pay'],['paid','Paid']
 ];
 // Cookie-free counts: page opens per step, for everyone except visitors who pressed Reject all.
 export const COUNT_STEPS=[
-  ['arrive','Arrived'],['maker_start','Opened the book maker'],['step_1','Name page'],['step_2','Photo page'],
+  ['arrive','Arrived'],['maker_start','Opened the book maker'],['step_2','Photo page'],['step_1','Name page'],
   ['preview_start','Asked for a preview'],['preview_success','Got their character'],['price_view','Saw the prices'],['checkout_start','Pressed pay']
 ];
 const ERRORS={preview_error:'Preview failed',checkout_error:'Payment page failed'};

@@ -83,7 +83,7 @@ function ads(d){
   }
 }
 
-const SHORT={arrive:'Arrived',maker_start:'Opened maker',step_1:'Name',step_2:'Photo',preview_start:'Asked for preview',preview_success:'Got character',price_view:'Saw prices',checkout_start:'Pressed pay'};
+const SHORT={arrive:'Arrived',maker_start:'Opened maker',step_2:'Photo',step_1:'Name',preview_start:'Asked for preview',preview_success:'Got character',price_view:'Saw prices',checkout_start:'Pressed pay'};
 function everyone(d){
   const e=d.everyone,head=$('#everyone-head'),body=$('#everyone');body.replaceChildren();head.replaceChildren();$('#everyone-note').textContent='';
   if(!e)return;

@@ -35,7 +35,7 @@
     const update=event=>{if(stopped)return;if(phase!==event.phase)phaseAt=Date.now();phase=event.phase;root.dataset.phase=phase;
       if(phase==='upload'){fill(10+index/total*72);words('Preparing their photo','Sending the reference for their illustrated character.');}
       if(phase==='drawing'){fill(18+index/total*72);tick();}
-      if(phase==='received'){fill(18+(index+1)/total*72);words(index+1===total?'Opening their first page':'Their first character is ready',index+1===total?'Pairing their illustration with the opening of their story.':'Next, we’ll draw their story companion.');}
+      if(phase==='received'){fill(18+(index+1)/total*72);words(index+1===total?'Their character is ready':'Their first character is ready',index+1===total?'Here they come.':'Next, we’ll draw their story companion.');}
     };
     root.dataset.phase='saving';fill(4);words('Saving your preview details','Then the storybook magic begins.');const timer=setInterval(tick,1000);
     return{update,person(next,count){index=next;total=count;update({phase:'upload'});},stop(ok){stopped=true;clearInterval(timer);root.dataset.phase=ok?'complete':'error';if(ok)fill(100);words(ok?'Your first page is ready':'Preview paused',ok?'A new adventure, with them at the heart of it.':'See below to continue.');}};
