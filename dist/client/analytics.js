@@ -41,7 +41,7 @@ function fillOptions(d){
   }
 }
 
-function render(d){headline(d);funnel(d);ads(d);days(d);hours(d);breakdowns(d);tabs(d);spend(d);$('#notes').replaceChildren(...d.notes.map(n=>E('li',n)));}
+function render(d){everyone(d);headline(d);funnel(d);ads(d);days(d);hours(d);breakdowns(d);tabs(d);spend(d);$('#notes').replaceChildren(...d.notes.map(n=>E('li',n)));}
 
 function headline(d){
   const h=d.headline,f=d.filter.creative||d.filter.source;
@@ -81,6 +81,24 @@ function ads(d){
     const cells=[adName(a.creative),num(a.visits),num(a.previews),num(a.prices),num(a.checkouts),num(a.sales),a.spendPence?pounds(a.spendPence):'—',a.spendPence&&a.visits?pounds(Math.round(a.spendPence/a.visits)):'—',a.spendPence&&a.sales?pounds(Math.round(a.spendPence/a.sales)):'—'];
     cells.forEach((c,i)=>tr.append(E('td',c,i?'num':'')));body.append(tr);
   }
+}
+
+const SHORT={arrive:'Arrived',maker_start:'Opened maker',step_1:'Name',step_2:'Photo',preview_start:'Asked for preview',preview_success:'Got character',price_view:'Saw prices',checkout_start:'Pressed pay'};
+function everyone(d){
+  const e=d.everyone,head=$('#everyone-head'),body=$('#everyone');body.replaceChildren();head.replaceChildren();$('#everyone-note').textContent='';
+  if(!e)return;
+  head.append(E('th','Ad'),...e.steps.map(s=>{const th=E('th',SHORT[s.step]||s.label,'num');th.title=s.label;return th;}));
+  const row=(name,counts,cls='')=>{
+    const tr=E('tr',undefined,cls);tr.append(E('td',name));
+    for(const s of e.steps){const n=counts[s.step]||0,td=E('td',num(n),'num');if(s.step!=='arrive'&&counts.arrive)td.append(E('small',pct(n,counts.arrive)));tr.append(td);}
+    body.append(tr);
+  };
+  if(!e.ads.length){const tr=E('tr'),td=E('td','No visits counted in this range yet. Counting started on 3 November 2026.','empty-row');td.colSpan=e.steps.length+1;tr.append(td);body.append(tr);return;}
+  for(const a of e.ads)row(adName(a.creative),a.counts,a.creative===d.filter.creative?'selected':'');
+  if(e.ads.length>1)row('All',Object.fromEntries(e.steps.map(s=>[s.step,s.count])),'total');
+  const arrived=e.steps[0].count,devices=e.devices.map(x=>`${x.key==='mobile'?'phones':x.key==='desktop'?'computers':x.key} ${pct(x.count,arrived)}`).join(', ');
+  const recent=e.byDay.filter(x=>x.arrived).slice(-7).map(x=>`${shortDay(x.day)} ${num(x.arrived)}`).join(', ');
+  $('#everyone-note').textContent=[devices&&`Arrived on ${devices}.`,recent&&`Arrivals by day: ${recent}.`].filter(Boolean).join(' ');
 }
 
 function columns(root,items,{label,value,part,tip,axis}){

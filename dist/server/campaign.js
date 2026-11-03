@@ -2,6 +2,10 @@ export const CONSENT_VERSION='storybook-validation-2026-09-29';
 export const CONSENT_TEXT='Email me when Craven & Quill storybooks are ready to order. I can unsubscribe at any time.';
 const PRODUCTS={digital:1900,hardback:3500,bundle:4999};
 const EVENTS=new Set(['landing_view','maker_start','preview_start','preview_success','preview_error','price_view','step_1','step_2','step_4','step_5','step_6','step_7','story_generated','story_edited','checkout_start','checkout_error','book_saved','device_mobile','device_desktop']);
+// Cookie-free counts add one arrival marker; device comes from the browser's own request header.
+const COUNT_EVENTS=new Set(['arrive',...[...EVENTS].filter(e=>!e.startsWith('device_'))]);
+const ukToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London'}).format(new Date());
+const deviceOf=request=>{const ua=request.headers.get('User-Agent')||'';return /bot|crawl|spider|facebookexternalhit|preview/i.test(ua)?null:/Mobi|Android|iPhone|iPad/i.test(ua)?'mobile':ua?'desktop':'unknown';};
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
 const code=(value,fallback='')=>typeof value==='string'&&/^[a-zA-Z0-9_.-]{1,100}$/.test(value)?value:fallback;
@@ -50,7 +54,7 @@ export async function finishPreview(env,id,status){await env.DB.prepare('UPDATE 
 export async function campaignApi(request,env){
   const path=new URL(request.url).pathname;
   if(path==='/api/ad-config')return request.method==='GET'?reply({pixelId:/^[0-9]{5,30}$/.test(env.META_PIXEL_ID||'')?env.META_PIXEL_ID:null}):reply({error:'Method not allowed.'},405);
-  if(!['/api/preview-email','/api/preview-emails.csv','/api/launch-signup','/api/campaign-event','/api/campaign-report','/api/launch-signups.csv','/api/unsubscribe'].includes(path))return null;
+  if(!['/api/preview-email','/api/preview-emails.csv','/api/launch-signup','/api/campaign-event','/api/visit-count','/api/campaign-report','/api/launch-signups.csv','/api/unsubscribe'].includes(path))return null;
   const report=path==='/api/campaign-report'||path==='/api/launch-signups.csv'||path==='/api/preview-emails.csv';
   if(request.method!==(report?'GET':'POST'))return reply({error:'Method not allowed.'},405);
   if(report&&!authorized(request,env))return reply({error:'Not found.'},404);
@@ -88,6 +92,12 @@ export async function campaignApi(request,env){
       return new Response(csv,{headers:{'Content-Type':'text/csv;charset=utf-8','Content-Disposition':'attachment; filename="storybook-launch-signups.csv"','Cache-Control':'private, no-store'}});
     }
     let input;try{input=await body(request);if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('Invalid form');}catch{return reply({error:'Please check the form and try again.'},400);}
+    if(path==='/api/visit-count'){
+      if(!COUNT_EVENTS.has(input.event))return reply({error:'Invalid count.'},400);
+      const device=deviceOf(request);if(!device)return reply({ok:true});
+      await env.DB.prepare('INSERT INTO visit_counts (day, event, source, medium, campaign, creative, country, device, n) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1) ON CONFLICT(day, event, source, medium, campaign, creative, country, device) DO UPDATE SET n = n + 1').bind(ukToday(),input.event,...attribution(input),country(request),device).run();
+      return reply({ok:true});
+    }
     if(path==='/api/campaign-event'){
       if(input.measurementConsent!==true||!UUID.test(input.visitId)||!EVENTS.has(input.event))return reply({error:'Invalid measurement.'},400);
       const result=await env.DB.prepare('INSERT INTO campaign_events (id, visit_id, event, source, medium, campaign, creative, country, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) ON CONFLICT(id) DO NOTHING').bind(`${input.visitId}:${input.event}`,input.visitId,input.event,...attribution(input),country(request),new Date().toISOString()).run();

@@ -15,6 +15,11 @@ export const FUNNEL=[
   ['preview_start','Asked for a free preview'],['preview_success','Got their character'],['step_5','Saw the preview book'],
   ['step_4','Read their story'],['price_view','Saw the prices'],['step_7','Reached review and pay'],['checkout_start','Pressed pay'],['paid','Paid']
 ];
+// Cookie-free counts: page opens per step, for everyone except visitors who pressed Reject all.
+export const COUNT_STEPS=[
+  ['arrive','Arrived'],['maker_start','Opened the book maker'],['step_1','Name page'],['step_2','Photo page'],
+  ['preview_start','Asked for a preview'],['preview_success','Got their character'],['price_view','Saw the prices'],['checkout_start','Pressed pay']
+];
 const ERRORS={preview_error:'Preview failed',checkout_error:'Payment page failed'};
 const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
 const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
@@ -49,6 +54,24 @@ function range(url){
 function tally(list,key,value=1){const found=list.get(key)||0;list.set(key,found+value);}
 const sorted=map=>[...map].map(([key,count])=>({key,count})).sort((a,b)=>b.count-a.count||String(a.key).localeCompare(String(b.key)));
 
+export function countReport(list,from,to){
+  const steps=new Map(COUNT_STEPS.map(([step])=>[step,0])),ads=new Map(),days=new Map(),devices=new Map();
+  for(let day=from;day<=to;day=addDays(day,1))days.set(day,{day,arrived:0,previews:0});
+  for(const r of list){
+    if(!steps.has(r.event))continue;
+    steps.set(r.event,steps.get(r.event)+r.n);
+    const key=r.creative||'none';if(!ads.has(key))ads.set(key,{creative:key,source:r.source,counts:Object.fromEntries(COUNT_STEPS.map(([step])=>[step,0]))});
+    ads.get(key).counts[r.event]+=r.n;
+    const d=days.get(r.day);if(d&&r.event==='arrive')d.arrived+=r.n;if(d&&r.event==='preview_success')d.previews+=r.n;
+    if(r.event==='arrive')tally(devices,r.device,r.n);
+  }
+  return {
+    steps:COUNT_STEPS.map(([step,label])=>({step,label,count:steps.get(step)})),
+    ads:[...ads.values()].sort((a,b)=>b.counts.arrive-a.counts.arrive||a.creative.localeCompare(b.creative)),
+    byDay:[...days.values()],devices:sorted(devices),
+  };
+}
+
 export async function buildReport(env,url,req=null){
   const {from,to,since,until}=range(url);
   const filter={source:code(url.searchParams.get('source')),creative:code(url.searchParams.get('creative'))};
@@ -59,7 +82,7 @@ export async function buildReport(env,url,req=null){
   const expired=new Date(Date.now()-DETAIL_DAYS*86400000).toISOString();
   try{await q('DELETE FROM visit_details WHERE created_at < ?1',expired).run();await q('DELETE FROM visit_links WHERE created_at < ?1',expired).run();}catch{}
   const inRange='SELECT DISTINCT visit_id FROM campaign_events WHERE created_at >= ?1 AND created_at < ?2';
-  const [events,receipts,contacts,leads,quotes,orderRows,spendRows,usage,signups,options,detailRows,linkRows]=await Promise.all([
+  const [events,receipts,contacts,leads,quotes,orderRows,spendRows,usage,signups,options,detailRows,linkRows,countRows]=await Promise.all([
     rows(q('SELECT visit_id, event, source, medium, campaign, creative, country, created_at FROM campaign_events WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at LIMIT 200000',since,until)),
     rows(q('SELECT id, status, created_at, email FROM preview_receipts WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
     rows(q('SELECT email, source, medium, campaign, creative, country, created_at, updated_at FROM preview_contacts WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
@@ -72,6 +95,7 @@ export async function buildReport(env,url,req=null){
     rows(q("SELECT DISTINCT source, creative FROM campaign_events WHERE created_at >= ?1 UNION SELECT DISTINCT 'meta', creative FROM owner_ad_spend",new Date(Date.now()-180*86400000).toISOString())),
     optional(q(`SELECT visit_id, ip_prefix, town, region FROM visit_details WHERE visit_id IN (${inRange})`,since,until)),
     optional(q(`SELECT l.visit_id, l.kind, l.ref, l.created_at, r.status FROM visit_links l LEFT JOIN preview_receipts r ON l.kind='preview' AND r.id=l.ref WHERE l.visit_id IN (${inRange}) ORDER BY l.created_at`,since,until)),
+    optional(q('SELECT day, event, source, creative, device, SUM(n) AS n FROM visit_counts WHERE day >= ?1 AND day <= ?2 GROUP BY day, event, source, creative, device',from,to)),
   ]);
 
   // One journey per random visit id. Attribution comes from the visit's first event.
@@ -148,8 +172,9 @@ export async function buildReport(env,url,req=null){
     ...(filtered?[]:usage.filter(u=>u.attempts>=limit).map(u=>({at:ukMidnight(u.day),kind:'Daily free preview limit reached',detail:`${u.attempts} of ${limit} previews used on ${u.day}`}))),
   ].sort((a,b)=>b.at.localeCompare(a.at));
 
+  const everyone=countReport(countRows.filter(r=>matches(r)),from,to);
   return {
-    range:{from,to},filter,zone:ZONE,generatedAt:new Date().toISOString(),
+    range:{from,to},filter,everyone,zone:ZONE,generatedAt:new Date().toISOString(),
     // What location detail the host attaches to requests, checked on the owner's own request.
     hostLocation:req?{locationObject:Boolean(req.cf),town:Boolean(req.cf?.city),townHeader:Boolean(req.headers.get('cf-ipcity')),region:Boolean(req.cf?.region||req.cf?.regionCode),regionHeader:Boolean(req.headers.get('cf-region')||req.headers.get('cf-region-code'))}:null,
     options:{sources:[...new Set(options.map(o=>o.source))].sort(),creatives:[...new Set(options.map(o=>o.creative))].filter(c=>c!=='all').sort()},
@@ -167,6 +192,7 @@ export async function buildReport(env,url,req=null){
     errors:errors.slice(0,LIST_LIMIT),
     spend:spendRows,
     notes:[
+      'Everyone who visited is a cookie-free count of pages opened, so it includes people who ignored the cookie banner but not those who pressed Reject all. A reload can count twice. It starts from 3 November 2026.',
       'Journeys, funnel and traffic count only visitors who pressed Accept all or Site only. Rejected visitors are invisible here.',
       'Steps a visitor reached before choosing on the cookie banner are timed at the moment they chose.',
       'For visitors who allowed measurement, the IP is shortened before saving (it points to a network area, not one device) and town comes from Cloudflare. Previews, emails and books link to a visit from 2 November 2026 on. This detail is deleted after 90 days.',

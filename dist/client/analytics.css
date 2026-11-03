@@ -25,6 +25,7 @@
 @media (prefers-reduced-motion:reduce){.funnel .fill{transition:none}}
 
 table.compact th,table.compact td{padding:8px 7px;font-size:12px;white-space:nowrap}table.compact .num{text-align:right;font-variant-numeric:tabular-nums}table.compact tr.selected td{background:#f2f5ff}
+table.everyone td small{display:block}table.everyone tr.total td{font-weight:750;border-top:2px solid var(--line)}.everyone-note{margin:10px 0 0}
 
 /* Column charts: one hue, baseline-anchored, rounded data end only. */
 .columns{display:flex;align-items:flex-end;gap:2px;height:186px;padding-top:20px;border-bottom:1px solid var(--line);position:relative}

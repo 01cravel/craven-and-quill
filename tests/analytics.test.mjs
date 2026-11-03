@@ -168,3 +168,32 @@ test('town falls back to visitor-location headers when the host sends them that 
   const d=await(await get(env)).json();
   assert.deepEqual(d.hostLocation,{locationObject:false,town:false,townHeader:false,region:false,regionHeader:false});
 });
+
+const count=(input,{ua='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148',origin='https://cq.test'}={})=>new Request('https://cq.test/api/visit-count',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','CF-IPCountry':'GB','CF-Connecting-IP':'81.2.69.142','User-Agent':ua},body:JSON.stringify(input)});
+test('cookie-free counts add up daily totals per ad and step, with no visitor id or IP',async()=>{
+  const env=environment(),ad={source:'meta',medium:'paid_social',campaign:'cq_d',creative:'d_static'};
+  for(let i=0;i<3;i++)assert.equal((await campaignApi(count({...ad,event:'arrive'}),env)).status,200);
+  assert.equal((await campaignApi(count({...ad,event:'arrive'},{ua:'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)'}),env)).status,200);
+  assert.equal((await campaignApi(count({...ad,event:'preview_start',visitId:crypto.randomUUID()}),env)).status,200);
+  assert.equal((await campaignApi(count({event:'arrive'}),env)).status,200);
+  assert.equal((await campaignApi(count({...ad,event:'arrive'},{ua:'facebookexternalhit/1.1'}),env)).status,200);
+  assert.equal((await campaignApi(count({...ad,event:'device_mobile'}),env)).status,400);
+  assert.equal((await campaignApi(count({...ad,event:'nope'}),env)).status,400);
+  assert.equal((await campaignApi(count({...ad,event:'arrive'},{origin:'https://evil.test'}),env)).status,403);
+  const rows=env.DB.sqlite.prepare('SELECT * FROM visit_counts ORDER BY event, device, creative').all().map(r=>({...r}));
+  assert.deepEqual(rows.map(r=>[r.event,r.creative,r.device,r.country,r.n]),[['arrive','d_static','desktop','GB',1],['arrive','d_static','mobile','GB',3],['arrive','none','mobile','GB',1],['preview_start','d_static','mobile','GB',1]]);
+  assert.equal(rows[0].day,day);
+  const saved=JSON.stringify(rows);assert.ok(!saved.includes('81.2.69')&&!/[0-9a-f]{8}-[0-9a-f]{4}/.test(saved));
+});
+test('report shows everyone counted without cookies, per ad, filtered and by day',async()=>{
+  const env=environment(),ad={source:'meta',medium:'paid_social',campaign:'cq_d'};
+  const add=(creative,event,n)=>env.DB.sqlite.prepare('INSERT INTO visit_counts VALUES (?,?,?,?,?,?,?,?,?)').run(day,event,ad.source,ad.medium,ad.campaign,creative,'GB','mobile',n);
+  add('d_static','arrive',20);add('d_static','maker_start',18);add('d_static','preview_start',3);add('d_video','arrive',5);
+  env.DB.sqlite.prepare('INSERT INTO visit_counts VALUES (?,?,?,?,?,?,?,?,?)').run('2020-01-01','arrive','meta','paid_social','cq_d','d_static','GB','mobile',99);
+  const e=(await (await get(env)).json()).everyone;
+  assert.equal(e.steps[0].count,25);assert.equal(e.steps.find(s=>s.step==='preview_start').count,3);
+  assert.deepEqual(e.ads.map(a=>[a.creative,a.counts.arrive,a.counts.maker_start]),[['d_static',20,18],['d_video',5,0]]);
+  assert.equal(e.byDay.at(-1).arrived,25);assert.deepEqual(e.devices,[{key:'mobile',count:25}]);
+  const only=(await (await get(env,'?creative=d_video')).json()).everyone;
+  assert.equal(only.steps[0].count,5);assert.equal(only.ads.length,1);
+});

@@ -62,3 +62,8 @@ export const visitDetails=sqliteTable('visit_details',{
 export const visitLinks=sqliteTable('visit_links',{
  visitId:text('visit_id').notNull(),kind:text('kind').notNull(),ref:text('ref').notNull(),createdAt:text('created_at').notNull(),
 },t=>[primaryKey({columns:[t.visitId,t.kind,t.ref]}),index('visit_links_created_idx').on(t.createdAt)]);
+// Cookie-free daily page counts per ad and step. No visitor id, IP or device storage: totals only.
+export const visitCounts=sqliteTable('visit_counts',{
+ day:text('day').notNull(),event:text('event').notNull(),source:text('source').notNull(),medium:text('medium').notNull(),campaign:text('campaign').notNull(),
+ creative:text('creative').notNull(),country:text('country').notNull(),device:text('device').notNull(),n:integer('n').notNull(),
+},t=>[primaryKey({columns:[t.day,t.event,t.source,t.medium,t.campaign,t.creative,t.country,t.device]})]);

@@ -14,6 +14,9 @@ export function seedAnalytics(DB,{now=Date.now(),days=7,visits=140}={}){
   const contact=db.prepare('INSERT OR IGNORE INTO preview_contacts (email, source, medium, campaign, creative, country, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)');
   const order=db.prepare('INSERT INTO customer_orders (id, token_hash, email, size, amount, status, payment_status, payment_mode, revision, state, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,1,?,?,?)');
   const detail=db.prepare('INSERT INTO visit_details (visit_id, ip_prefix, town, region, created_at) VALUES (?,?,?,?,?)'),link=db.prepare('INSERT OR IGNORE INTO visit_links (visit_id, kind, ref, created_at) VALUES (?,?,?,?)');
+  const counter=db.prepare("INSERT INTO visit_counts VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT DO UPDATE SET n = n + excluded.n");
+  const STEPS=new Set(['maker_start','step_1','step_2','preview_start','preview_success','price_view','checkout_start']);
+  const tallyCount=(t,event,ad,country,n=1)=>counter.run(new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London'}).format(t),event,ad[0],ad[1],ad[2],ad[3],country,r()<.8?'mobile':'desktop',n);
   const names=['Amara','Jamie','Olly','Ruby','Teddy','Isla','Biscuit','Leo','Poppy','Max'];
   const created=[];
   for(let i=0;i<visits;i++){
@@ -25,6 +28,8 @@ export function seedAnalytics(DB,{now=Date.now(),days=7,visits=140}={}){
     const steps=FLOW.slice(start,depth+1);
     const failed=steps.includes('preview_start')&&!steps.includes('preview_success')&&r()<.6;
     for(const step of steps)event.run(visit+':'+step,visit,step,...ad,country,at());
+    // Cookie-free counts also see the visitors who ignored the banner, roughly three for every one measured.
+    tallyCount(t,'arrive',ad,country,1+Math.floor(r()*4));for(const step of steps)if(STEPS.has(step))tallyCount(t,step,ad,country,1+Math.floor(r()*2));
     const town=TOWNS[country][Math.floor(r()*TOWNS[country].length)];detail.run(visit,`${80+Math.floor(r()*90)}.${Math.floor(r()*255)}.${Math.floor(r()*255)}.0`,...town,new Date(t).toISOString());
     event.run(visit+':device',visit,r()<.78?'device_mobile':'device_desktop',...ad,country,at());
     if(failed)event.run(visit+':preview_error',visit,'preview_error',...ad,country,at());

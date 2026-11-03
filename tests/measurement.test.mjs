@@ -12,11 +12,21 @@ function harness(saved={}){
   vm.runInNewContext(code,context);
   return {window,calls,scripts,store,choose(choice){banner.click({target:{dataset:{choice}}});},flush:()=>new Promise(resolve=>setImmediate(resolve))};
 }
-test('no Meta script or requests before consent, including historical site-only consent',async()=>{
-  for(const saved of [{},{'cq-measurement-v1':'yes'},{'cq-measurement-v2':'no'}]){const h=harness(saved);await h.flush();assert.equal(h.scripts.length,0);assert.equal(h.calls.length,0);}
+const measured=h=>h.calls.filter(c=>c.path!=='/api/visit-count');
+const counts=h=>h.calls.filter(c=>c.path==='/api/visit-count').map(c=>JSON.parse(c.options.body));
+test('no Meta script or measured events before consent, including historical site-only consent',async()=>{
+  for(const saved of [{},{'cq-measurement-v1':'yes'},{'cq-measurement-v2':'no'}]){const h=harness(saved);await h.flush();assert.equal(h.scripts.length,0);assert.equal(measured(h).length,0);}
+});
+test('cookie-free counts carry only ad codes and the step, and stop after Reject all',async()=>{
+  const h=harness();await h.flush();
+  assert.deepEqual(counts(h),[{source:'meta',medium:'paid_social',campaign:'cq_uk_validation_2026',creative:'none',event:'arrive'},{source:'meta',medium:'paid_social',campaign:'cq_uk_validation_2026',creative:'none',event:'landing_view'}]);
+  assert.equal(h.store.size,0);
+  h.window.cqMeasurement.record('step_1');h.window.cqMeasurement.record('step_1');assert.equal(counts(h).filter(c=>c.event==='step_1').length,1);
+  h.choose('no');h.window.cqMeasurement.record('step_2');assert.equal(counts(h).filter(c=>c.event==='step_2').length,0);
+  assert.equal(harness({'cq-measurement-v2':'no'}).calls.length,0);
 });
 test('site-only consent sends first-party events without contacting Meta',async()=>{
-  const h=harness();h.choose('site');await h.flush();assert.equal(h.scripts.length,0);assert.equal(h.calls.length,2);assert.ok(h.calls.every(c=>c.path==='/api/campaign-event'));assert.deepEqual(h.calls.map(c=>JSON.parse(c.options.body).event),['landing_view','device_mobile']);
+  const h=harness();h.choose('site');await h.flush();assert.equal(h.scripts.length,0);assert.equal(measured(h).length,2);assert.ok(measured(h).every(c=>c.path==='/api/campaign-event'));assert.deepEqual(measured(h).map(c=>JSON.parse(c.options.body).event),['landing_view','device_mobile']);
 });
 test('Meta requires separate consent; saved leads send only random receipt and deduplicate in browser',async()=>{
   const h=harness();h.choose('ads');await h.flush();assert.equal(h.scripts.length,1);

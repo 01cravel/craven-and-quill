@@ -8,7 +8,15 @@
   const siteAllowed=()=>preference==='site'||preference==='ads';
   const getVisit=()=>{if(!visitId){try{visitId=sessionStorage.getItem('cq-visit-v1');}catch{}if(!/^[0-9a-f-]{36}$/.test(visitId||''))visitId=crypto.randomUUID();try{sessionStorage.setItem('cq-visit-v1',visitId);}catch{}}return visitId;};
   function context(){return{...attribution,measurementConsent:siteAllowed(),visitId:siteAllowed()?getVisit():null};}
+  // Cookie-free page count for everyone except Reject all: nothing is read from or saved on the
+  // device for it, and it carries no visitor id, only the ad codes in the link and the step reached.
+  const counted=new Set();
+  function count(event){
+    if(preference==='no'||counted.has(event)||event.startsWith('device_'))return;counted.add(event);
+    fetch('/api/visit-count',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...attribution,event}),keepalive:true}).catch(()=>{});
+  }
   function record(event){
+    count(event);
     if(preference==='no')return;
     if(!siteAllowed()){pending.add(event);return;}
     if(sent.has(event))return;sent.add(event);
@@ -58,6 +66,8 @@
   banner.addEventListener('click',event=>{const choice=event.target.dataset.choice;if(!['no','site','ads'].includes(choice))return;preference=choice;try{localStorage.setItem('cq-measurement-v2',choice);if(choice==='no')sessionStorage.removeItem('cq-visit-v1');}catch{}banner.hidden=true;if(choice!=='ads')revokePixel();else void startPixel();if(siteAllowed())for(const event of pending)record(event);pending.clear();});
   document.querySelectorAll('.measurement-settings').forEach(button=>button.addEventListener('click',()=>{banner.hidden=false;}));
   window.cqMeasurement={record,context,savedLead};
+  let arrivedFrom='';try{arrivedFrom=document.referrer?new URL(document.referrer).origin:'';}catch{}
+  if(arrivedFrom!==location.origin)count('arrive');
   record(location.pathname.includes('create')?'maker_start':'landing_view');record(matchMedia('(max-width:779px)').matches?'device_mobile':'device_desktop');
   if(preference==='ads')void startPixel();
 })();
