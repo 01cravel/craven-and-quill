@@ -2,6 +2,8 @@
 
 Catch people at the moment they search for a present. Built 4 Nov 2026 in the Craven & Quill Google Ads account (262-797-3472, billed in GBP), campaign id 24430097219. Paused until Luke switches it on. Ads were under Google review at build time.
 
+4 Nov, later: three ads (christmas, adult, grandchild) were disapproved for "Destination not working" because Google had doubled the landing link (`https://cravenandquill.com/https://cravenandquill.com/?...`). Fixed each ad's final URL to `https://cravenandquill.com/?utm_content=<ad code>` and appealed; birthday ad was already eligible.
+
 Bidding is Maximise clicks with a cap because Google has no purchase history to learn from yet; switch to purchase bidding after 15 to 30 recorded purchases. Needs cookie-free purchase reporting to Google first.
 
 ## Campaign
