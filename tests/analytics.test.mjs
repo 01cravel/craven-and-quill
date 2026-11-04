@@ -185,6 +185,12 @@ test('cookie-free counts add up daily totals per ad and step, with no visitor id
   assert.equal(rows[0].day,day);
   const saved=JSON.stringify(rows);assert.ok(!saved.includes('81.2.69')&&!/[0-9a-f]{8}-[0-9a-f]{4}/.test(saved));
 });
+test('photo page attempts are counted without cookies',async()=>{
+  const env=environment(),ad={source:'meta',medium:'paid_social',campaign:'cq_d',creative:'d_static'};
+  for(const event of ['photo_open','photo_picked','photo_passed','photo_failed'])assert.equal((await campaignApi(count({...ad,event}),env)).status,200);
+  const events=env.DB.sqlite.prepare('SELECT event FROM visit_counts ORDER BY event').all().map(r=>r.event);
+  assert.deepEqual(events,['photo_failed','photo_open','photo_passed','photo_picked']);
+});
 test('report shows everyone counted without cookies, per ad, filtered and by day',async()=>{
   const env=environment(),ad={source:'meta',medium:'paid_social',campaign:'cq_d'};
   const add=(creative,event,n)=>env.DB.sqlite.prepare('INSERT INTO visit_counts VALUES (?,?,?,?,?,?,?,?,?)').run(day,event,ad.source,ad.medium,ad.campaign,creative,'GB','mobile',n);

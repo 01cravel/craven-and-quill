@@ -1,7 +1,7 @@
 const state={previewId:null,rewritesRemaining:3,step:1,storyMode:'invent',names:'',secondName:'',age:'',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a5',price:39.99};
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
-const track=(event,data={})=>{const names={story_maker_open:'maker_start',free_preview_created:'preview_success',free_preview_failed:'preview_error'};const allowed=['maker_start','story_generated','story_edited','checkout_start','checkout_error','book_saved'];const value=names[event]||(event==='story_step_view'?'step_'+data.step:event);if(allowed.includes(value)||/^step_[124567]$/.test(value)||names[event])window.cqMeasurement?.record(value);};
+const track=(event,data={})=>{const names={story_maker_open:'maker_start',free_preview_created:'preview_success',free_preview_failed:'preview_error'};const allowed=['maker_start','photo_open','photo_picked','photo_passed','photo_failed','story_generated','story_edited','checkout_start','checkout_error','book_saved'];const value=names[event]||(event==='story_step_view'?'step_'+data.step:event==='photos_checked'?(data.passed?'photo_passed':'photo_failed'):event);if(allowed.includes(value)||/^step_[124567]$/.test(value)||names[event])window.cqMeasurement?.record(value);};
 track('story_maker_open',{offer:'one_page_free'});
 
 const ideaBanks={
@@ -264,12 +264,12 @@ function validPreviewEmail(){
 function validPhotoCount(){return state.secondName?state.photos.length===2:state.photos.length>=1&&state.photos.length<=3;}
 function updatePhotoGate(){
   const requiredCount=$('#second-person').hidden?1:2;
-  const ready=validPhotoCount()&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#face-confirm').checked&&$('#photo-permission').checked;
+  const ready=validPhotoCount()&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#photo-permission').checked;
   $('#photo-continue').disabled=!ready;
   $('#extra-photo-wrap').hidden=!state.photos.length||!!state.secondName;$('#extra-photos').disabled=state.photos.length>=3;
   $('.extra-photo-label').textContent=state.photos.length>=3?'Three reference photos added':`+ Add ${3-state.photos.length} more for a better likeness (optional)`;
 }
-['#face-confirm','#photo-permission'].forEach(selector=>$(selector).addEventListener('change',updatePhotoGate));
+$('#photo-permission').addEventListener('change',updatePhotoGate);
 $('#email').addEventListener('input',()=>{updatePhotoGate();$('#step-2-error').textContent='';});
 $('#email').addEventListener('change',updatePhotoGate);
 
@@ -285,10 +285,10 @@ async function selectPhotos(files){
   photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];
   const requiredCount=$('#second-person').hidden?1:2;
   files=files.slice(0,state.secondName?2:3);
-  state.photos=files;state.previewId=null;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#face-confirm').checked=false;$('#face-confirm-wrap').hidden=true;$('#step-2-error').textContent='';updatePhotoGate();
+  state.photos=files;state.previewId=null;state.photoChecks=[];state.characterImages=[];$('#photo-list').replaceChildren();$('#step-2-error').textContent='';updatePhotoGate();
   const check=$('#photo-check');check.hidden=false;check.className='photo-check';check.innerHTML='<strong>Checking the photo…</strong>';
   renderPhotoThumbnails(files);
-  if(!files.length){check.hidden=true;$('#face-confirm-wrap').hidden=true;window.dispatchEvent(new Event('cq-draft-change'));return;}
+  if(!files.length){check.hidden=true;window.dispatchEvent(new Event('cq-draft-change'));return;}
   const results=await Promise.all(files.map(async file=>{
     try{const prepared=await window.cqPhotoUpload.prepare(file);return{file:prepared,check:await inspectPhoto(prepared)};}
     catch(error){return{file,check:{pass:false,message:error.message||'This photo could not be read. Try a screenshot instead.'}};}
@@ -298,12 +298,13 @@ async function selectPhotos(files){
   const failed=state.photoChecks.find(item=>!item.pass);
   const countProblem=!validPhotoCount();
   check.classList.add(failed||countProblem?'fail':'pass');
-  check.innerHTML=countProblem?`<strong>Add ${requiredCount===2?'two photos':'one photo'}</strong><span>Use one separate photo for each person.</span>`:failed?`<strong>Use another photo</strong><span>${failed.message}</span>`:`<strong>${files.length>1?'Photos look good':'Photo looks good'}</strong><span>Tick below to confirm the face is clear.</span>`;
-  $('#face-confirm-wrap').hidden=Boolean(failed||countProblem);$('#step-2-error').textContent='';
+  check.innerHTML=countProblem?`<strong>Add ${requiredCount===2?'two photos':'one photo'}</strong><span>Use one separate photo for each person.</span>`:failed?`<strong>Use another photo</strong><span>${failed.message}</span>`:`<strong>${files.length>1?'Photos look good':'Photo looks good'}</strong><span>Tick below to continue.</span>`;
+  $('#step-2-error').textContent='';
   updatePhotoGate();
   track('photos_checked',{count:files.length,passed:!failed&&!countProblem});window.dispatchEvent(new Event('cq-draft-change'));
 }
-$('#photos').addEventListener('change',event=>void selectPhotos([...event.target.files]));
+$('#photos').addEventListener('click',()=>track('photo_open'));
+$('#photos').addEventListener('change',event=>{if(event.target.files.length)track('photo_picked');void selectPhotos([...event.target.files]);});
 $('#extra-photos').addEventListener('change',event=>{const added=[...event.target.files];event.target.value='';if(state.photos.length+added.length>3){$('#step-2-error').textContent='Choose up to three photos in total.';return;}void selectPhotos([...state.photos,...added]);});
 
 function selectedStory(){
@@ -424,14 +425,14 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   }
   if(state.step===2){updateLive();if(!$('#second-person').hidden&&!state.secondName){$('#step-2-error').textContent='Add the second first name or remove that option.';$('#second-name').focus();return;}}
   if(state.step===2||(state.step===4&&!state.characterImages.length)){
-    const photoReady=validPhotoCount()&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#face-confirm').checked&&$('#photo-permission').checked&&validPreviewEmail();
+    const photoReady=validPhotoCount()&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#photo-permission').checked&&validPreviewEmail();
     if(state.step===4&&!photoReady)showStep(2);
     const requiredCount=$('#second-person').hidden?1:2;
     if(!validPhotoCount()){$('#step-2-error').textContent=`Add ${requiredCount===2?'one clear photo for each person':'one clear photo'} to continue.`;return;}
     if(state.photoChecks.length!==state.photos.length){$('#step-2-error').textContent='Wait for the photo check to finish.';return;}
     const failedPhoto=state.photoChecks.find(item=>!item.pass);
     if(failedPhoto){$('#step-2-error').textContent=failedPhoto.message;$('#photo-check').scrollIntoView({behavior:'smooth',block:'center'});return;}
-    if(!$('#face-confirm').checked){$('#step-2-error').textContent='Confirm that every face is clearly recognisable.';$('#face-confirm').focus();return;}
+    
     if(!$('#photo-permission').checked){$('#step-2-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
     if(state.step===4&&!validPreviewEmail()){showStep(10);$('#step-10-error').textContent='Enter your email to create the preview.';return;}
     $('#step-2-error').textContent='';if(state.step===4)void preparePreview();

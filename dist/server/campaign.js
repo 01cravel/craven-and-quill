@@ -1,7 +1,7 @@
 export const CONSENT_VERSION='storybook-validation-2026-09-29';
 export const CONSENT_TEXT='Email me when Craven & Quill storybooks are ready to order. I can unsubscribe at any time.';
 const PRODUCTS={digital:1900,hardback:3500,bundle:4999};
-const EVENTS=new Set(['landing_view','maker_start','preview_start','preview_success','preview_error','price_view','step_1','step_2','step_4','step_5','step_6','step_7','story_generated','story_edited','checkout_start','checkout_error','book_saved','device_mobile','device_desktop']);
+const EVENTS=new Set(['landing_view','maker_start','photo_open','photo_picked','photo_passed','photo_failed','preview_start','preview_success','preview_error','price_view','step_1','step_2','step_4','step_5','step_6','step_7','story_generated','story_edited','checkout_start','checkout_error','book_saved','device_mobile','device_desktop']);
 // Cookie-free counts add one arrival marker; device comes from the browser's own request header.
 const COUNT_EVENTS=new Set(['arrive',...[...EVENTS].filter(e=>!e.startsWith('device_'))]);
 const ukToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London'}).format(new Date());

@@ -17,7 +17,8 @@ export const FUNNEL=[
 ];
 // Cookie-free counts: page opens per step, for everyone except visitors who pressed Reject all.
 export const COUNT_STEPS=[
-  ['arrive','Arrived'],['maker_start','Opened the book maker'],['step_2','Photo page'],['step_1','Name page'],
+  ['arrive','Arrived'],['maker_start','Opened the book maker'],['step_2','Photo page'],['photo_open','Tapped add photo'],['photo_picked','Picked a photo'],
+  ['photo_passed','Photo passed check'],['photo_failed','Photo failed check'],['step_1','Name page'],
   ['preview_start','Asked for a preview'],['preview_success','Got their character'],['price_view','Saw the prices'],['checkout_start','Pressed pay']
 ];
 const ERRORS={preview_error:'Preview failed',checkout_error:'Payment page failed'};

@@ -3,11 +3,10 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../dist/client/create.js',import.meta.url),'utf8');
-const gate=source.slice(source.indexOf('function validPreviewEmail(){'),source.indexOf("['#face-confirm','#photo-permission']"));
-function setup(){const nodes={'#email':{value:'',validity:{valid:true}},'#second-person':{hidden:true},'#face-confirm':{checked:false},'#photo-permission':{checked:false},'#preview-email-wrap':{},'#photo-continue':{},'#extra-photo-wrap':{},'#extra-photos':{},'.extra-photo-label':{}};const state={photos:[{}],photoChecks:[{pass:true}]};const ctx={state,$:id=>nodes[id]};vm.runInNewContext(gate,ctx);return{nodes,state,update:ctx.updatePhotoGate,validEmail:ctx.validPreviewEmail};}
+const gate=source.slice(source.indexOf('function validPreviewEmail(){'),source.indexOf("$('#photo-permission').addEventListener('change',updatePhotoGate)"));
+function setup(){const nodes={'#email':{value:'',validity:{valid:true}},'#second-person':{hidden:true},'#photo-permission':{checked:false},'#preview-email-wrap':{},'#photo-continue':{},'#extra-photo-wrap':{},'#extra-photos':{},'.extra-photo-label':{}};const state={photos:[{}],photoChecks:[{pass:true}]};const ctx={state,$:id=>nodes[id]};vm.runInNewContext(gate,ctx);return{nodes,state,update:ctx.updatePhotoGate,validEmail:ctx.validPreviewEmail};}
 test('photo step needs checked photos and permission, independently of the later email step',()=>{
  const {nodes,state,update}=setup();update();assert.equal(nodes['#photo-continue'].disabled,true);
- nodes['#face-confirm'].checked=true;update();assert.equal(nodes['#photo-continue'].disabled,true);
  nodes['#photo-permission'].checked=true;update();assert.equal(nodes['#photo-continue'].disabled,false);
  nodes['#photo-permission'].checked=false;update();assert.equal(nodes['#photo-continue'].disabled,true);
  nodes['#photo-permission'].checked=true;state.photoChecks=[];update();assert.equal(nodes['#photo-continue'].disabled,true);
