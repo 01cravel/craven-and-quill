@@ -9,17 +9,20 @@ const SPEND_TABLE='CREATE TABLE IF NOT EXISTS owner_ad_spend (day TEXT NOT NULL,
 const SIGNUPS_TABLE='CREATE TABLE IF NOT EXISTS signups (email TEXT PRIMARY KEY, interest TEXT NOT NULL, page TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)';
 const LIST_LIMIT=300;
 const DETAIL_DAYS=90;
-// Builder pages in the order a visitor meets them. Pages 3 and 8 to 11 are not measured by the builder.
+// Builder pages in the order a visitor meets them.
 export const FUNNEL=[
   ['visit','Arrived on the site'],['maker_start','Opened the book maker'],['step_2','Photo page'],['photo_picked','Added a photo'],['photo_passed','Photo passed the check'],['step_1','Name page'],
-  ['preview_start','Asked for a free preview'],['preview_success','Got their character'],['step_5','Saw their character'],
-  ['step_4','Read their story'],['price_view','Saw the prices'],['step_7','Reached review and pay'],['checkout_start','Pressed pay'],['paid','Paid']
+  ['step_10','Preview email page'],['preview_start','Asked for a free preview'],['preview_success','Got their character'],['step_5','Saw their character'],
+  ['step_8','Reading level page'],['step_9','Story details page'],['step_3','Story tone page'],['step_4','Read their story'],
+  ['step_6','Book size page'],['price_view','Saw the prices'],['step_11','Delivery page'],['step_7','Reached review and pay'],['book_saved','Saved a book'],['checkout_start','Pressed pay'],['paid','Paid']
 ];
 // Page-open totals per step, kept with no visitor reference at all.
 export const COUNT_STEPS=[
   ['arrive','Arrived'],['maker_start','Opened the book maker'],['step_2','Photo page'],['photo_open','Tapped add photo'],['photo_picked','Picked a photo'],
-  ['photo_passed','Photo passed check'],['photo_failed','Photo failed check'],['step_1','Name page'],
-  ['preview_start','Asked for a preview'],['preview_success','Got their character'],['price_view','Saw the prices'],['checkout_start','Pressed pay']
+  ['photo_passed','Photo passed check'],['photo_failed','Photo failed check'],['step_1','Name page'],['step_10','Preview email page'],
+  ['preview_start','Asked for a preview'],['preview_success','Got their character'],['step_5','Character page'],['step_8','Reading level page'],
+  ['step_9','Story details page'],['step_3','Story tone page'],['step_4','Story page'],['step_6','Book size page'],['price_view','Saw the prices'],
+  ['step_11','Delivery page'],['step_7','Review and pay'],['book_saved','Saved a book'],['checkout_start','Pressed pay']
 ];
 const ERRORS={preview_error:'Preview failed',checkout_error:'Payment page failed'};
 const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
@@ -177,6 +180,36 @@ export async function buildReport(env,url,req=null){
     ...(filtered?[]:usage.filter(u=>u.attempts>=limit).map(u=>({at:ukMidnight(u.day),kind:'Daily free preview limit reached',detail:`${u.attempts} of ${limit} previews used on ${u.day}`}))),
   ].sort((a,b)=>b.at.localeCompare(a.at));
 
+  // Bring each email and each still-anonymous visit into one list. A visit is linked to an
+  // email only when the service saved an explicit visit link, lead or order measurement.
+  // Multiple emails on one visit stay separate rather than claiming they are one person.
+  const receiptById=new Map(receipts.map(r=>[r.id,r]));
+  const emailsByVisit=new Map();
+  const associate=(id,email)=>{if(!id||!email)return;if(!emailsByVisit.has(id))emailsByVisit.set(id,new Set());emailsByVisit.get(id).add(email.toLowerCase());};
+  for(const l of linkRows)associate(l.visit_id,l.kind==='contact'?l.ref:l.kind==='preview'?receiptById.get(l.ref)?.email:null);
+  for(const l of leads)associate(l.visit_id,l.email);
+  for(const o of orders)associate(o.visitId,o.email);
+  const peopleByEmail=new Map();
+  const person=email=>{const key=email.toLowerCase();if(!peopleByEmail.has(key))peopleByEmail.set(key,{email:key,firstAt:null,lastAt:null,visits:0,furthestIndex:0,steps:new Set(),activity:new Set(),previews:0,previewMade:0,books:0,title:null,names:null,source:null,sourceAt:null,creative:null,country:null,where:null,offerConsent:false,launchConsent:false});return peopleByEmail.get(key);};
+  const touch=(p,at)=>{if(!at)return;if(!p.firstAt||at<p.firstAt)p.firstAt=at;if(!p.lastAt||at>p.lastAt)p.lastAt=at;};
+  const stage=(p,key)=>{const n=index.get(key);if(n===undefined)return;p.furthestIndex=Math.max(p.furthestIndex,n);for(let i=0;i<=n;i++)p.steps.add(FUNNEL[i][0]);};
+  const anonymous=[];
+  for(const v of scope){
+    const emailSet=emailsByVisit.get(v.id);
+    if(emailSet?.size===1){const p=person([...emailSet][0]);p.visits++;touch(p,v.firstAt);touch(p,v.lastAt);stage(p,FUNNEL[v.far][0]);
+      for(const key of v.events.keys())if(index.has(key))p.steps.add(key);
+      if(!p.sourceAt||v.lastAt>=p.sourceAt){p.source=v.source;p.sourceAt=v.lastAt;p.creative=v.creative;p.country=v.country;p.where=place(v.id);}
+    }else anonymous.push({kind:'visit',email:null,firstAt:v.firstAt,lastAt:v.lastAt,visits:1,furthestIndex:v.far,steps:FUNNEL.filter(([s])=>reached(v,s)).map(([s])=>s),activity:[],source:v.source,creative:v.creative,country:v.country,where:place(v.id),ambiguous:Boolean(emailSet?.size>1)});
+  }
+  for(const c of scopedContacts){const p=person(c.email);touch(p,c.created_at);touch(p,c.updated_at);p.activity.add('Preview email');p.source||=c.source;p.creative||=c.creative;p.country||=c.country;}
+  for(const l of scopedLeads){const p=person(l.email);touch(p,l.created_at);p.activity.add('Storybook list');p.launchConsent=!l.unsubscribed_at;p.source||=l.source;p.creative||=l.creative;p.country||=l.country;}
+  for(const o of scopedOrders){const p=person(o.email);touch(p,o.createdAt);touch(p,o.updatedAt);p.books++;p.title=o.title||p.title;p.names=o.names||p.names;p.activity.add(o.paymentStatus==='paid'?'Paid book':'Saved book');stage(p,o.paymentStatus==='paid'?'paid':'book_saved');p.source||=o.source;p.creative||=o.creative;p.country||=o.country;}
+  for(const q of quotes)if(!filtered||peopleByEmail.has(q.email.toLowerCase())){const p=person(q.email);touch(p,q.last_shown_at);p.activity.add('Saw price');p.offerConsent=Boolean(q.offer_consent_at);stage(p,'price_view');}
+  for(const r of receipts)if((!filtered||peopleByEmail.has(r.email?.toLowerCase()))&&r.email){const p=person(r.email);touch(p,r.created_at);p.previews++;if(r.status==='succeeded')p.previewMade++;p.activity.add('Preview request');stage(p,r.status==='succeeded'?'preview_success':'preview_start');}
+  for(const s of signups)if(!filtered||peopleByEmail.has(s.email.toLowerCase())){const p=person(s.email);touch(p,s.created_at);p.activity.add('Colouring list');}
+  for(const r of receipts)if(!r.email&&!visitByRef.has('preview:'+r.id)&&!filtered)anonymous.push({kind:'preview',email:null,firstAt:r.created_at,lastAt:r.created_at,visits:0,furthestIndex:index.get(r.status==='succeeded'?'preview_success':'preview_start'),steps:[],activity:['Preview request'],previews:1,previewMade:r.status==='succeeded'?1:0,source:null,creative:null,country:null,where:null});
+  const people=[...peopleByEmail.values()].map(({sourceAt,...p})=>({...p,kind:'email',steps:[...p.steps],activity:[...p.activity],furthest:p.steps.size?FUNNEL[p.furthestIndex][1]:'No measured visit'})).concat(anonymous.map(p=>({...p,furthest:FUNNEL[p.furthestIndex][1]}))).sort((a,b)=>(b.lastAt||'').localeCompare(a.lastAt||''));
+
   const everyone=countReport(countRows.filter(r=>matches(r)),from,to);
   return {
     range:{from,to},filter,everyone,zone:ZONE,generatedAt:new Date().toISOString(),
@@ -186,6 +219,7 @@ export async function buildReport(env,url,req=null){
     headline,funnel,errorVisits,
     traffic:{byDay:[...byDay.values()],byHour:[...byHour].map(([hour,visits])=>({hour,visits})),source:sorted(source),campaign:sorted(campaign),creative:sorted(creative),country:sorted(country),device:sorted(device)},
     ads:[...ads.values()].sort((a,b)=>b.visits-a.visits||a.creative.localeCompare(b.creative)),
+    people,peopleTotal:people.length,knownEmailTotal:peopleByEmail.size,anonymousTotal:anonymous.length,
     journeys,journeyTotal:scope.length,
     previews:receipts.slice(0,LIST_LIMIT).map(r=>{const c=r.email&&contactByEmail.get(r.email),o=r.email&&ordersByEmail.get(r.email);return {at:r.created_at,status:r.status,email:r.email||null,where:place(visitByRef.get('preview:'+r.id)),creative:c?.creative||null,country:c?.country||null,triesByEmail:r.email?previewsByEmail.get(r.email):null,savedBook:o?o.title||'Saved':null};}),
     previewTotal:receipts.length,
@@ -201,7 +235,8 @@ export async function buildReport(env,url,req=null){
       'A visit is one random reference carried in the page link. Opening the site again from a fresh link counts as a new visit.',
       'Page totals are a second, simpler count with no visitor reference at all; a reload can add one there. They start from 3 November 2026.',
       'The IP is shortened before saving (it points to a network area, not one device) and town comes from Cloudflare. Previews, emails and books link to the visit. This detail is deleted after 90 days.',
-      'Builder pages for reading level, description, story feel, email and delivery address are not measured.',
+      'All eleven maker pages are measured from this release. Earlier visits cannot show pages that were not measured then.',
+      'An email joins visits only when the visit reference was saved with that email. Anonymous visits and unlinked preview requests cannot be identified as a person, and the same person may have several visits.',
       'Preview totals without an ad filter count every drawing request on the site, including retries and people who declined measurement.',
     ],
   };

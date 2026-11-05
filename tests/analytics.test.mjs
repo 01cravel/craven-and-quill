@@ -112,6 +112,41 @@ test('previews, emails, quotes and failures appear in what people made',async()=
   assert.ok(d.errors.some(e=>e.kind==='Drawing service refused or failed'));
 });
 
+test('one people view joins every email record, and keeps unlinked visits visible',async()=>{
+  const env=environment(),now=new Date().toISOString(),email='reader@example.test';
+  const linked=visit(env,['maker_start','step_2','step_1','step_10','preview_start','preview_success','step_8','step_9','step_3','step_4','step_6','price_view','step_11','step_7']);
+  visit(env,['maker_start','step_2']);
+  env.DB.sqlite.prepare('INSERT INTO visit_links VALUES (?,?,?,?)').run(linked,'contact',email,now);
+  env.DB.sqlite.prepare('INSERT INTO preview_contacts VALUES (?,?,?,?,?,?,?,?)').run(email,'meta','paid_social','cq_d','d_static','GB',now,now);
+  env.DB.sqlite.prepare('INSERT INTO preview_receipts VALUES (?,?,?,?)').run(crypto.randomUUID(),'succeeded',now,email);
+  env.DB.sqlite.prepare('INSERT INTO preview_receipts VALUES (?,?,?,?)').run(crypto.randomUUID(),'failed',now,null);
+  env.DB.sqlite.prepare('INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,unsubscribe_token) VALUES (?,?,?,?,?,?,?)').run(email,'a5',3999,'v1',now,now,crypto.randomUUID());
+  order(env,{visitId:linked,email,paid:false});
+  env.DB.sqlite.prepare('INSERT INTO launch_leads (email,product,price_pence,consent_version,consent_text,consent_at,source,medium,campaign,creative,visit_id,preview_id,country,unsubscribe_token,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run('launch@example.test','hardback',3500,'v1','consent',now,'meta','paid_social','cq_d','d_static',null,'p','GB',crypto.randomUUID(),now);
+  env.DB.sqlite.exec('CREATE TABLE signups (email TEXT PRIMARY KEY, interest TEXT NOT NULL, page TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)');
+  env.DB.sqlite.prepare('INSERT INTO signups VALUES (?,?,?,?,?)').run('colour@example.test','colouring','/',now,now);
+  const d=await(await get(env)).json();
+  assert.equal(d.knownEmailTotal,3);assert.equal(d.anonymousTotal,2);assert.equal(d.peopleTotal,5);
+  const reader=d.people.find(p=>p.email===email);
+  assert.equal(reader.visits,1);assert.equal(reader.furthest,'Saved a book');assert.equal(reader.previewMade,1);assert.equal(reader.offerConsent,false);
+  assert.deepEqual(reader.activity.sort(),['Preview email','Preview request','Saved book','Saw price'].sort());
+  assert.ok(reader.steps.includes('step_11'));
+  assert.equal(d.people.find(p=>p.email==='launch@example.test').furthest,'No measured visit');
+  assert.equal(d.people.find(p=>p.email==='colour@example.test').activity[0],'Colouring list');
+  assert.ok(d.people.some(p=>p.kind==='preview'&&p.email===null));
+  const filtered=await(await get(env,'?creative=d_static')).json();
+  assert.equal(filtered.knownEmailTotal,2);assert.ok(!filtered.people.some(p=>p.email==='colour@example.test'));
+});
+
+test('all eleven maker pages can be counted and linked to a visit',async()=>{
+  const env=environment(),visitId=crypto.randomUUID();
+  for(const n of [3,8,9,10,11])assert.equal((await campaignApi(post('campaign-event',{event:'step_'+n,visitId}),env)).status,200);
+  assert.equal((await campaignApi(post('campaign-event',{event:'step_12',visitId}),env)).status,400);
+  const d=await(await get(env)).json();
+  assert.equal(d.journeys[0].furthest,'Delivery page');
+  assert.ok(d.journeys[0].steps.includes('step_10'));
+});
+
 const post=(path,input,{ip='81.2.69.142',cf={city:'Leeds',region:'England'}}={})=>{const r=new Request('https://cq.test/api/'+path,{method:'POST',headers:{Origin:'https://cq.test','Content-Type':'application/json','CF-IPCountry':'GB','CF-Connecting-IP':ip},body:JSON.stringify(input)});Object.defineProperty(r,'cf',{value:cf});return r;};
 
 test('IP addresses are shortened before saving',()=>{

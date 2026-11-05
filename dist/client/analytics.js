@@ -1,5 +1,5 @@
 // Owner analytics view. All visitor-supplied text is written with textContent, never as HTML.
-const $=s=>document.querySelector(s),S={data:null,tab:'visits',search:''};
+const $=s=>document.querySelector(s),S={data:null,tab:'people',search:'',personKind:'',page:0};
 const ZONE='Europe/London';
 const pounds=p=>p===null||p===undefined?'—':'£'+(p/100).toLocaleString('en-GB',{minimumFractionDigits:p%100?2:0,maximumFractionDigits:2});
 const num=n=>n===null||n===undefined?'—':Number(n).toLocaleString('en-GB');
@@ -61,8 +61,8 @@ function headline(d){
   if(f)$('#headline').firstChild.querySelector('small').textContent='from this ad or source';
 }
 
-const SHORT_FUNNEL={visit:'Arrived',maker_start:'Opened maker',step_2:'Photo page',photo_picked:'Added photo',photo_passed:'Photo OK',step_1:'Name',preview_start:'Asked preview',preview_success:'Got character',step_5:'Saw character',step_4:'Read story',price_view:'Saw prices',step_7:'Review & pay',checkout_start:'Pressed pay',paid:'Paid'};
-const PHASES=[['Arrive',['visit','maker_start']],['Photo',['step_2','photo_picked','photo_passed']],['Preview',['step_1','preview_start','preview_success','step_5','step_4']],['Buy',['price_view','step_7','checkout_start','paid']]];
+const SHORT_FUNNEL={visit:'Arrived',maker_start:'Opened maker',step_2:'Photo page',photo_picked:'Added photo',photo_passed:'Photo OK',step_1:'Name',step_10:'Email page',preview_start:'Asked preview',preview_success:'Got character',step_5:'Saw character',step_8:'Reading level',step_9:'Story details',step_3:'Story tone',step_4:'Read story',step_6:'Book size',price_view:'Saw prices',step_11:'Delivery',step_7:'Review & pay',book_saved:'Saved book',checkout_start:'Pressed pay',paid:'Paid'};
+const PHASES=[['Arrive',['visit','maker_start']],['Photo',['step_2','photo_picked','photo_passed']],['Preview',['step_1','step_10','preview_start','preview_success','step_5']],['Story',['step_8','step_9','step_3','step_4']],['Buy',['step_6','price_view','step_11','step_7','book_saved','checkout_start','paid']]];
 const NS='http://www.w3.org/2000/svg';
 function N(tag,attrs={},text){const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(text!==undefined)e.textContent=text;return e;}
 function chips(d){
@@ -86,7 +86,7 @@ function funnel(d){
   const colour=s=>s.step==='paid'?'var(--good)':'var(--bar)';
   const size=(s,full)=>Math.max(s.visits/top*full,s.visits?3:0);
   const slab=(s,attrs)=>{const g=N('g',{class:'slab',tabindex:0});g.dataset.tip=`${s.label}: ${num(s.visits)} (${pct(s.visits,top)} of arrivals)`;g.append(N('rect',{...attrs,rx:3,fill:colour(s)}));return g;};
-  if(W>=700){
+  if(W>=1150){
     const padT=34,padB=58,ch=170,sw=Math.min(34,Math.max(18,W/n*.38)),gap=(W-sw*n)/(n-1),mid=padT+ch/2,H=padT+ch+padB;
     svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('height',H);
     PHASES.forEach(([name,keys],i)=>{const idx=keys.map(k=>steps.findIndex(s=>s.step===k)).filter(j=>j>=0);if(!idx.length)return;const x0=Math.max(0,Math.min(...idx)*(sw+gap)-gap/2),x1=Math.min(W,Math.max(...idx)*(sw+gap)+sw+gap/2);
@@ -124,7 +124,7 @@ function ads(d){
   }
 }
 
-const SHORT={arrive:'Arrived',maker_start:'Opened maker',step_2:'Photo page',photo_open:'Tapped add',photo_picked:'Picked photo',photo_passed:'Photo OK',photo_failed:'Photo failed',step_1:'Name',preview_start:'Asked for preview',preview_success:'Got character',price_view:'Saw prices',checkout_start:'Pressed pay'};
+const SHORT={arrive:'Arrived',maker_start:'Opened maker',step_2:'Photo page',photo_open:'Tapped add',photo_picked:'Picked photo',photo_passed:'Photo OK',photo_failed:'Photo failed',step_1:'Name',step_10:'Email page',preview_start:'Asked for preview',preview_success:'Got character',step_5:'Character',step_8:'Reading level',step_9:'Story details',step_3:'Story tone',step_4:'Story',step_6:'Book size',price_view:'Saw prices',step_11:'Delivery',step_7:'Review & pay',book_saved:'Saved book',checkout_start:'Pressed pay'};
 function everyone(d){
   const e=d.everyone,head=$('#everyone-head'),body=$('#everyone');body.replaceChildren();head.replaceChildren();$('#everyone-note').textContent='';
   if(!e)return;
@@ -175,11 +175,11 @@ function breakdowns(d){
 }
 
 // Detail lists.
-const TABS=[['visits','Visits',d=>d.journeyTotal],['previews','Previews',d=>d.previewTotal],['books','Books',d=>d.orders.length],['people','Emails and lists',d=>d.contacts.length+d.quotes.length+d.launchSignups.length+d.colouringSignups.length],['errors','Errors',d=>d.errors.length]];
+const TABS=[['people','People & visits',d=>d.peopleTotal],['visits','Visits',d=>d.journeyTotal],['previews','Previews',d=>d.previewTotal],['books','Books',d=>d.orders.length],['records','Email records',d=>d.contacts.length+d.quotes.length+d.launchSignups.length+d.colouringSignups.length],['errors','Errors',d=>d.errors.length]];
 function tabs(d){
   const nav=$('#list-tabs');nav.replaceChildren();
-  for(const [key,label,count] of TABS){const b=E('button',label,S.tab===key?'active':'');b.type='button';b.append(E('span',num(count(d))));b.onclick=()=>{S.tab=key;S.search='';tabs(d);};nav.append(b);}
-  const root=$('#list');root.replaceChildren();({visits,previews,books,people,errors})[S.tab](root,d);
+  for(const [key,label,count] of TABS){const b=E('button',label,S.tab===key?'active':'');b.type='button';b.append(E('span',num(count(d))));b.onclick=()=>{S.tab=key;S.search='';S.page=0;tabs(d);};nav.append(b);}
+  const root=$('#list');root.replaceChildren();({people:peopleView,visits,previews,books,records,errors})[S.tab](root,d);
 }
 function table(root,head,rows,empty){
   const wrap=E('div',undefined,'table-wrap'),t=E('table','', 'compact'),th=E('thead'),tr=E('tr'),tb=E('tbody');
@@ -197,6 +197,27 @@ function tag(text,kind=''){return E('span',text,'tag '+kind);}
 // Town and shortened IP, only saved for visitors who allowed measurement.
 function where(w,country){if(!w)return country||'—';const box=E('span',[w.town,w.region].filter(Boolean).join(', ')||country||'—','where');if(w.ip)box.append(E('small',w.ip));return box;}
 const whereText=w=>w?[w.town,w.region,w.ip].filter(Boolean).join(' '):'';
+function peopleView(root,d){
+  const bar=E('div',undefined,'list-tools'),input=E('input'),kind=E('select'),body=E('div'),pager=E('div',undefined,'list-pager');
+  input.type='search';input.placeholder='Search email, step, book, ad or town…';input.value=S.search;input.setAttribute('aria-label','Search people and visits');
+  for(const [value,label] of [['','All records'],['email','Known emails'],['visit','Anonymous visits'],['preview','Unlinked previews']]){const option=E('option',label);option.value=value;kind.append(option);}kind.value=S.personKind;kind.setAttribute('aria-label','Filter record type');
+  const summary=E('p',`${num(d.knownEmailTotal)} unique email addresses, ${num(d.anonymousTotal)} anonymous visits or unlinked previews. One email can belong to more than one person.`);
+  bar.append(input,kind,summary);root.append(bar,body,pager);
+  const draw=()=>{
+    const list=d.people.filter(p=>(!S.personKind||p.kind===S.personKind)&&matches(p.email,p.furthest,p.title,p.names,p.source,p.creative,p.country,whereText(p.where),...p.activity));
+    const size=50,pages=Math.max(1,Math.ceil(list.length/size));S.page=Math.min(S.page,pages-1);body.replaceChildren();
+    table(body,['Last seen','Email or visit','Visits','Furthest step','Pages reached','What they did','Book','Source / place'],list.slice(S.page*size,(S.page+1)*size).map(p=>{
+      const details=E('span',undefined,'person-details');for(const activity of p.activity)details.append(tag(activity,activity==='Paid book'?'good':''));
+      if(p.previews)details.append(E('small',`${p.previewMade} of ${p.previews} previews made`));
+      if(p.activity.includes('Saw price'))details.append(E('small',p.offerConsent?'Offer email allowed':'No offer email permission'));
+      if(p.launchConsent)details.append(E('small','Joined storybook list'));
+      const source=E('span',p.creative?adName(p.creative):p.source||'—');source.append(E('small',p.country?countryName(p.country):'Location unknown'));
+      return [when(p.lastAt),p.email||E('span',p.kind==='preview'?'Unlinked preview':p.ambiguous?'Visit with multiple emails':'Anonymous visit','muted'),p.visits||'—',p.furthest,p.steps.length?steps(p,d):'—',details.childNodes.length?details:'—',p.title?`${p.title}${p.names?' ('+p.names+')':''}`:'—',[source,p.where?E('small',whereText(p.where)):null].filter(Boolean)];
+    }),'No records match.');
+    pager.replaceChildren();const prev=E('button','Previous'),next=E('button','Next');prev.type=next.type='button';prev.disabled=S.page===0;next.disabled=S.page>=pages-1;prev.onclick=()=>{S.page--;draw();};next.onclick=()=>{S.page++;draw();};pager.append(E('span',`Showing ${list.length?S.page*size+1:0}–${Math.min((S.page+1)*size,list.length)} of ${num(list.length)}`),prev,E('span',`Page ${S.page+1} of ${pages}`),next);
+  };
+  input.oninput=()=>{S.search=input.value;S.page=0;draw();};kind.onchange=()=>{S.personKind=kind.value;S.page=0;draw();};draw();
+}
 function madeCell(m){
   if(!m)return '—';const box=E('span',undefined,'made-cell'),ok=m.previews.filter(p=>p.status==='succeeded').length,bad=m.previews.filter(p=>p.status==='failed').length;
   if(m.previews.length)box.append(E('span',`${m.previews.length} preview${m.previews.length>1?'s':''}${bad?`, ${bad} failed`:''}${ok&&bad?`, ${ok} made`:''}`));
@@ -231,7 +252,7 @@ function books(root,d){
     body.append(grid);};
   tools(root,'Filter by name, title or email…','Saved books with their character. Open one for the full story and proof.',draw);root.append(body);draw();
 }
-function people(root,d){
+function records(root,d){
   const body=E('div');
   const draw=()=>{body.replaceChildren();
     body.append(E('h3','Left an email for a preview','list-title'));
