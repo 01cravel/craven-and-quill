@@ -132,6 +132,7 @@ test('one people view joins every email record, and keeps unlinked visits visibl
   assert.deepEqual(reader.activity.sort(),['Preview email','Preview request','Saved book','Saw price'].sort());
   assert.ok(reader.steps.includes('step_11'));
   assert.equal(d.people.find(p=>p.email==='launch@example.test').furthest,'No measured visit');
+  assert.ok(d.people.find(p=>p.email==='launch@example.test').activity.includes('Storybook interest list'));
   assert.equal(d.people.find(p=>p.email==='colour@example.test').activity[0],'Colouring list');
   assert.ok(d.people.some(p=>p.kind==='preview'&&p.email===null));
   const filtered=await(await get(env,'?creative=d_static')).json();

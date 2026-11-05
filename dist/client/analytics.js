@@ -49,7 +49,7 @@ function headline(d){
   const items=[
     ['Visits',num(h.visits),'every visit, no cookies needed'],
     ['Previews made',num(h.previewsMade),`${num(h.previewsTried)} tried, ${num(h.previewsFailed)} failed`],
-    ['Emails left',num(h.previewEmails),h.launchSignups?`${num(h.launchSignups)} joined launch list`:'for a preview'],
+    ['Emails left',num(h.previewEmails),h.launchSignups?`${num(h.launchSignups)} joined the interest list`:'for a preview'],
     ['Books saved',num(h.booksSaved),h.quotes===null?'paid or not':`${num(h.quotes)} saw a price`],
     ['Sales',num(h.sales),h.testOrders?`${h.testOrders} test orders left out`:'paid, live'],
     ['Revenue',pounds(h.revenuePence),'from sales above',true],
@@ -210,7 +210,7 @@ function peopleView(root,d){
       const details=E('span',undefined,'person-details');for(const activity of p.activity)details.append(tag(activity,activity==='Paid book'?'good':''));
       if(p.previews)details.append(E('small',`${p.previewMade} of ${p.previews} previews made`));
       if(p.activity.includes('Saw price'))details.append(E('small',p.offerConsent?'Offer email allowed':'No offer email permission'));
-      if(p.launchConsent)details.append(E('small','Joined storybook list'));
+      if(p.launchConsent)details.append(E('small','Joined the interest list'));
       const source=E('span',p.creative?adName(p.creative):p.source||'—');source.append(E('small',p.country?countryName(p.country):'Location unknown'));
       return [when(p.lastAt),p.email||E('span',p.kind==='preview'?'Unlinked preview':p.ambiguous?'Visit with multiple emails':'Anonymous visit','muted'),p.visits||'—',p.furthest,p.steps.length?steps(p,d):'—',details.childNodes.length?details:'—',p.title?`${p.title}${p.names?' ('+p.names+')':''}`:'—',[source,p.where?E('small',whereText(p.where)):null].filter(Boolean)];
     }),'No records match.');
@@ -259,7 +259,7 @@ function records(root,d){
     table(body,['When','Email','Previews','Ad','Where','Saved book'],d.contacts.filter(c=>matches(c.email,c.creative,c.country,whereText(c.where))).map(c=>[when(c.at),c.email,c.previews,adName(c.creative),where(c.where,c.country),c.savedBook||'—']),'None in this range.');
     body.append(E('h3','Saw a price','list-title'));
     table(body,['Last saw','Email','Book','Price','Offer emails allowed','Bought'],d.quotes.filter(q=>matches(q.email,q.size)).map(q=>[when(q.lastAt),q.email,q.size.toUpperCase(),pounds(q.pricePence),q.offerConsent?'Yes':'No',q.bought?tag('Bought','good'):'No']),'None in this range.');
-    body.append(E('h3','Storybook launch list','list-title'));
+    body.append(E('h3','Storybook interest list','list-title'));
     table(body,['When','Email','Format','Price','Ad','Status'],d.launchSignups.filter(l=>matches(l.email,l.creative,l.product)).map(l=>[when(l.at),l.email,l.product,pounds(l.pricePence),adName(l.creative),l.unsubscribed?tag('Unsubscribed','bad'):'Subscribed']),'None in this range.');
     body.append(E('h3','Colouring book list','list-title'));
     table(body,['When','Email','Interest','Page'],d.colouringSignups.filter(s=>matches(s.email,s.interest)).map(s=>[when(s.at),s.email,s.interest,s.page]),'None in this range.');};
