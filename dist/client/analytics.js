@@ -9,6 +9,7 @@ const addDays=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*86400000).toISOSt
 const shortDay=day=>new Date(day+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
 const pct=(a,b)=>b?Math.round(a/b*100)+'%':'—';
 const adName=c=>!c||c==='none'?'Not from an ad':c;
+const countryName=c=>{try{return !c||c==='unknown'?'Unknown':new Intl.DisplayNames(['en-GB'],{type:'region'}).of(c);}catch{return c;}};
 function E(tag,text,cls){const e=document.createElement(tag);if(text!==undefined&&text!==null)e.textContent=String(text);if(cls)e.className=cls;return e;}
 function msg(text,bad=false){$('#message').textContent=text;$('#message').classList.toggle('error',bad);}
 
@@ -46,7 +47,7 @@ function render(d){everyone(d);headline(d);funnel(d);ads(d);days(d);hours(d);bre
 function headline(d){
   const h=d.headline,f=d.filter.creative||d.filter.source;
   const items=[
-    ['Visits',num(h.visits),'measured visitors'],
+    ['Visits',num(h.visits),'every visit, no cookies needed'],
     ['Previews made',num(h.previewsMade),`${num(h.previewsTried)} tried, ${num(h.previewsFailed)} failed`],
     ['Emails left',num(h.previewEmails),h.launchSignups?`${num(h.launchSignups)} joined launch list`:'for a preview'],
     ['Books saved',num(h.booksSaved),h.quotes===null?'paid or not':`${num(h.quotes)} saw a price`],
@@ -60,18 +61,58 @@ function headline(d){
   if(f)$('#headline').firstChild.querySelector('small').textContent='from this ad or source';
 }
 
-function funnel(d){
-  const top=d.funnel[0].visits||0,list=$('#funnel');list.replaceChildren();
-  d.funnel.forEach((step,i)=>{
-    const li=E('li',undefined,step.step==='paid'?'final':''),prev=i?d.funnel[i-1].visits:step.visits,lost=Math.max(0,prev-step.visits);
-    const width=top?Math.max(step.visits/top*100,step.visits?1.5:0):0;
-    const track=E('div',undefined,'track'),fill=E('div',undefined,'fill'+(width<14?' narrow':''));fill.style.width=width+'%';fill.style.setProperty('--w',width+'%');fill.append(E('span',num(step.visits)));
-    track.append(fill);track.tabIndex=0;track.dataset.tip=`${step.label}: ${num(step.visits)} visits (${pct(step.visits,top)} of everyone)`;
-    const l=E('div',undefined,'lost');if(i&&lost){l.textContent='−'+num(lost);l.append(E('small',pct(lost,prev)+' stopped'));}else if(i)l.append(E('small','none lost'));
-    li.append(E('span',step.label,'name'),track,l);list.append(li);
-  });
-  const e=d.errorVisits;$('#funnel-errors').textContent=`${num(e.preview_error)} visits hit a preview error and ${num(e.checkout_error)} hit a payment page error. The Errors tab has times.`;
+const SHORT_FUNNEL={visit:'Arrived',maker_start:'Opened maker',step_2:'Photo page',photo_picked:'Added photo',photo_passed:'Photo OK',step_1:'Name',preview_start:'Asked preview',preview_success:'Got character',step_5:'Saw character',step_4:'Read story',price_view:'Saw prices',step_7:'Review & pay',checkout_start:'Pressed pay',paid:'Paid'};
+const PHASES=[['Arrive',['visit','maker_start']],['Photo',['step_2','photo_picked','photo_passed']],['Preview',['step_1','preview_start','preview_success','step_5','step_4']],['Buy',['price_view','step_7','checkout_start','paid']]];
+const NS='http://www.w3.org/2000/svg';
+function N(tag,attrs={},text){const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(text!==undefined)e.textContent=text;return e;}
+function chips(d){
+  const box=$('#funnel-chips');box.replaceChildren();
+  const all=d.ads.reduce((n,a)=>n+a.visits,0);
+  for(const [key,label,count] of [['','All visits',all],...d.ads.map(a=>[a.creative,adName(a.creative),a.visits])]){
+    const b=E('button',label,'chip'+((key||'')===(d.filter.creative||'')?' on':''));b.type='button';b.append(E('small',num(count)));
+    b.addEventListener('click',()=>{if($('#creative').value===key)return;if(![...$('#creative').options].some(o=>o.value===key)){const o=E('option',adName(key));o.value=key;$('#creative').append(o);}$('#creative').value=key;void load();});
+    box.append(b);
+  }
 }
+let riverWidth=0;
+function funnel(d){
+  chips(d);
+  const root=$('#funnel');root.replaceChildren();
+  const steps=d.funnel,top=steps[0].visits||0,n=steps.length;
+  const W=Math.round(root.clientWidth||root.getBoundingClientRect().width||900);riverWidth=W;
+  const e=d.errorVisits;$('#funnel-errors').textContent=`${num(e.preview_error)} visits hit a preview error and ${num(e.checkout_error)} hit a payment page error. The Errors tab has times.`;
+  if(!top){root.append(E('p','No visits in this range yet.','empty'));return;}
+  const svg=N('svg',{class:'river-svg',role:'img','aria-label':steps.map(s=>`${s.label}: ${num(s.visits)}`).join('; ')});
+  const colour=s=>s.step==='paid'?'var(--good)':'var(--bar)';
+  const size=(s,full)=>Math.max(s.visits/top*full,s.visits?3:0);
+  const slab=(s,attrs)=>{const g=N('g',{class:'slab',tabindex:0});g.dataset.tip=`${s.label}: ${num(s.visits)} (${pct(s.visits,top)} of arrivals)`;g.append(N('rect',{...attrs,rx:3,fill:colour(s)}));return g;};
+  if(W>=700){
+    const padT=34,padB=58,ch=170,sw=Math.min(34,Math.max(18,W/n*.38)),gap=(W-sw*n)/(n-1),mid=padT+ch/2,H=padT+ch+padB;
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('height',H);
+    PHASES.forEach(([name,keys],i)=>{const idx=keys.map(k=>steps.findIndex(s=>s.step===k)).filter(j=>j>=0);if(!idx.length)return;const x0=Math.max(0,Math.min(...idx)*(sw+gap)-gap/2),x1=Math.min(W,Math.max(...idx)*(sw+gap)+sw+gap/2);
+      svg.append(N('rect',{x:x0,y:0,width:x1-x0,height:H,class:'phase'+(i%2?' alt':'')}));svg.append(N('text',{x:x0+8,y:H-7,class:'phase-name'},name));});
+    const h=s=>size(s,ch);
+    for(let i=0;i<n-1;i++){const x0=i*(sw+gap)+sw,x1=(i+1)*(sw+gap),a=h(steps[i])/2,b=h(steps[i+1])/2;
+      svg.append(N('path',{d:`M${x0} ${mid-a} C${x0+gap/2} ${mid-a} ${x1-gap/2} ${mid-b} ${x1} ${mid-b} L${x1} ${mid+b} C${x1-gap/2} ${mid+b} ${x0+gap/2} ${mid+a} ${x0} ${mid+a} Z`,class:'band'}));
+      const lost=Math.max(0,steps[i].visits-steps[i+1].visits);if(lost)svg.append(N('text',{x:x0+gap/2,y:12,class:'drop','text-anchor':'middle'},'−'+num(lost)));}
+    steps.forEach((s,i)=>{const x=i*(sw+gap),hh=h(s),g=slab(s,{x,y:mid-hh/2,width:sw,height:hh});
+      g.append(N('text',{x:x+sw/2,y:mid-hh/2-6,class:'count','text-anchor':'middle'},num(s.visits)));
+      if(i)g.append(N('text',{x:x+sw/2,y:mid+hh/2+14,class:'share','text-anchor':'middle'},pct(s.visits,top)));
+      const label=N('text',{x:x+sw/2,y:H-padB+16,class:'label'+(s.visits?'':' dim'),'text-anchor':'middle'});(SHORT_FUNNEL[s.step]||s.label).split(' ').forEach((w,j)=>label.append(N('tspan',{x:x+sw/2,dy:j?12:0},w)));g.append(label);svg.append(g);});
+  }else{
+    const padL=104,padR=58,rowH=38,bar=14,cw=W-padL-padR,cx=padL+cw/2,H=n*rowH+4;
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('height',H);
+    const w=s=>size(s,cw),cy=i=>i*rowH+rowH/2+2;
+    for(let i=0;i<n-1;i++){const a=w(steps[i])/2,b=w(steps[i+1])/2,y0=cy(i)+bar/2,y1=cy(i+1)-bar/2,g=y1-y0;
+      svg.append(N('path',{d:`M${cx-a} ${y0} C${cx-a} ${y0+g/2} ${cx-b} ${y1-g/2} ${cx-b} ${y1} L${cx+b} ${y1} C${cx+b} ${y1-g/2} ${cx+a} ${y0+g/2} ${cx+a} ${y0} Z`,class:'band'}));
+      const lost=Math.max(0,steps[i].visits-steps[i+1].visits);if(lost)svg.append(N('text',{x:W,y:y0+g/2+4,class:'drop','text-anchor':'end'},'−'+num(lost)));}
+    steps.forEach((s,i)=>{const ww=w(s),y=cy(i),g=slab(s,{x:cx-ww/2,y:y-bar/2,width:ww,height:bar});
+      g.append(N('text',{x:padL-10,y:y+4,class:'label'+(s.visits?'':' dim'),'text-anchor':'end'},SHORT_FUNNEL[s.step]||s.label));
+      const c=N('text',{x:cx,y:y-bar/2-4,class:'count','text-anchor':'middle'},num(s.visits));if(i)c.append(N('tspan',{class:'share',dx:6},pct(s.visits,top)));g.append(c);svg.append(g);});
+  }
+  root.append(svg);
+}
+new ResizeObserver(()=>{const r=$('#funnel');if(S.data&&r.clientWidth&&Math.abs(r.clientWidth-riverWidth)>24)funnel(S.data);}).observe($('#funnel'));
 
 function ads(d){
   const body=$('#ads');body.replaceChildren();
@@ -98,7 +139,8 @@ function everyone(d){
   if(e.ads.length>1)row('All',Object.fromEntries(e.steps.map(s=>[s.step,s.count])),'total');
   const arrived=e.steps[0].count,devices=e.devices.map(x=>`${x.key==='mobile'?'phones':x.key==='desktop'?'computers':x.key} ${pct(x.count,arrived)}`).join(', ');
   const recent=e.byDay.filter(x=>x.arrived).slice(-7).map(x=>`${shortDay(x.day)} ${num(x.arrived)}`).join(', ');
-  $('#everyone-note').textContent=[devices&&`Arrived on ${devices}.`,recent&&`Arrivals by day: ${recent}.`].filter(Boolean).join(' ');
+  const countries=(e.countries||[]).slice(0,5).map(x=>`${countryName(x.key)} ${pct(x.count,arrived)}`).join(', ');
+  $('#everyone-note').textContent=[countries&&`From ${countries}.`,devices&&`Arrived on ${devices}.`,recent&&`Arrivals by day: ${recent}.`].filter(Boolean).join(' ');
 }
 
 function columns(root,items,{label,value,part,tip,axis}){
@@ -129,7 +171,7 @@ function bars(root,items,name=x=>x){
 }
 function breakdowns(d){
   const t=d.traffic,device={mobile:'Phone',desktop:'Computer',unknown:'Not recorded'};
-  bars($('#by-source'),t.source);bars($('#by-campaign'),t.campaign);bars($('#by-country'),t.country,c=>{try{return c==='unknown'?'Unknown':new Intl.DisplayNames(['en-GB'],{type:'region'}).of(c);}catch{return c;}});bars($('#by-device'),t.device,k=>device[k]||k);
+  bars($('#by-source'),t.source);bars($('#by-campaign'),t.campaign);bars($('#by-country'),t.country,countryName);bars($('#by-device'),t.device,k=>device[k]||k);
 }
 
 // Detail lists.
@@ -173,7 +215,7 @@ function previews(root,d){
   const body=E('div'),status={succeeded:['Made','good'],failed:['Failed','bad'],started:['Unfinished','warn']};
   const draw=()=>{body.replaceChildren();const list=d.previews.filter(p=>matches(p.email,p.status,p.creative,p.savedBook,whereText(p.where)));
     table(body,['When','Result','Email','Tries by this email','Ad','Where','Saved book'],list.map(p=>[when(p.at),tag(...(status[p.status]||[p.status])),p.email||'Not given',p.triesByEmail??'—',p.creative?adName(p.creative):'—',where(p.where,p.country),p.savedBook||'—']),'No previews in this range.');};
-  tools(root,'Filter by email or ad…',`Every drawing request, newest first. Names and story choices are only kept once a book is saved. Where shows only for visitors who allowed measurement.`,draw);root.append(body);draw();
+  tools(root,'Filter by email or ad…',`Every drawing request, newest first. Names and story choices are only kept once a book is saved.`,draw);root.append(body);draw();
 }
 function books(root,d){
   const body=E('div');

@@ -1,8 +1,8 @@
 import {ownerSession} from './owner-auth.js';
 
-// Owner-only analytics. Journeys exist only for visitors who allowed site measurement. For those
-// visitors the privacy notice allows a shortened IP, town, and links from the visit to its previews,
-// preview email, saved book and launch-list signup. That extra detail is deleted after 90 days.
+// Owner-only analytics. Every visit is measured without cookies: a random visit reference travels in
+// the page link. The privacy notice covers a shortened IP, town, and links from the visit to its
+// previews, preview email, saved book and launch-list signup. That extra detail is deleted after 90 days.
 const OWNER_EMAIL='cravenluke@gmail.com';
 const ZONE='Europe/London';
 const SPEND_TABLE='CREATE TABLE IF NOT EXISTS owner_ad_spend (day TEXT NOT NULL, creative TEXT NOT NULL, pence INTEGER NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (day, creative))';
@@ -11,11 +11,11 @@ const LIST_LIMIT=300;
 const DETAIL_DAYS=90;
 // Builder pages in the order a visitor meets them. Pages 3 and 8 to 11 are not measured by the builder.
 export const FUNNEL=[
-  ['visit','Arrived on the site'],['maker_start','Opened the book maker'],['step_2','Photo page'],['step_1','Name page'],
+  ['visit','Arrived on the site'],['maker_start','Opened the book maker'],['step_2','Photo page'],['photo_picked','Added a photo'],['photo_passed','Photo passed the check'],['step_1','Name page'],
   ['preview_start','Asked for a free preview'],['preview_success','Got their character'],['step_5','Saw their character'],
   ['step_4','Read their story'],['price_view','Saw the prices'],['step_7','Reached review and pay'],['checkout_start','Pressed pay'],['paid','Paid']
 ];
-// Cookie-free counts: page opens per step, for everyone except visitors who pressed Reject all.
+// Page-open totals per step, kept with no visitor reference at all.
 export const COUNT_STEPS=[
   ['arrive','Arrived'],['maker_start','Opened the book maker'],['step_2','Photo page'],['photo_open','Tapped add photo'],['photo_picked','Picked a photo'],
   ['photo_passed','Photo passed check'],['photo_failed','Photo failed check'],['step_1','Name page'],
@@ -56,7 +56,7 @@ function tally(list,key,value=1){const found=list.get(key)||0;list.set(key,found
 const sorted=map=>[...map].map(([key,count])=>({key,count})).sort((a,b)=>b.count-a.count||String(a.key).localeCompare(String(b.key)));
 
 export function countReport(list,from,to){
-  const steps=new Map(COUNT_STEPS.map(([step])=>[step,0])),ads=new Map(),days=new Map(),devices=new Map();
+  const steps=new Map(COUNT_STEPS.map(([step])=>[step,0])),ads=new Map(),days=new Map(),devices=new Map(),countries=new Map();
   for(let day=from;day<=to;day=addDays(day,1))days.set(day,{day,arrived:0,previews:0});
   for(const r of list){
     if(!steps.has(r.event))continue;
@@ -64,12 +64,12 @@ export function countReport(list,from,to){
     const key=r.creative||'none';if(!ads.has(key))ads.set(key,{creative:key,source:r.source,counts:Object.fromEntries(COUNT_STEPS.map(([step])=>[step,0]))});
     ads.get(key).counts[r.event]+=r.n;
     const d=days.get(r.day);if(d&&r.event==='arrive')d.arrived+=r.n;if(d&&r.event==='preview_success')d.previews+=r.n;
-    if(r.event==='arrive')tally(devices,r.device,r.n);
+    if(r.event==='arrive'){tally(devices,r.device,r.n);tally(countries,r.country||'unknown',r.n);}
   }
   return {
     steps:COUNT_STEPS.map(([step,label])=>({step,label,count:steps.get(step)})),
     ads:[...ads.values()].sort((a,b)=>b.counts.arrive-a.counts.arrive||a.creative.localeCompare(b.creative)),
-    byDay:[...days.values()],devices:sorted(devices),
+    byDay:[...days.values()],devices:sorted(devices),countries:sorted(countries),
   };
 }
 
@@ -96,7 +96,7 @@ export async function buildReport(env,url,req=null){
     rows(q("SELECT DISTINCT source, creative FROM campaign_events WHERE created_at >= ?1 UNION SELECT DISTINCT 'meta', creative FROM owner_ad_spend",new Date(Date.now()-180*86400000).toISOString())),
     optional(q(`SELECT visit_id, ip_prefix, town, region FROM visit_details WHERE visit_id IN (${inRange})`,since,until)),
     optional(q(`SELECT l.visit_id, l.kind, l.ref, l.created_at, r.status FROM visit_links l LEFT JOIN preview_receipts r ON l.kind='preview' AND r.id=l.ref WHERE l.visit_id IN (${inRange}) ORDER BY l.created_at`,since,until)),
-    optional(q('SELECT day, event, source, creative, device, SUM(n) AS n FROM visit_counts WHERE day >= ?1 AND day <= ?2 GROUP BY day, event, source, creative, device',from,to)),
+    optional(q('SELECT day, event, source, creative, country, device, SUM(n) AS n FROM visit_counts WHERE day >= ?1 AND day <= ?2 GROUP BY day, event, source, creative, country, device',from,to)),
   ]);
 
   // One journey per random visit id. Attribution comes from the visit's first event.
@@ -117,15 +117,18 @@ export async function buildReport(env,url,req=null){
   const paidVisits=new Set(orders.filter(o=>o.paymentStatus==='paid'&&!o.ownerTest&&o.visitId).map(o=>o.visitId));
   for(const v of visits.values())if(paidVisits.has(v.id))v.events.set('paid',v.lastAt);
 
+  // A visit that reached a later page passed the earlier ones, even if an earlier event was missed.
+  const index=new Map(FUNNEL.map(([s],i)=>[s,i]));
+  for(const v of visits.values())v.far=Math.max(0,...[...v.events.keys()].map(s=>index.get(s)??0));
   const scope=[...visits.values()].filter(v=>!filtered||matches(v));
-  const reached=(v,step)=>step==='visit'||v.events.has(step);
+  const reached=(v,step)=>(index.get(step)??Infinity)<=v.far;
   const funnel=FUNNEL.map(([step,label])=>({step,label,visits:scope.filter(v=>reached(v,step)).length}));
   const errorVisits=Object.fromEntries(Object.keys(ERRORS).map(k=>[k,scope.filter(v=>v.events.has(k)).length]));
 
   const byDay=new Map(),byHour=new Map(),source=new Map(),creative=new Map(),campaign=new Map(),country=new Map(),device=new Map();
   for(let day=from;day<=to;day=addDays(day,1))byDay.set(day,{day,visits:0,previews:0,prices:0});
   for(let h=0;h<24;h++)byHour.set(h,0);
-  const furthest=v=>{let last=FUNNEL[0];for(const step of FUNNEL)if(reached(v,step[0]))last=step;return last;};
+  const furthest=v=>FUNNEL[v.far];
   for(const v of scope){
     const day=byDay.get(ukDay(v.firstAt));if(day){day.visits++;if(v.events.has('preview_success'))day.previews++;if(v.events.has('price_view'))day.prices++;}
     tally(byHour,ukHour(v.firstAt));tally(source,v.source);tally(campaign,v.campaign);tally(country,v.country);tally(device,v.device);
@@ -143,7 +146,8 @@ export async function buildReport(env,url,req=null){
   const sales=scopedOrders.filter(o=>o.paymentStatus==='paid'&&!o.ownerTest);
   const spendPence=spendRows.filter(s=>filter.creative?s.creative===filter.creative:!filter.source||filter.source==='meta').reduce((n,s)=>n+s.pence,0);
   const revenuePence=sales.reduce((n,o)=>n+o.amountPence,0);
-  const previewCounts=filtered?{tried:funnel[4].visits,made:funnel[5].visits,failed:errorVisits.preview_error}:{tried:receipts.length,made:receipts.filter(r=>r.status==='succeeded').length,failed:receipts.filter(r=>r.status==='failed').length};
+  const at=step=>funnel.find(f=>f.step===step).visits;
+  const previewCounts=filtered?{tried:at('preview_start'),made:at('preview_success'),failed:errorVisits.preview_error}:{tried:receipts.length,made:receipts.filter(r=>r.status==='succeeded').length,failed:receipts.filter(r=>r.status==='failed').length};
   const scopedContacts=filtered?contacts.filter(matches):contacts,scopedLeads=filtered?leads.filter(matches):leads;
   const headline={visits:scope.length,previewsTried:previewCounts.tried,previewsMade:previewCounts.made,previewsFailed:previewCounts.failed,
     previewEmails:scopedContacts.length,quotes:filtered?null:quotes.length,launchSignups:scopedLeads.length,booksSaved:scopedOrders.filter(o=>!o.ownerTest).length,
@@ -193,10 +197,10 @@ export async function buildReport(env,url,req=null){
     errors:errors.slice(0,LIST_LIMIT),
     spend:spendRows,
     notes:[
-      'Everyone who visited is a cookie-free count of pages opened, so it includes people who ignored the cookie banner but not those who pressed Reject all. A reload can count twice. It starts from 3 November 2026.',
-      'Journeys, funnel and traffic count only visitors who pressed Accept all or Site only. Rejected visitors are invisible here.',
-      'Steps a visitor reached before choosing on the cookie banner are timed at the moment they chose.',
-      'For visitors who allowed measurement, the IP is shortened before saving (it points to a network area, not one device) and town comes from Cloudflare. Previews, emails and books link to a visit from 2 November 2026 on. This detail is deleted after 90 days.',
+      'Every visit is measured without cookies from 5 November 2026. Before that, journeys exist only for the few visitors who accepted the cookie banner, so earlier days look emptier than they were.',
+      'A visit is one random reference carried in the page link. Opening the site again from a fresh link counts as a new visit.',
+      'Page totals are a second, simpler count with no visitor reference at all; a reload can add one there. They start from 3 November 2026.',
+      'The IP is shortened before saving (it points to a network area, not one device) and town comes from Cloudflare. Previews, emails and books link to the visit. This detail is deleted after 90 days.',
       'Builder pages for reading level, description, story feel, email and delivery address are not measured.',
       'Preview totals without an ad filter count every drawing request on the site, including retries and people who declined measurement.',
     ],

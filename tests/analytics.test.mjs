@@ -122,28 +122,28 @@ test('IP addresses are shortened before saving',()=>{
   for(const bad of ['','unknown','1.2.3','<script>','1:2'])assert.equal(shortIp(bad),null);
 });
 
-test('shortened IP, town and links are saved only for visitors who allowed measurement',async()=>{
+test('shortened IP, town and links are saved for every visit with a valid reference',async()=>{
   const env=environment(),visitId=crypto.randomUUID(),other=crypto.randomUUID();
   assert.equal((await campaignApi(post('campaign-event',{event:'maker_start',visitId,measurementConsent:true,creative:'d_static'}),env)).status,200);
   assert.equal((await campaignApi(post('campaign-event',{event:'step_1',visitId,measurementConsent:true},{ip:'9.9.9.9',cf:{city:'York'}}),env)).status,200);
-  assert.equal((await campaignApi(post('campaign-event',{event:'maker_start',visitId:other,measurementConsent:false}),env)).status,400);
+  assert.equal((await campaignApi(post('campaign-event',{event:'maker_start',visitId:'not-a-reference'}),env)).status,400);
   const rows=env.DB.sqlite.prepare('SELECT * FROM visit_details').all();
   assert.equal(rows.length,1);assert.equal(rows[0].ip_prefix,'81.2.69.0');assert.equal(rows[0].town,'Leeds');assert.equal(rows[0].region,'England');
   assert.ok(!JSON.stringify(rows).includes('81.2.69.142'));
   assert.equal((await campaignApi(post('preview-email',{email:'Maker@Example.test',visitId,measurementConsent:true}),env)).status,200);
-  assert.equal((await campaignApi(post('preview-email',{email:'quiet@example.test',visitId:other,measurementConsent:false}),env)).status,200);
+  assert.equal((await campaignApi(post('preview-email',{email:'quiet@example.test'}),env)).status,200);void other;
   assert.deepEqual(env.DB.sqlite.prepare('SELECT visit_id, kind, ref FROM visit_links').all().map(x=>({...x})),[{visit_id:visitId,kind:'contact',ref:'maker@example.test'}]);
   const d=await(await get(env)).json();const j=d.journeys[0];
   assert.deepEqual(j.where,{town:'Leeds',region:'England',ip:'81.2.69.0'});assert.equal(j.made.email,'maker@example.test');
   assert.equal(d.contacts.find(c=>c.email==='maker@example.test').where.town,'Leeds');assert.equal(d.contacts.find(c=>c.email==='quiet@example.test').where,null);
 });
 
-test('a preview request links to the visit only with measurement permission',async()=>{
+test('a preview request links to the visit when it carries the visit reference',async()=>{
   const env={...environment(),OPENAI_API_KEY:'test-only'},visitId=crypto.randomUUID(),real=globalThis.fetch;
   const photo=()=>new File([new Uint8Array([255,216,255,217])],'p.jpg',{type:'image/jpeg'});
   const send=fields=>{const form=new FormData();form.append('photo',photo());for(const [k,v] of Object.entries(fields))form.append(k,v);return worker.fetch(new Request('https://cq.test/api/generate-character',{method:'POST',headers:{Origin:'https://cq.test','CF-Connecting-IP':'10.0.0.'+Math.floor(Math.random()*250)},body:form}),env);};
   globalThis.fetch=async()=>Response.json({error:{code:'server_error'}},{status:500});
-  try{await send({name:'Ruby',visitId,measurementConsent:'true'});await send({name:'Ruby',visitId});}finally{globalThis.fetch=real;}
+  try{await send({name:'Ruby',visitId});await send({name:'Ruby'});}finally{globalThis.fetch=real;}
   const links=env.DB.sqlite.prepare("SELECT visit_id, kind FROM visit_links").all();
   assert.equal(links.length,1);assert.equal(links[0].visit_id,visitId);assert.equal(links[0].kind,'preview');
   assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM preview_receipts').get().n,2);
@@ -195,11 +195,12 @@ test('report shows everyone counted without cookies, per ad, filtered and by day
   const env=environment(),ad={source:'meta',medium:'paid_social',campaign:'cq_d'};
   const add=(creative,event,n)=>env.DB.sqlite.prepare('INSERT INTO visit_counts VALUES (?,?,?,?,?,?,?,?,?)').run(day,event,ad.source,ad.medium,ad.campaign,creative,'GB','mobile',n);
   add('d_static','arrive',20);add('d_static','maker_start',18);add('d_static','preview_start',3);add('d_video','arrive',5);
+  env.DB.sqlite.prepare('INSERT INTO visit_counts VALUES (?,?,?,?,?,?,?,?,?)').run(day,'arrive','meta','paid_social','cq_d','d_video','AE','desktop',2);
   env.DB.sqlite.prepare('INSERT INTO visit_counts VALUES (?,?,?,?,?,?,?,?,?)').run('2020-01-01','arrive','meta','paid_social','cq_d','d_static','GB','mobile',99);
   const e=(await (await get(env)).json()).everyone;
-  assert.equal(e.steps[0].count,25);assert.equal(e.steps.find(s=>s.step==='preview_start').count,3);
-  assert.deepEqual(e.ads.map(a=>[a.creative,a.counts.arrive,a.counts.maker_start]),[['d_static',20,18],['d_video',5,0]]);
-  assert.equal(e.byDay.at(-1).arrived,25);assert.deepEqual(e.devices,[{key:'mobile',count:25}]);
+  assert.equal(e.steps[0].count,27);assert.equal(e.steps.find(s=>s.step==='preview_start').count,3);
+  assert.deepEqual(e.ads.map(a=>[a.creative,a.counts.arrive,a.counts.maker_start]),[['d_static',20,18],['d_video',7,0]]);
+  assert.equal(e.byDay.at(-1).arrived,27);assert.deepEqual(e.devices,[{key:'mobile',count:25},{key:'desktop',count:2}]);assert.deepEqual(e.countries,[{key:'GB',count:25},{key:'AE',count:2}]);
   const only=(await (await get(env,'?creative=d_video')).json()).everyone;
-  assert.equal(only.steps[0].count,5);assert.equal(only.ads.length,1);
+  assert.equal(only.steps[0].count,7);assert.equal(only.ads.length,1);
 });

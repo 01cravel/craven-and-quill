@@ -52852,7 +52852,7 @@ async function quoteOrder(env2, size) {
 }
 var notify = sendOrderEmail;
 function measurementContext(m, req) {
-  if (m?.measurementConsent !== true || !/^[a-f0-9-]{36}$/.test(m.visitId || "")) return null;
+  if (!/^[a-f0-9-]{36}$/.test(m?.visitId || "")) return null;
   const code2 = (v2, f) => typeof v2 === "string" && /^[a-zA-Z0-9_.-]{1,100}$/.test(v2) ? v2 : f;
   return { visitId: m.visitId, source: code2(m.source, "direct"), medium: code2(m.medium, "none"), campaign: code2(m.campaign, "organic"), creative: code2(m.creative, "none"), country: code2(req.headers.get("cf-ipcountry"), "unknown") };
 }

@@ -27,13 +27,13 @@ test('a failed database save never claims the lead was saved',async()=>{
   const {env,input}=await setup();env.DB.sqlite.exec('DROP TABLE launch_leads');
   const response=await submit(env,input);assert.equal(response.status,503);assert.equal((await response.json()).ok,undefined);
 });
-test('measurement requires permission and deduplicates each visit event',async()=>{
-  const {env,input}=await setup();const visitId=crypto.randomUUID();const event={...input,visitId,event:'landing_view',measurementConsent:true};
-  assert.equal((await campaignApi(request('campaign-event',{...event,measurementConsent:false}),env)).status,400);
+test('measurement needs a valid visit reference and deduplicates each visit event',async()=>{
+  const {env,input}=await setup();const visitId=crypto.randomUUID();const event={...input,visitId,event:'landing_view'};
+  assert.equal((await campaignApi(request('campaign-event',{...event,visitId:'nope'}),env)).status,400);
   await campaignApi(request('campaign-event',event),env);await campaignApi(request('campaign-event',event),env);
   assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM campaign_events').get().n,1);
-  await submit(env,{...input,visitId,measurementConsent:true});
-  // A second subscriber without measurement permission must not inflate the measured rate.
+  await submit(env,{...input,visitId});
+  // A second subscriber with no visit reference must not inflate the measured rate.
   await submit(env,{...input,email:'other@example.com'});
   const response=await campaignApi(new Request('https://example.com/api/campaign-report',{headers:{Authorization:'Bearer test-only'}}),env);
   const report=await response.json();assert.equal(response.status,200);assert.equal(report.leads[0].signups,2);assert.deepEqual(report.measuredConversion,{visitors:1,converted_visitors:1});
@@ -90,7 +90,7 @@ test('captures preview email before drawing, deduplicates and never creates a ma
  assert.equal(report.previewContacts[0].contacts,1);assert.equal(report.leads.length,0);
  const csv=await(await campaignApi(new Request('https://example.com/api/preview-emails.csv',{headers:{Authorization:'Bearer test-only'}}),env)).text();assert.match(csv,/early@example.com/);assert.match(csv,/not_granted/);
  assert.equal((await campaignApi(new Request('https://example.com/api/preview-emails.csv'),env)).status,404);
- await campaignApi(request('preview-email',{...input,email:'private@example.com',measurementConsent:false}),env);
+ await campaignApi(request('preview-email',{email:'private@example.com'}),env);
  assert.equal(env.DB.sqlite.prepare('SELECT campaign FROM preview_contacts WHERE email=?').get('private@example.com').campaign,'organic');
 });
 test('preview capture rejects invalid or cross-origin input and fails honestly when saving fails',async()=>{

@@ -14,7 +14,7 @@ const country=request=>code(request.headers.get('CF-IPCountry'),'unknown');
 function authorized(request,env){const token=request.headers.get('Authorization')?.replace(/^Bearer /,'');return Boolean(env.SIGNUPS_EXPORT_TOKEN&&token===env.SIGNUPS_EXPORT_TOKEN);}
 async function body(request){if(Number(request.headers.get('Content-Length')||0)>4096)throw new Error('Too much data.');const raw=await request.text();if(raw.length>4096)throw new Error('Too much data.');return JSON.parse(raw);}
 
-// Only for visitors who allowed site measurement. The IP is shortened before it is saved so it
+// Visit detail for every measured visit. The IP is shortened before it is saved so it
 // points to a network area, never one device: IPv4 keeps three parts, IPv6 its first three groups.
 export function shortIp(value){
   const ip=String(value||'').trim();
@@ -33,7 +33,7 @@ export async function noteVisit(env,request,visitId){
   catch{console.error('Visit detail not saved');}
 }
 export async function linkVisit(env,measurement,kind,ref){
-  if(measurement?.measurementConsent!==true||!UUID.test(measurement.visitId||'')||!ref)return;
+  if(!UUID.test(measurement?.visitId||'')||!ref)return;
   try{await env.DB.prepare('INSERT INTO visit_links (visit_id, kind, ref, created_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT DO NOTHING').bind(measurement.visitId,kind,ref,new Date().toISOString()).run();}
   catch{console.error('Visit link not saved');}
 }
@@ -99,7 +99,7 @@ export async function campaignApi(request,env){
       return reply({ok:true});
     }
     if(path==='/api/campaign-event'){
-      if(input.measurementConsent!==true||!UUID.test(input.visitId)||!EVENTS.has(input.event))return reply({error:'Invalid measurement.'},400);
+      if(!UUID.test(input.visitId||'')||!EVENTS.has(input.event))return reply({error:'Invalid measurement.'},400);
       const result=await env.DB.prepare('INSERT INTO campaign_events (id, visit_id, event, source, medium, campaign, creative, country, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) ON CONFLICT(id) DO NOTHING').bind(`${input.visitId}:${input.event}`,input.visitId,input.event,...attribution(input),country(request),new Date().toISOString()).run();
       if(result.success===false)throw new Error('Event write failed');
       await noteVisit(env,request,input.visitId);
@@ -115,7 +115,7 @@ export async function campaignApi(request,env){
     if(email.length>254||!/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email))return reply({error:'Enter a valid email address.'},400);
     if(path==='/api/preview-email'){
       const now=new Date().toISOString();
-      const result=await env.DB.prepare('INSERT INTO preview_contacts (email, source, medium, campaign, creative, country, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7) ON CONFLICT(email) DO UPDATE SET updated_at=excluded.updated_at').bind(email,...attribution(input.measurementConsent===true?input:{}),country(request),now).run();
+      const result=await env.DB.prepare('INSERT INTO preview_contacts (email, source, medium, campaign, creative, country, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7) ON CONFLICT(email) DO UPDATE SET updated_at=excluded.updated_at').bind(email,...attribution(input),country(request),now).run();
       if(result.success===false)throw new Error('Preview email write failed');
       await linkVisit(env,input,'contact',email);
       return reply({ok:true});
@@ -128,7 +128,7 @@ export async function campaignApi(request,env){
     if(!receipt||receipt.status!=='succeeded'||Date.now()-Date.parse(receipt.created_at)>86400000)return reply({error:'Your preview has expired. Create another free preview to join.'},400);
     const now=new Date().toISOString();const token=crypto.randomUUID();
     const conversionId=crypto.randomUUID();
-    const result=await env.DB.prepare('INSERT INTO launch_leads (email, product, price_pence, consent_version, consent_text, consent_at, source, medium, campaign, creative, visit_id, preview_id, country, unsubscribe_token, created_at, purchase_intent, conversion_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, 1, ?16) ON CONFLICT(email) DO UPDATE SET product=excluded.product, price_pence=excluded.price_pence, consent_version=excluded.consent_version, consent_text=excluded.consent_text, consent_at=excluded.consent_at, purchase_intent=1, unsubscribed_at=NULL WHERE launch_leads.unsubscribed_at IS NOT NULL').bind(email,input.product,PRODUCTS[input.product],CONSENT_VERSION,CONSENT_TEXT,now,...attribution(input),input.measurementConsent===true&&UUID.test(input.visitId)?input.visitId:null,input.previewId,country(request),token,now,conversionId).run();
+    const result=await env.DB.prepare('INSERT INTO launch_leads (email, product, price_pence, consent_version, consent_text, consent_at, source, medium, campaign, creative, visit_id, preview_id, country, unsubscribe_token, created_at, purchase_intent, conversion_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, 1, ?16) ON CONFLICT(email) DO UPDATE SET product=excluded.product, price_pence=excluded.price_pence, consent_version=excluded.consent_version, consent_text=excluded.consent_text, consent_at=excluded.consent_at, purchase_intent=1, unsubscribed_at=NULL WHERE launch_leads.unsubscribed_at IS NOT NULL').bind(email,input.product,PRODUCTS[input.product],CONSENT_VERSION,CONSENT_TEXT,now,...attribution(input),UUID.test(input.visitId||'')?input.visitId:null,input.previewId,country(request),token,now,conversionId).run();
     if(result.success===false)throw new Error('Lead write failed');
     // Same response for duplicate emails avoids exposing who is already subscribed.
     const saved=await env.DB.prepare('SELECT conversion_id FROM launch_leads WHERE email=?1').bind(email).first();
