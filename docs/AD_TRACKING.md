@@ -21,6 +21,8 @@ Google Ads account: Craven & Quill, 262-797-3472. Existing Purchase action: 7889
 
 Attach each HTTPS feed to its matching EXISTING website action using Data Manager (multi-source conversions). Google allows the HTTPS connection with enhanced conversions and conversion-based audience lists left off. Owner approval is still required for the dedicated read-only connection. The site does not send customer identifiers. Auto-tagging was verified enabled on 6 November 2026.
 
+First apply a required Data Manager filter: `record_type` equals `conversion`. Every feed includes one `schema` metadata row because Google rejects header-only CSV files during setup. This marker has no click identifiers, denied consent, zero value and a 1970 timestamp. It is not a sale or lead and must never be imported. Verify the filtered preview excludes it before finishing setup.
+
 Map transaction_id to Transaction ID, conversion_date_time to Conversion date and time (UTC), value to Value, currency to Currency, gclid/gbraid/wbraid to their matching click identifiers, ad_user_data and ad_personalization to their consent fields. Set the import schedule and inspect the first result. The same transaction ID deduplicates repeated feed reads within one action. Fetching a CSV is not proof Google accepted it.
 
 Sources: [Google multi-source conversions](https://support.google.com/google-ads/answer/16542291), [HTTPS connection](https://support.google.com/google-ads-data-manager/answer/14605515), [Consent mode](https://developers.google.com/tag-platform/security/guides/consent).

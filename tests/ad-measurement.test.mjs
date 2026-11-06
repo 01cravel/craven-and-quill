@@ -20,7 +20,7 @@ test('purchase evidence uses actual amount, excludes tests and owner, and confir
 });
 test('protected server feed recovers sale without any browser return, retains stable IDs on retries and leaks no private fields',async()=>{
  const e=env(),o=order();insert(e,o);insert(e,order({payment_mode:'test'}));insert(e,order({email:'cravenluke@gmail.com'}));
- const a=await adFeed(req(),e),csv=await a.text();assert.equal(a.status,200);assert.equal(csv.trim().split('\n').length,2);assert.match(csv,/37.99/);assert.match(csv,new RegExp(o.id));assert.match(csv,/CaseSensitive_AbC-123/);assert.doesNotMatch(csv,/reader@|private|story/);
+ const a=await adFeed(req(),e),csv=await a.text();assert.equal(a.status,200);assert.equal(csv.trim().split('\n').length,3);assert.match(csv,/37.99/);assert.match(csv,new RegExp(o.id));assert.match(csv,/CaseSensitive_AbC-123/);assert.doesNotMatch(csv,/reader@|private|story/);
  assert.equal(await(await adFeed(req(),e)).text(),csv);
  assert.equal((await adFeed(req('purchases.csv','wrong'),e)).status,401);assert.equal((await adFeed(req(),{...e,GOOGLE_ADS_FEED_PASSWORD:''})).status,404);
  assert.match(a.headers.get('Cache-Control'),/no-store/);
@@ -30,12 +30,23 @@ test('preview receipt is stable on retry, separate from sale and marketing signu
  assert.equal(a.eventId,b.eventId);assert.equal(a.value,0);assert.equal(e.DB.sqlite.prepare('SELECT COUNT(*) n FROM ad_leads').get().n,1);
  assert.equal(e.DB.sqlite.prepare('SELECT COUNT(*) n FROM launch_leads').get().n,0);
  assert.equal(await leadConversion(e,'cravenluke@gmail.com',consent),null);assert.equal(await leadConversion(e,email,{}),null);
- assert.equal((await(await adFeed(req('leads.csv'),e)).text()).trim().split('\n').length,2);
+ assert.equal((await(await adFeed(req('leads.csv'),e)).text()).trim().split('\n').length,3);
  const revoke=await campaignApi(new Request('https://cq.test/api/ad-revoke',{method:'POST',headers:{Origin:'https://cq.test','Content-Type':'application/json'},body:JSON.stringify({visitId:consent.visitId})}),e);assert.equal(revoke.status,200);
- assert.equal((await(await adFeed(req('leads.csv'),e)).text()).trim().split('\n').length,1);assert.equal(await leadConversion(e,email,consent),null);
+ assert.equal((await(await adFeed(req('leads.csv'),e)).text()).trim().split('\n').length,2);assert.equal(await leadConversion(e,email,consent),null);
 });
 test('lead receipt failure never prevents a preview email from being saved',async()=>{
  const e=env();e.DB.sqlite.exec('DROP TABLE ad_leads');
  const r=await campaignApi(new Request('https://cq.test/api/preview-email',{method:'POST',headers:{Origin:'https://cq.test','Content-Type':'application/json'},body:JSON.stringify({email:'reader@customer.co.uk',...consent})}),e);
  assert.equal(r.status,200);assert.equal((await r.json()).conversion,null);assert.equal(e.DB.sqlite.prepare('SELECT COUNT(*) n FROM preview_contacts').get().n,1);
+});
+
+test('empty reports expose only non-conversion schema metadata with no click, personal data or permission',async()=>{
+ for(const path of ['purchases.csv','leads.csv']){
+  const lines=(await(await adFeed(req(path),env())).text()).trim().split('\n');
+  assert.equal(lines.length,2);
+  assert.equal(lines[0].split(',').at(-1),'record_type');
+  const marker=lines[1].split(',').map(x=>JSON.parse(x));
+  assert.deepEqual(marker,['cq_feed_schema_v1','1970-01-01T00:00:00Z','0.00','GBP','','','','DENIED','DENIED','schema']);
+  assert.equal(marker.at(-1)==='conversion',false);
+ }
 });

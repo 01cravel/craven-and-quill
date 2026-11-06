@@ -294,6 +294,6 @@ for(const provider of ['stripe','ziina'])test(`${provider}: live conversion surv
   // Losing optional event storage must not stop verification or lose the durable payment evidence.
   env.DB.sqlite.exec('DROP TABLE campaign_events');assert.equal((await confirm()).status,200);assert.equal((await state(env,id)).payment_status,'paid');
   const feed=await adFeed(new Request('https://cq.test/api/ads/purchases.csv',{headers:{Authorization:'Basic '+btoa('google-ads:'+env.GOOGLE_ADS_FEED_PASSWORD)}}),env);
-  const csv=await feed.text();assert.equal(csv.trim().split('\n').length,mode==='live'?2:1);if(mode==='live'){assert.match(csv,/39.99/);assert.match(csv,new RegExp(id));}
+  const csv=await feed.text();assert.equal(csv.trim().split('\n').length,mode==='live'?3:2);if(mode==='live'){assert.match(csv,/39.99/);assert.match(csv,new RegExp(id));}
  }
 });

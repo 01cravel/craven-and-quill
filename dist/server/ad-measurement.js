@@ -45,10 +45,14 @@ export async function adFeed(request,env){
  }else{
   conversions=((await env.DB.prepare('SELECT id,created_at,gclid,gbraid,wbraid FROM ad_leads WHERE created_at>=?1 AND revoked_at IS NULL AND consent_version=?2').bind(cutoff,AD_CONSENT_VERSION).all()).results||[]).map(x=>({eventId:x.id,at:x.created_at,value:0,currency:'GBP',gclid:x.gclid,gbraid:x.gbraid,wbraid:x.wbraid}));
  }
- const columns=['transaction_id','conversion_date_time','value','currency','gclid','gbraid','wbraid','ad_user_data','ad_personalization'];
- const rows=conversions.filter(x=>x.gclid||x.gbraid||x.wbraid).map(x=>[x.eventId,x.at,x.value.toFixed(2),'GBP',x.gclid||'',x.gbraid||'',x.wbraid||'','GRANTED','DENIED']);
+ const columns=['transaction_id','conversion_date_time','value','currency','gclid','gbraid','wbraid','ad_user_data','ad_personalization','record_type'];
+ const rows=conversions.filter(x=>x.gclid||x.gbraid||x.wbraid).map(x=>[x.eventId,x.at,x.value.toFixed(2),'GBP',x.gclid||'',x.gbraid||'',x.wbraid||'','GRANTED','DENIED','conversion']);
+ // Google cannot infer a schema from an empty CSV. This is metadata, never an event:
+ // no ad identifier, no consent, zero value and an ancient date. Data Manager MUST
+ // filter record_type = conversion before importing. Never invent an ad click.
+ const schema=['cq_feed_schema_v1','1970-01-01T00:00:00Z','0.00','GBP','','','','DENIED','DENIED','schema'];
  const cell=x=>'"'+String(x).replaceAll('"','""')+'"';
  // Fetching a report is not an acknowledgement that Google accepted its rows.
  console.info('Advertising feed served',path,rows.length);
- return new Response([columns.join(','),...rows.map(row=>row.map(cell).join(','))].join('\n')+'\n',{headers:{...headers,'Content-Type':'text/csv; charset=utf-8'}});
+ return new Response([columns.join(','),schema.map(cell).join(','),...rows.map(row=>row.map(cell).join(','))].join('\n')+'\n',{headers:{...headers,'Content-Type':'text/csv; charset=utf-8'}});
 }
