@@ -42,7 +42,7 @@ function fillOptions(d){
   }
 }
 
-function render(d){everyone(d);headline(d);funnel(d);ads(d);days(d);hours(d);breakdowns(d);tabs(d);spend(d);$('#notes').replaceChildren(...d.notes.map(n=>E('li',n)));}
+function render(d){const t=d.advertisingTracking;$('#ad-tracking-status').textContent=t?`Google tag: ${t.googleTagConfigured?'configured':'missing'}. Preview-email reporting: ${t.leadConfigured?'configured':'missing'}. Purchase goal: ${t.purchaseConfigured?'configured':'missing'}. Protected server feeds: ${t.serverFeedPrepared?'prepared, Google connection requires verification':'not prepared'}.`:'Tracking configuration unavailable.';everyone(d);headline(d);funnel(d);ads(d);days(d);hours(d);breakdowns(d);tabs(d);spend(d);$('#notes').replaceChildren(...d.notes.map(n=>E('li',n)));}
 
 function headline(d){
   const h=d.headline,f=d.filter.creative||d.filter.source;

@@ -4251,6 +4251,18 @@ var require_pako = __commonJS({
   }
 });
 
+// dist/server/ad-measurement.js
+var AD_CONSENT_VERSION = "ads-2026-11-06";
+var click = (v2) => typeof v2 === "string" && /^[A-Za-z0-9_-]{1,500}$/.test(v2) ? v2 : null;
+function adConsent(m) {
+  if (m?.advertisingConsent !== true || m?.advertisingConsentVersion !== AD_CONSENT_VERSION) return null;
+  return { version: AD_CONSENT_VERSION, at: (/* @__PURE__ */ new Date()).toISOString(), gclid: click(m.gclid), gbraid: click(m.gbraid), wbraid: click(m.wbraid) };
+}
+function internalTraffic(email, m = {}, env2 = {}) {
+  const e = String(email || "").toLowerCase();
+  return e === "cravenluke@gmail.com" || e === String(env2.ORDERS_ADMIN_EMAIL || "").toLowerCase() || e.endsWith("@breeztechnologies.com") || /@(?:example\.(?:com|test)|mailinator\.com)$/.test(e) || /^qa(?:[_.-]|$)/.test(m.campaign || "") || m.campaign === "tracking_test" || m.source === "qa";
+}
+
 // src/catalog.js
 var CATALOG_VERSION = "2026-10-25-offer";
 var PRODUCTS = {
@@ -52854,14 +52866,15 @@ var notify = sendOrderEmail;
 function measurementContext(m, req) {
   if (!/^[a-f0-9-]{36}$/.test(m?.visitId || "")) return null;
   const code2 = (v2, f) => typeof v2 === "string" && /^[a-zA-Z0-9_.-]{1,100}$/.test(v2) ? v2 : f;
-  return { visitId: m.visitId, source: code2(m.source, "direct"), medium: code2(m.medium, "none"), campaign: code2(m.campaign, "organic"), creative: code2(m.creative, "none"), country: code2(req.headers.get("cf-ipcountry"), "unknown") };
+  return { ads: adConsent(m), visitId: m.visitId, source: code2(m.source, "direct"), medium: code2(m.medium, "none"), campaign: code2(m.campaign, "organic"), creative: code2(m.creative, "none"), country: code2(req.headers.get("cf-ipcountry"), "unknown") };
 }
 async function measurePaid(env2, o) {
   const m = o.data.measurement;
-  if (o.payment_status !== "paid" || o.payment_mode !== "live" || !m) return;
+  if (o.payment_status !== "paid" || o.payment_mode !== "live" || !m || o.data.discount?.ownerTest || internalTraffic(o.email, m, env2)) return;
   try {
-    await q(env2, "INSERT INTO campaign_events (id,visit_id,event,source,medium,campaign,creative,country,created_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9) ON CONFLICT(id) DO NOTHING", o.id + ":purchase", m.visitId, "purchase_confirmed", m.source, m.medium, m.campaign, m.creative, m.country, now2()).run();
+    await q(env2, "INSERT INTO campaign_events (id,visit_id,event,source,medium,campaign,creative,country,created_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9) ON CONFLICT(id) DO NOTHING", o.id + ":purchase", m.visitId, "purchase_confirmed", m.source, m.medium, m.campaign, m.creative, m.country, o.data.paidAt || now2()).run();
   } catch {
+    console.error("Paid measurement failed", o.id);
   }
 }
 async function claimBookSoldAlerts(env2) {
@@ -52911,14 +52924,19 @@ async function verifyPayment(req, env2) {
   if (e.type !== "checkout.session.completed" && e.type !== "checkout.session.async_payment_succeeded") return { ignored: true };
   const o = await get(env2, s?.metadata?.cq_order_id || "");
   requireThat(s.id === o.session_id && s.payment_status === "paid" && s.currency === "gbp" && s.amount_total === o.amount && s.client_reference_id === o.id, "Payment did not match this order.");
-  if (o.payment_status === "paid") return { ok: true, duplicate: true };
+  if (o.payment_status === "paid") {
+    await measurePaid(env2, o);
+    return { ok: true, duplicate: true };
+  }
   requireThat(o.status === "awaiting_payment", "Order is not awaiting payment.", 409);
+  o.data.paidAt = now2();
   if (live) {
     o.data.autoGeneration = { status: "pending", queuedAt: now2() };
     o.data.bookSoldAlert = { status: "pending", queuedAt: now2() };
   }
   const changed = await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND payment_status='unpaid' AND session_id=?5 RETURNING id", live ? "live" : "test", JSON.stringify(o.data), now2(), o.id, s.id).first();
   if (!changed) return { ok: true, duplicate: true };
+  await measurePaid(env2, await get(env2, o.id));
   await audit(env2, o.id, "payment_confirmed", "stripe", { event: e.id, mode: live ? "live" : "test" });
   return { ok: true };
 }
@@ -52951,6 +52969,7 @@ async function ziinaSync(env2, o) {
 async function ziinaConfirm(env2, o) {
   const p = await ziinaSync(env2, o);
   if (p.status === "completed" && o.payment_status === "unpaid" && o.status === "awaiting_payment") {
+    o.data.paidAt = now2();
     if (o.data.payment.mode === "live") {
       o.data.autoGeneration = { status: "pending", queuedAt: now2() };
       o.data.bookSoldAlert = { status: "pending", queuedAt: now2() };

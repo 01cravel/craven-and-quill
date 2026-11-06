@@ -67,3 +67,8 @@ export const visitCounts=sqliteTable('visit_counts',{
  day:text('day').notNull(),event:text('event').notNull(),source:text('source').notNull(),medium:text('medium').notNull(),campaign:text('campaign').notNull(),
  creative:text('creative').notNull(),country:text('country').notNull(),device:text('device').notNull(),n:integer('n').notNull(),
 },t=>[primaryKey({columns:[t.day,t.event,t.source,t.medium,t.campaign,t.creative,t.country,t.device]})]);
+
+// Advertising receipts contain no email or child/story data. Only explicit current consent qualifies.
+export const adLeads=sqliteTable('ad_leads',{
+ id:text('id').primaryKey(),visitId:text('visit_id'),createdAt:text('created_at').notNull(),consentVersion:text('consent_version').notNull(),gclid:text('gclid'),gbraid:text('gbraid'),wbraid:text('wbraid'),revokedAt:text('revoked_at'),
+},t=>[index('ad_leads_created_idx').on(t.createdAt)]);

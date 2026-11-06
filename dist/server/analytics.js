@@ -1,3 +1,4 @@
+import {adConfig} from './ad-measurement.js';
 import {ownerSession} from './owner-auth.js';
 
 // Owner-only analytics. Every visit is measured without cookies: a random visit reference travels in
@@ -250,7 +251,7 @@ export async function analyticsApi(req,env){
   try{
     if(path==='/api/owner-analytics'){
       if(req.method!=='GET')return reply({error:'Method not allowed.'},405);
-      return reply(await buildReport(env,url,req));
+      return reply({...await buildReport(env,url,req),advertisingTracking:{googleTagConfigured:!!adConfig(env).tagId,leadConfigured:!!adConfig(env).lead,purchaseConfigured:!!adConfig(env).purchase,serverFeedPrepared:!!env.GOOGLE_ADS_FEED_PASSWORD,note:'Configuration only. Google acceptance and attributed results must be checked in Google Ads. Missing attribution is unknown, never proof of zero leads.'}});
     }
     if(req.method!=='POST')return reply({error:'Method not allowed.'},405);
     if(!sameOrigin(req))return reply({error:'Reload the page and try again.'},403);

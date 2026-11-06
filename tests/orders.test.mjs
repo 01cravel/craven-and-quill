@@ -270,3 +270,30 @@ test('owner test code makes a £2 book only for the owner email, and that book c
  r=await request(env,'/'+id+'/submit',{revision:o.revision,confirm:true,proofHash:o.proof.hash,maxCostPence:PRODUCTS.a5.pricePence+1},{admin:true});assert.equal(r.status,409);assert.equal(env.calls.filter(x=>x.url.endsWith('/orders')).length,0);
  r=await request(env,'/'+id+'/submit',{revision:o.revision,confirm:true,proofHash:o.proof.hash,maxCostPence:2000},{admin:true});assert.equal(r.status,200);assert.equal(env.calls.filter(x=>x.url.endsWith('/orders')).length,1);
 }finally{OWNER_TEST.codeHash=realHash;}});
+
+for(const provider of ['stripe','ziina'])test(`${provider}: live conversion survives closed browser, webhook retries and tracking failure`,async()=>{
+ const {adFeed,AD_CONSENT_VERSION}=await import('../dist/server/ad-measurement.js');
+ for(const mode of ['live','test']){
+  const env=environment(),{id,order}=await create(env);if(provider==='stripe')connected(env);else ziinaConnected(env,mode);
+  env.GOOGLE_ADS_FEED_PASSWORD='f'.repeat(40);env.STRIPE_SECRET_KEY=mode==='live'?'sk_live_test':'sk_test_example';
+  const o=await state(env,id);o.data.measurement={visitId:crypto.randomUUID(),source:'google',medium:'cpc',campaign:'cq_gifts',creative:'g_birthday',country:'GB',ads:{version:AD_CONSENT_VERSION,at:new Date().toISOString(),gclid:'RealClick_CaseSensitive'}};
+  env.DB.sqlite.prepare('UPDATE customer_orders SET email=?,state=? WHERE id=?').run('reader@customer.co.uk',JSON.stringify(o.data),id);
+  let confirm;
+  if(provider==='stripe'){
+   env.DB.sqlite.prepare("UPDATE customer_orders SET status='awaiting_payment',session_id='cs_live_test' WHERE id=?").run(id);
+   const event={id:'evt_tracking',type:'checkout.session.completed',livemode:mode==='live',data:{object:{id:'cs_live_test',client_reference_id:id,metadata:{cq_order_id:id},amount_total:3999,currency:'gbp',payment_status:'paid'}}};
+   confirm=()=>signedEvent(env,event);
+  }else{
+   env.fetch=async(url)=>url.includes('api-v2.ziina.com')?Response.json(intent(env,3999,'completed')):Response.json({id:'email-test'});
+   assert.equal((await request(env,'/'+id+'/checkout',{revision:order.revision})).status,200);
+   confirm=()=>signedZiinaEvent(env,intent(env,3999,'completed'));
+  }
+  assert.equal((await confirm()).status,200);const stamp=(await state(env,id)).data.paidAt;assert.ok(stamp);
+  assert.equal((await confirm()).status,200);assert.equal((await state(env,id)).data.paidAt,stamp);
+  assert.equal(env.DB.sqlite.prepare("SELECT COUNT(*) n FROM campaign_events WHERE event='purchase_confirmed'").get().n,mode==='live'?1:0);
+  // Losing optional event storage must not stop verification or lose the durable payment evidence.
+  env.DB.sqlite.exec('DROP TABLE campaign_events');assert.equal((await confirm()).status,200);assert.equal((await state(env,id)).payment_status,'paid');
+  const feed=await adFeed(new Request('https://cq.test/api/ads/purchases.csv',{headers:{Authorization:'Basic '+btoa('google-ads:'+env.GOOGLE_ADS_FEED_PASSWORD)}}),env);
+  const csv=await feed.text();assert.equal(csv.trim().split('\n').length,mode==='live'?2:1);if(mode==='live'){assert.match(csv,/39.99/);assert.match(csv,new RegExp(id));}
+ }
+});

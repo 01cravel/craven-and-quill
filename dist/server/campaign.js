@@ -1,3 +1,4 @@
+import {adConfig,leadConversion,adFeed} from './ad-measurement.js';
 export const CONSENT_VERSION='storybook-validation-2026-09-29';
 export const CONSENT_TEXT='Email me when Craven & Quill storybooks are ready to order. I can unsubscribe at any time.';
 const PRODUCTS={digital:1900,hardback:3500,bundle:4999};
@@ -53,8 +54,9 @@ export async function finishPreview(env,id,status){await env.DB.prepare('UPDATE 
 
 export async function campaignApi(request,env){
   const path=new URL(request.url).pathname;
-  if(path==='/api/ad-config')return request.method==='GET'?reply({pixelId:/^[0-9]{5,30}$/.test(env.META_PIXEL_ID||'')?env.META_PIXEL_ID:null}):reply({error:'Method not allowed.'},405);
-  if(!['/api/preview-email','/api/preview-emails.csv','/api/launch-signup','/api/campaign-event','/api/visit-count','/api/campaign-report','/api/launch-signups.csv','/api/unsubscribe'].includes(path))return null;
+  const feed=await adFeed(request,env);if(feed)return feed;
+  if(path==='/api/ad-config')return request.method==='GET'?reply({pixelId:/^[0-9]{5,30}$/.test(env.META_PIXEL_ID||'')?env.META_PIXEL_ID:null,google:adConfig(env)}):reply({error:'Method not allowed.'},405);
+  if(!['/api/ad-revoke','/api/preview-email','/api/preview-emails.csv','/api/launch-signup','/api/campaign-event','/api/visit-count','/api/campaign-report','/api/launch-signups.csv','/api/unsubscribe'].includes(path))return null;
   const report=path==='/api/campaign-report'||path==='/api/launch-signups.csv'||path==='/api/preview-emails.csv';
   if(request.method!==(report?'GET':'POST'))return reply({error:'Method not allowed.'},405);
   if(report&&!authorized(request,env))return reply({error:'Not found.'},404);
@@ -92,6 +94,13 @@ export async function campaignApi(request,env){
       return new Response(csv,{headers:{'Content-Type':'text/csv;charset=utf-8','Content-Disposition':'attachment; filename="storybook-launch-signups.csv"','Cache-Control':'private, no-store'}});
     }
     let input;try{input=await body(request);if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('Invalid form');}catch{return reply({error:'Please check the form and try again.'},400);}
+    if(path==='/api/ad-revoke'){
+      if(!UUID.test(input.visitId||''))return reply({error:'Invalid visit.'},400);
+      const stamp=new Date().toISOString();
+      await env.DB.prepare('UPDATE ad_leads SET revoked_at=?1 WHERE visit_id=?2').bind(stamp,input.visitId).run();
+      await env.DB.prepare("UPDATE customer_orders SET state=json_set(state,'$.measurement.ads.revokedAt',?1),revision=revision+1 WHERE json_extract(state,'$.measurement.visitId')=?2 AND json_extract(state,'$.measurement.ads.version') IS NOT NULL").bind(stamp,input.visitId).run();
+      return reply({ok:true});
+    }
     if(path==='/api/visit-count'){
       if(!COUNT_EVENTS.has(input.event))return reply({error:'Invalid count.'},400);
       const device=deviceOf(request);if(!device)return reply({ok:true});
@@ -118,7 +127,8 @@ export async function campaignApi(request,env){
       const result=await env.DB.prepare('INSERT INTO preview_contacts (email, source, medium, campaign, creative, country, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7) ON CONFLICT(email) DO UPDATE SET updated_at=excluded.updated_at').bind(email,...attribution(input),country(request),now).run();
       if(result.success===false)throw new Error('Preview email write failed');
       await linkVisit(env,input,'contact',email);
-      return reply({ok:true});
+      let conversion=null;try{conversion=await leadConversion(env,email,input);}catch{console.error('Advertising lead receipt failed');}
+      return reply({ok:true,conversion});
     }
     if(input.consent!==true||input.consentVersion!==CONSENT_VERSION)return reply({error:'Please tick the email permission box to join the launch list.'},400);
     if(input.purchaseIntent!==true)return reply({error:'Confirm your interest at the displayed price to join this list.'},400);

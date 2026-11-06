@@ -74,8 +74,8 @@ test('report isolates the experiment, dates, active intent and UK paid acquisiti
 });
 test('ad configuration exposes only a valid public pixel id and fails closed',async()=>{
   const {env}=await setup();
-  for(const value of [undefined,'<script>', ''])assert.deepEqual(await(await campaignApi(new Request('https://example.com/api/ad-config'),{...env,META_PIXEL_ID:value})).json(),{pixelId:null});
-  assert.deepEqual(await(await campaignApi(new Request('https://example.com/api/ad-config'),{...env,META_PIXEL_ID:'1234567890'})).json(),{pixelId:'1234567890'});
+  for(const value of [undefined,'<script>', ''])assert.deepEqual(await(await campaignApi(new Request('https://example.com/api/ad-config'),{...env,META_PIXEL_ID:value})).json(),{pixelId:null,google:{tagId:null,purchase:null,lead:null}});
+  assert.deepEqual(await(await campaignApi(new Request('https://example.com/api/ad-config'),{...env,META_PIXEL_ID:'1234567890'})).json(),{pixelId:'1234567890',google:{tagId:null,purchase:null,lead:null}});
 });
 
 test('captures preview email before drawing, deduplicates and never creates a marketing lead',async()=>{

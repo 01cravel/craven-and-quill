@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const code=readFileSync(new URL('../dist/client/campaign.js',import.meta.url),'utf8');
-function harness(saved={},search='?utm_source=meta&utm_medium=paid_social&utm_campaign=cq_uk_validation_2026'){
+function harness(saved={},search='?utm_source=meta&utm_medium=paid_social&utm_campaign=cq_uk_validation_2026',config={pixelId:'1234567890'},host='example.com',pathname='/'){
   const calls=[],scripts=[],store=new Map(Object.entries(saved)),session=new Map(),settings=[],links=[],replaced=[];
   const storage=map=>({getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)});
   let banner;
-  const document={cookie:'',referrer:'',createElement(tag){return {tag,dataset:{},setAttribute(){},addEventListener(name,cb){this[name]=cb;}};},querySelectorAll(selector){return selector==='.measurement-settings'?settings:selector.startsWith('a[href')?links:[];},body:{append(node){banner=node;}},head:{append(node){if(node.tag==='script')scripts.push(node);}}};
-  const window={};const context={matchMedia:()=>({matches:true}),document,window,URL,URLSearchParams,crypto,localStorage:storage(store),sessionStorage:storage(session),history:{state:null,replaceState:(s,t,url)=>replaced.push(String(url))},location:{search,pathname:'/',hostname:'example.com',href:'https://example.com/'+search,origin:'https://example.com'},fetch:async(path,options)=>{calls.push({path,options});return {ok:true,json:async()=>({pixelId:'1234567890'})};}};
+  const document={cookie:'',referrer:'',createElement(tag){return {tag,dataset:{},setAttribute(){},addEventListener(name,cb){this[name]=cb;}};},querySelectorAll(selector){return selector==='.measurement-settings'?settings:selector.startsWith('a[href')?links:[];},body:{append(node){banner=node;},prepend(node){banner=node;}},head:{append(node){if(node.tag==='script')scripts.push(node);}}};
+  const window={};const context={matchMedia:()=>({matches:true}),document,window,URL,URLSearchParams,crypto,localStorage:storage(store),sessionStorage:storage(session),history:{state:null,replaceState:(s,t,url)=>replaced.push(String(url))},location:{search,pathname,hostname:host,href:'https://'+host+pathname+search,origin:'https://'+host},fetch:async(path,options)=>{calls.push({path,options});return {ok:true,json:async()=>config};}};
   vm.runInNewContext(code,context);
   return {window,calls,scripts,store,session,links,replaced,choose(choice){banner.click({target:{dataset:{choice}}});},flush:()=>new Promise(resolve=>setImmediate(resolve))};
 }
@@ -38,7 +38,7 @@ test('each event is sent once per visit and page totals carry only ad codes and 
   h.window.cqMeasurement.record('step_1');h.window.cqMeasurement.record('step_1');
   assert.equal(counts(h).filter(c=>c.event==='step_1').length,1);assert.equal(measured(h).filter(e=>e.event==='step_1').length,1);
   h.choose('no');h.window.cqMeasurement.record('step_2');assert.equal(measured(h).filter(e=>e.event==='step_2').length,1);
-  assert.equal(h.store.get('cq-measurement-v2'),'no');
+  assert.equal(h.store.get('cq-measurement-v3'),'no');
 });
 test('Meta requires separate consent; saved leads send only random receipt and deduplicate in browser',async()=>{
   const h=harness();h.choose('ads');await h.flush();assert.equal(h.scripts.length,1);
@@ -50,4 +50,37 @@ test('Meta requires separate consent; saved leads send only random receipt and d
 });
 test('revocation while configuration loads prevents any Meta script being added',async()=>{
   const h=harness();h.choose('ads');h.choose('no');await h.flush();assert.equal(h.scripts.length,0);
+});
+
+const googleConfig={google:{tagId:'AW-18555913000',lead:'AW-18555913000/leadLabel',purchase:'AW-18555913000/purchaseLabel'}};
+const googleQueue=h=>(h.window.dataLayer||[]).map(args=>Array.from(args));
+test('Google requires NEW consent, does not inherit Meta permission, and never loads in QA or on a private book',async()=>{
+ for(const saved of [{},{'cq-measurement-v2':'ads'},{'cq-measurement-v3':'no'}]){
+  const h=harness(saved,'?gclid=AbC_12-34',googleConfig,'cravenandquill.com');await h.flush();
+  assert.equal(h.scripts.length,0);assert.equal(h.window.cqMeasurement.context().gclid,undefined);
+ }
+ for(const [host,path,search] of [['localhost','/','?gclid=abc'],['cravenandquill.com','/order.html','?id=private'],['cravenandquill.com','/','?utm_source=qa']]){
+  const h=harness({'cq-measurement-v3':'ads'},search,googleConfig,host,path);await h.flush();assert.equal(h.scripts.length,0);
+ }
+});
+test('Google consent, click context and a saved preview receipt produce one secondary event without personal fields',async()=>{
+ const h=harness({},'?utm_content=g_birthday&gclid=AbC_12-34&email=private@example.com#key=secret',googleConfig,'cravenandquill.com');
+ h.choose('ads');await h.flush();assert.equal(h.scripts.length,1);assert.match(h.scripts[0].src,/googletagmanager/);
+ assert.equal(h.window.cqMeasurement.context().source,'google');
+ const receipt={eventId:'a'.repeat(64),value:0,email:'never-sent@example.com',name:'Private Child'};
+ await h.window.cqMeasurement.previewLead(receipt);await h.window.cqMeasurement.previewLead(receipt);
+ const events=googleQueue(h).filter(x=>x[0]==='event');assert.equal(events.length,1);
+ assert.equal(events[0][2].transaction_id,receipt.eventId);assert.equal(events[0][2].value,0);
+ assert.equal(events[0][2].send_to,googleConfig.google.lead);
+ assert.doesNotMatch(JSON.stringify(googleQueue(h)),/private@|never-sent|Private Child|secret|email=/);
+ const defaults=googleQueue(h).find(x=>x[0]==='consent'&&x[1]==='default');assert.equal(defaults[2].ad_storage,'denied');
+ assert.equal(googleQueue(h).find(x=>x[0]==='consent'&&x[1]==='update')[2].ad_personalization,'denied');
+ h.choose('no');await h.window.cqMeasurement.previewLead({...receipt,eventId:'b'.repeat(64)});
+ assert.equal(googleQueue(h).filter(x=>x[0]==='event').length,1);assert.equal(h.store.has('cq-ad-click-v1'),false);
+ assert.equal(h.window.cqMeasurement.context().gclid,undefined);
+ assert.ok(h.calls.some(x=>x.path==='/api/ad-revoke'));
+});
+test('Google revocation during config fetch prevents loading and a rejected or missing receipt never converts',async()=>{
+ const h=harness({},'?gclid=abc',googleConfig,'cravenandquill.com');h.choose('ads');h.choose('no');await h.flush();assert.equal(h.scripts.length,0);
+ await h.window.cqMeasurement.previewLead(null);await h.window.cqMeasurement.previewLead({eventId:'fake',value:1});assert.equal(googleQueue(h).length,0);
 });

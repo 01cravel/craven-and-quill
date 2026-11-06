@@ -364,6 +364,7 @@ async function capturePreviewEmail(){
   const response=await fetch('/api/preview-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#email').value.trim().toLowerCase(),website:$('#website').value,...window.cqMeasurement?.context()}),signal:AbortSignal.timeout(15000)});
   const result=await response.json().catch(()=>({}));
   if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save your email. Please try again.');
+  void window.cqMeasurement?.previewLead?.(result.conversion);
 }
 
 async function preparePreview(){
