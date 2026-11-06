@@ -57,7 +57,9 @@ h2{font:400 clamp(2.2rem,4.2vw,3.7rem)/1.04 var(--serif);letter-spacing:-.02em;m
 .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:clamp(32px,5vw,72px);align-items:center;padding-top:clamp(28px,5vw,64px)}
 .hero h1{font:400 clamp(2.9rem,6.2vw,5.6rem)/.98 var(--serif);letter-spacing:-.03em;margin:0;max-width:11ch}
 .hero-lede{font-size:clamp(1.05rem,1.4vw,1.2rem);color:var(--muted);max-width:32rem;margin:24px 0 0}
-.hero-price{font-size:clamp(1.05rem,1.4vw,1.2rem);color:var(--muted);max-width:32rem;margin:6px 0 32px}
+.hero-offer{margin:14px 0 32px;max-width:32rem}
+.hero-price{font-size:clamp(1.05rem,1.4vw,1.2rem);color:var(--muted);margin:0}.hero-price b{color:var(--pine);font-weight:600}
+.hero-christmas{display:flex;align-items:center;gap:9px;margin:14px 0 0;padding:9px 14px 9px 11px;border-radius:999px;background:var(--lamp);color:var(--pine);font-size:.95rem;font-weight:500;width:fit-content;max-width:100%}.hero-christmas svg{width:16px;height:16px;flex:none;fill:var(--pine)}
 .hero-cover{display:none}
 .hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px 28px}
 .hero-notes{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:32px 0 0}
@@ -116,6 +118,8 @@ h2{font:400 clamp(2.2rem,4.2vw,3.7rem)/1.04 var(--serif);letter-spacing:-.02em;m
 
 /* Pricing */
 .price-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.timeline{list-style:none;padding:0;margin:18px 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.timeline li{display:flex;flex-direction:column;gap:4px;padding:16px 18px;border-radius:var(--r-l);background:var(--dusk-pale);font-size:.94rem;color:var(--muted)}.timeline strong{color:var(--pine);font-weight:600}
+@media (max-width:720px){.timeline{grid-template-columns:1fr}}
 .price{display:flex;flex-direction:column;align-items:flex-start;padding:clamp(24px,3.5vw,40px);border-radius:var(--r-l);background:var(--white)}
 .price h3{margin:0;font-size:1.15rem;font-weight:600}
 .price p{margin:8px 0 0;color:var(--muted);max-width:26rem}
@@ -248,7 +252,7 @@ footer small{flex-basis:100%;font-size:.84rem}
   .hero-cover figcaption strong{font:400 clamp(1rem,4.6vw,1.2rem)/1.05 var(--serif);text-wrap:balance}
   .hero-lede{margin:14px 0 0;font-size:1rem;line-height:1.5;max-width:30ch}
   .hero-actions{width:100%;margin-top:16px;justify-content:center}
-  .hero-price{order:1;margin:16px 0 0;font-size:.88rem;line-height:1.5;max-width:34ch}
+  .hero-offer{order:1;margin:16px 0 0;max-width:34ch}.hero-price{font-size:.88rem;line-height:1.5}.hero-christmas{font-size:.86rem;margin-top:10px}
   .publishing-proof,.hero-notes{order:2}
   .publishing-proof{text-align:left;width:100%}
 }

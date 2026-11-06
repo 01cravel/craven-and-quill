@@ -42,7 +42,7 @@ function fillOptions(d){
   }
 }
 
-function render(d){const t=d.advertisingTracking;$('#ad-tracking-status').textContent=t?`Google tag: ${t.googleTagConfigured?'configured':'missing'}. Preview-email reporting: ${t.leadConfigured?'configured':'missing'}. Purchase goal: ${t.purchaseConfigured?'configured':'missing'}. Protected server feeds: ${t.serverFeedPrepared?'prepared, Google connection requires verification':'not prepared'}.`:'Tracking configuration unavailable.';everyone(d);headline(d);funnel(d);ads(d);days(d);hours(d);breakdowns(d);tabs(d);spend(d);$('#notes').replaceChildren(...d.notes.map(n=>E('li',n)));}
+function render(d){const t=d.advertisingTracking;$('#ad-tracking-status').textContent=t?`Google tag: ${t.googleTagConfigured?'configured':'missing'}. Preview-email reporting: ${t.leadConfigured?'configured':'missing'}. Purchase goal: ${t.purchaseConfigured?'configured':'missing'}. Protected server feeds: ${t.serverFeedPrepared?'prepared, Google connection requires verification':'not prepared'}. Meta pixel: ${t.metaPixelConfigured?'configured':'missing'}. Meta purchase reporting from the server: ${t.metaPurchaseConfigured?'configured':'missing, add the Conversions API token'}.`:'Tracking configuration unavailable.';everyone(d);headline(d);profit(d);funnel(d);ads(d);days(d);hours(d);breakdowns(d);tabs(d);spend(d);$('#notes').replaceChildren(...d.notes.map(n=>E('li',n)));}
 
 function headline(d){
   const h=d.headline,f=d.filter.creative||d.filter.source;
@@ -114,12 +114,30 @@ function funnel(d){
 }
 new ResizeObserver(()=>{const r=$('#funnel');if(S.data&&r.clientWidth&&Math.abs(r.clientWidth-riverWidth)>24)funnel(S.data);}).observe($('#funnel'));
 
+function profit(d){
+  const e=d.economics,signed=p=>(p<0?'−':'')+pounds(Math.abs(p));
+  const lines=[
+    ['Revenue',pounds(e.revenuePence),`${num(e.sales)} ${e.sales===1?'sale':'sales'}`,'in'],
+    ['Payment fees',signed(-e.feesPence),`${(e.costs.fee_percent/100).toFixed(2)}% + ${pounds(e.costs.fee_fixed)} each`,'out'],
+    ['Printing',signed(-e.printPence),`A5 ${pounds(e.costs.print_a5)}, A4 ${pounds(e.costs.print_a4)}`,'out'],
+    ['Finished drawings',signed(-e.artPence),`${pounds(e.costs.art_book)} a book`,'out'],
+    ['Previews for everyone',signed(-e.previewPence),`${num(e.previewAttempts)} drawn at ${pounds(e.costs.preview)}`,'out'],
+    ['Ad spend',signed(-e.spendPence),e.spendPence?'entered below':'none entered','out'],
+    ['Profit',signed(e.profitPence),e.sales?`${signed(e.profitPerSalePence)} a sale`:'no sales in this range',e.profitPence<0?'total loss':'total gain'],
+  ];
+  $('#ledger').replaceChildren(...lines.map(([label,value,note,cls])=>{const row=E('div',undefined,cls);const dd=E('dd',value);dd.append(E('small',note));row.append(E('dt',label),dd);return row;}));
+  $('#room').replaceChildren(...e.room.map(r=>{const li=E('li');li.append(E('strong',`${r.label} at ${pounds(r.pricePence)}`),E('span',r.adRoomPence>0?`up to ${pounds(r.adRoomPence)} of ads per sale`:'no room for ads at this price'));return li;}));
+  const s=e.stop,share=Math.min(1,s.spentSinceSalePence/s.limitPence);
+  $('#stop-line').textContent=`${pounds(s.spentSinceSalePence)} of ${pounds(s.limitPence)} spent ${s.lastSaleAt?'since the last sale on '+when(s.lastSaleAt):'with no sale yet'}.${share>=1?' Pause the ads and rethink.':''}`;
+  $('#stop-fill').style.width=Math.round(share*100)+'%';$('#stop-fill').classList.toggle('over',share>=1);
+  for(const [k,v] of Object.entries(e.costs)){const input=document.querySelector(`#cost-form [name="${k}"]`);if(input&&document.activeElement!==input)input.value=(v/100).toFixed(2);}
+}
 function ads(d){
   const body=$('#ads');body.replaceChildren();
-  if(!d.ads.length){const tr=E('tr');const td=E('td','No measured visits in this range.','empty-row');td.colSpan=9;tr.append(td);body.append(tr);return;}
+  if(!d.ads.length){const tr=E('tr');const td=E('td','No measured visits in this range.','empty-row');td.colSpan=10;tr.append(td);body.append(tr);return;}
   for(const a of d.ads){
     const tr=E('tr',undefined,a.creative===d.filter.creative?'selected':'');
-    const cells=[adName(a.creative),num(a.visits),num(a.previews),num(a.prices),num(a.checkouts),num(a.sales),a.spendPence?pounds(a.spendPence):'—',a.spendPence&&a.visits?pounds(Math.round(a.spendPence/a.visits)):'—',a.spendPence&&a.sales?pounds(Math.round(a.spendPence/a.sales)):'—'];
+    const cells=[adName(a.creative),num(a.visits),num(a.previews),num(a.prices),num(a.checkouts),num(a.sales),a.spendPence?pounds(a.spendPence):'—',a.spendPence&&a.visits?pounds(Math.round(a.spendPence/a.visits)):'—',a.spendPence&&a.sales?pounds(Math.round(a.spendPence/a.sales)):'—',a.sales||a.spendPence?pounds(a.revenuePence-a.costPence-a.spendPence):'—'];
     cells.forEach((c,i)=>tr.append(E('td',c,i?'num':'')));body.append(tr);
   }
 }
@@ -276,6 +294,11 @@ function spend(d){
   if(!d.spend.length){const tr=E('tr'),td=E('td','No spend entered for these dates.','empty-row');td.colSpan=3;tr.append(td);body.append(tr);}
   for(const s of d.spend){const tr=E('tr');tr.append(E('td',shortDay(s.day)),E('td',s.creative==='all'?'Whole campaign':s.creative),E('td',pounds(s.pence),'num'));body.append(tr);}
 }
+$('#cost-form').addEventListener('submit',async e=>{
+  e.preventDefault();const button=e.submitter;button.disabled=true;
+  try{const body=Object.fromEntries([...new FormData(e.target)].map(([k,v])=>[k,Number(v)]));const r=await fetch('/api/owner-analytics/costs',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Costs were not saved.');await load();msg('Costs saved. Profit figures use them now.');}
+  catch(error){msg(error.message,true);}finally{button.disabled=false;}
+});
 $('#spend-form').addEventListener('submit',async e=>{
   e.preventDefault();const button=e.submitter;button.disabled=true;
   try{const r=await fetch('/api/owner-analytics/spend',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({day:$('#spend-day').value,creative:$('#spend-creative').value,pounds:$('#spend-pounds').value})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Spend was not saved.');$('#spend-pounds').value='';await load();msg(d.pence?`Saved ${pounds(d.pence)} for ${shortDay(d.day)}.`:`Removed spend for ${shortDay(d.day)}.`);}

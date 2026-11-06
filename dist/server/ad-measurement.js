@@ -3,7 +3,7 @@ export const AD_CONSENT_VERSION='ads-2026-11-06';
 const click=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{1,500}$/.test(v)?v:null;
 export function adConsent(m){
  if(m?.advertisingConsent!==true||m?.advertisingConsentVersion!==AD_CONSENT_VERSION)return null;
- return {version:AD_CONSENT_VERSION,at:new Date().toISOString(),gclid:click(m.gclid),gbraid:click(m.gbraid),wbraid:click(m.wbraid)};
+ return {version:AD_CONSENT_VERSION,at:new Date().toISOString(),gclid:click(m.gclid),gbraid:click(m.gbraid),wbraid:click(m.wbraid),fbclid:click(m.fbclid)};
 }
 export function internalTraffic(email,m={},env={}){
  const e=String(email||'').toLowerCase();
@@ -19,6 +19,26 @@ export function purchaseConversion(o,env){
  if(o.payment_status!=='paid'||o.payment_mode!=='live'||d.discount?.ownerTest||internalTraffic(o.email,m,env)||ads?.version!==AD_CONSENT_VERSION||ads.revokedAt||!d.paidAt)return null;
  if(!Number.isSafeInteger(o.amount)||o.amount<=0)return null;
  return {eventId:o.id,at:d.paidAt,value:d.refund?.status==='completed'?0:o.amount/100,currency:'GBP',gclid:click(ads.gclid),gbraid:click(ads.gbraid),wbraid:click(ads.wbraid)};
+}
+// Meta purchase report, sent from the server so it survives closed tabs and blocked scripts. It needs the
+// same explicit advertising consent as the Google feed, and it only carries what the banner promised:
+// the ad click reference, the order total and the country. Never an email, name, photo or story.
+export function metaConfig(env){return /^[0-9]{5,30}$/.test(env.META_PIXEL_ID||'')&&typeof env.META_CAPI_TOKEN==='string'&&env.META_CAPI_TOKEN.length>=20?{pixelId:env.META_PIXEL_ID,token:env.META_CAPI_TOKEN}:null;}
+export function metaPurchase(o,env){
+ const c=purchaseConversion(o,env);if(!c)return null;
+ const d=o.data||JSON.parse(o.state||'{}'),fbclid=click(d.measurement?.ads?.fbclid);if(!fbclid)return null;
+ const at=Math.floor(Date.parse(c.at)/1000),clickAt=Math.floor(Date.parse(d.measurement.ads.at||c.at)/1000)*1000;
+ return {event_name:'Purchase',event_time:at,event_id:o.id,action_source:'website',event_source_url:'https://cravenandquill.com/order.html',
+  user_data:{fbc:`fb.1.${clickAt}.${fbclid}`,country:['0b407281768f0e833afef47ed464b6571d01ca4d53c12ce5c51d1462f4ad6677']},
+  custom_data:{currency:'GBP',value:c.value,order_id:o.id,content_type:'product',content_ids:[o.size||'book'],num_items:1}};
+}
+export async function sendMetaPurchase(env,o){
+ const config=metaConfig(env);if(!config)return {status:'skipped',reason:'not_configured'};
+ const event=metaPurchase(o,env);if(!event)return {status:'skipped',reason:'no_consented_meta_click'};
+ const r=await (env.fetch||fetch)(`https://graph.facebook.com/v21.0/${config.pixelId}/events`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:[event],access_token:config.token}),signal:AbortSignal.timeout(15000)});
+ let body=null;try{body=await r.json();}catch{}
+ if(!r.ok||!body?.events_received)return {status:'failed',reason:'http_'+r.status};
+ return {status:'sent',received:body.events_received};
 }
 export async function leadConversion(env,email,input){
  const ads=adConsent(input);if(!ads||internalTraffic(email,input,env)||!env.ORDER_LINK_SECRET)return null;

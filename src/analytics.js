@@ -1,5 +1,6 @@
-import {adConfig} from './ad-measurement.js';
+import {adConfig,metaConfig} from './ad-measurement.js';
 import {ownerSession} from './owner-auth.js';
+import {PRODUCTS} from './catalog.js';
 
 // Owner-only analytics. Every visit is measured without cookies: a random visit reference travels in
 // the page link. The privacy notice covers a shortened IP, town, and links from the visit to its
@@ -7,6 +8,10 @@ import {ownerSession} from './owner-auth.js';
 const OWNER_EMAIL='cravenluke@gmail.com';
 const ZONE='Europe/London';
 const SPEND_TABLE='CREATE TABLE IF NOT EXISTS owner_ad_spend (day TEXT NOT NULL, creative TEXT NOT NULL, pence INTEGER NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (day, creative))';
+// Owner-entered unit costs. Values are pence, except fee_percent which is hundredths of a percent (410 = 4.1%).
+const COSTS_TABLE='CREATE TABLE IF NOT EXISTS owner_cost_model (key TEXT PRIMARY KEY, value INTEGER NOT NULL, updated_at TEXT NOT NULL)';
+export const COST_DEFAULTS={print_a5:1600,print_a4:1800,fee_percent:410,fee_fixed:20,art_book:150,preview:10};
+const PROFIT_TARGET=500;
 const SIGNUPS_TABLE='CREATE TABLE IF NOT EXISTS signups (email TEXT PRIMARY KEY, interest TEXT NOT NULL, page TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)';
 const LIST_LIMIT=300;
 const DETAIL_DAYS=90;
@@ -82,12 +87,12 @@ export async function buildReport(env,url,req=null){
   const filter={source:code(url.searchParams.get('source')),creative:code(url.searchParams.get('creative'))};
   const filtered=Boolean(filter.source||filter.creative);
   const matches=a=>Boolean(a)&&(!filter.source||a.source===filter.source)&&(!filter.creative||a.creative===filter.creative);
-  await env.DB.prepare(SPEND_TABLE).run();await env.DB.prepare(SIGNUPS_TABLE).run();
+  await env.DB.prepare(SPEND_TABLE).run();await env.DB.prepare(SIGNUPS_TABLE).run();await env.DB.prepare(COSTS_TABLE).run();
   const q=(sql,...v)=>env.DB.prepare(sql).bind(...v);
   const expired=new Date(Date.now()-DETAIL_DAYS*86400000).toISOString();
   try{await q('DELETE FROM visit_details WHERE created_at < ?1',expired).run();await q('DELETE FROM visit_links WHERE created_at < ?1',expired).run();}catch{}
   const inRange='SELECT DISTINCT visit_id FROM campaign_events WHERE created_at >= ?1 AND created_at < ?2';
-  const [events,receipts,contacts,leads,quotes,orderRows,spendRows,usage,signups,options,detailRows,linkRows,countRows]=await Promise.all([
+  const [events,receipts,contacts,leads,quotes,orderRows,spendRows,usage,signups,options,detailRows,linkRows,countRows,costRows,lastSale,spendSinceSale]=await Promise.all([
     rows(q('SELECT visit_id, event, source, medium, campaign, creative, country, created_at FROM campaign_events WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at LIMIT 200000',since,until)),
     rows(q('SELECT id, status, created_at, email FROM preview_receipts WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
     rows(q('SELECT email, source, medium, campaign, creative, country, created_at, updated_at FROM preview_contacts WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
@@ -101,7 +106,13 @@ export async function buildReport(env,url,req=null){
     optional(q(`SELECT visit_id, ip_prefix, town, region FROM visit_details WHERE visit_id IN (${inRange})`,since,until)),
     optional(q(`SELECT l.visit_id, l.kind, l.ref, l.created_at, r.status FROM visit_links l LEFT JOIN preview_receipts r ON l.kind='preview' AND r.id=l.ref WHERE l.visit_id IN (${inRange}) ORDER BY l.created_at`,since,until)),
     optional(q('SELECT day, event, source, creative, country, device, SUM(n) AS n FROM visit_counts WHERE day >= ?1 AND day <= ?2 GROUP BY day, event, source, creative, country, device',from,to)),
+    rows(q('SELECT key, value FROM owner_cost_model')),
+    q("SELECT MAX(COALESCE(json_extract(state,'$.paidAt'),updated_at)) AS at FROM customer_orders WHERE payment_status='paid' AND payment_mode='live' AND email<>?1",OWNER_EMAIL).first(),
+    q("SELECT COALESCE(SUM(pence),0) AS pence FROM owner_ad_spend WHERE day > COALESCE((SELECT substr(MAX(COALESCE(json_extract(state,'$.paidAt'),updated_at)),1,10) FROM customer_orders WHERE payment_status='paid' AND payment_mode='live' AND email<>?1),'')",OWNER_EMAIL).first(),
   ]);
+  const costs={...COST_DEFAULTS};for(const r of costRows)if(r.key in costs)costs[r.key]=r.value;
+  // Cost of one paid book at this price: payment fee, printing and the finished drawings.
+  const bookCost=(size,amountPence)=>Math.round(amountPence*costs.fee_percent/10000)+costs.fee_fixed+(size==='a4'?costs.print_a4:costs.print_a5)+costs.art_book;
 
   // One journey per random visit id. Attribution comes from the visit's first event.
   const visits=new Map();
@@ -139,7 +150,7 @@ export async function buildReport(env,url,req=null){
   }
   // Per-ad table always shows every ad so they can be compared, even while one is filtered.
   const ads=new Map();
-  const ad=key=>{if(!ads.has(key))ads.set(key,{creative:key,visits:0,previews:0,prices:0,checkouts:0,sales:0,revenuePence:0,spendPence:0});return ads.get(key);};
+  const ad=key=>{if(!ads.has(key))ads.set(key,{creative:key,visits:0,previews:0,prices:0,checkouts:0,sales:0,revenuePence:0,spendPence:0,costPence:0});return ads.get(key);};
   for(const v of visits.values()){if(filter.source&&v.source!==filter.source)continue;const a=ad(v.creative);a.visits++;if(v.events.has('preview_success'))a.previews++;if(v.events.has('price_view'))a.prices++;if(v.events.has('checkout_start'))a.checkouts++;}
   const liveSales=orders.filter(o=>o.paymentStatus==='paid'&&!o.ownerTest);
   for(const o of liveSales)if(o.creative&&(!filter.source||o.source===filter.source)){const a=ad(o.creative);a.sales++;a.revenuePence+=o.amountPence;}
@@ -150,8 +161,19 @@ export async function buildReport(env,url,req=null){
   const sales=scopedOrders.filter(o=>o.paymentStatus==='paid'&&!o.ownerTest);
   const spendPence=spendRows.filter(s=>filter.creative?s.creative===filter.creative:!filter.source||filter.source==='meta').reduce((n,s)=>n+s.pence,0);
   const revenuePence=sales.reduce((n,o)=>n+o.amountPence,0);
+  for(const o of liveSales)if(o.creative&&(!filter.source||o.source===filter.source))ad(o.creative).costPence+=bookCost(o.size,o.amountPence);
   const at=step=>funnel.find(f=>f.step===step).visits;
   const previewCounts=filtered?{tried:at('preview_start'),made:at('preview_success'),failed:errorVisits.preview_error}:{tried:receipts.length,made:receipts.filter(r=>r.status==='succeeded').length,failed:receipts.filter(r=>r.status==='failed').length};
+  // Profit after every cost we know about, including previews drawn for people who never bought.
+  const previewAttempts=filtered?previewCounts.tried:Math.max(previewCounts.tried,usage.reduce((n,u)=>n+u.attempts,0));
+  const feesPence=sales.reduce((n,o)=>n+Math.round(o.amountPence*costs.fee_percent/10000)+costs.fee_fixed,0);
+  const printPence=sales.reduce((n,o)=>n+(o.size==='a4'?costs.print_a4:costs.print_a5),0);
+  const artPence=sales.length*costs.art_book,previewPence=previewAttempts*costs.preview;
+  const profitPence=revenuePence-feesPence-printPence-artPence-previewPence-spendPence;
+  const room=size=>{const p=PRODUCTS[size];return {size,label:p.label,pricePence:p.pricePence,adRoomPence:p.pricePence-bookCost(size,p.pricePence)-PROFIT_TARGET};};
+  const economics={costs,target:PROFIT_TARGET,sales:sales.length,revenuePence,feesPence,printPence,artPence,previewAttempts,previewPence,spendPence,profitPence,
+    profitPerSalePence:sales.length?Math.round(profitPence/sales.length):null,room:[room('a4'),room('a5')],
+    stop:{limitPence:10000,spentSinceSalePence:spendSinceSale?.pence||0,lastSaleAt:lastSale?.at||null}};
   const scopedContacts=filtered?contacts.filter(matches):contacts,scopedLeads=filtered?leads.filter(matches):leads;
   const headline={visits:scope.length,previewsTried:previewCounts.tried,previewsMade:previewCounts.made,previewsFailed:previewCounts.failed,
     previewEmails:scopedContacts.length,quotes:filtered?null:quotes.length,launchSignups:scopedLeads.length,booksSaved:scopedOrders.filter(o=>!o.ownerTest).length,
@@ -217,7 +239,7 @@ export async function buildReport(env,url,req=null){
     // What location detail the host attaches to requests, checked on the owner's own request.
     hostLocation:req?{locationObject:Boolean(req.cf),town:Boolean(req.cf?.city),townHeader:Boolean(req.headers.get('cf-ipcity')),region:Boolean(req.cf?.region||req.cf?.regionCode),regionHeader:Boolean(req.headers.get('cf-region')||req.headers.get('cf-region-code'))}:null,
     options:{sources:[...new Set(options.map(o=>o.source))].sort(),creatives:[...new Set(options.map(o=>o.creative))].filter(c=>c!=='all').sort()},
-    headline,funnel,errorVisits,
+    headline,economics,funnel,errorVisits,
     traffic:{byDay:[...byDay.values()],byHour:[...byHour].map(([hour,visits])=>({hour,visits})),source:sorted(source),campaign:sorted(campaign),creative:sorted(creative),country:sorted(country),device:sorted(device)},
     ads:[...ads.values()].sort((a,b)=>b.visits-a.visits||a.creative.localeCompare(b.creative)),
     people,peopleTotal:people.length,knownEmailTotal:peopleByEmail.size,anonymousTotal:anonymous.length,
@@ -239,23 +261,31 @@ export async function buildReport(env,url,req=null){
       'All eleven maker pages are measured from this release. Earlier visits cannot show pages that were not measured then.',
       'An email joins visits only when the visit reference was saved with that email. Anonymous visits and unlinked preview requests cannot be identified as a person, and the same person may have several visits.',
       'Preview totals without an ad filter count every drawing request on the site, including retries and people who declined measurement.',
+      'Profit uses the unit costs you enter: payment fee, printing, finished drawings and one preview drawing per attempt. Delivery, replacements, refunds and your time are not included. Check the fee against the Ziina settlement statement.',
     ],
   };
 }
 
 export async function analyticsApi(req,env){
   const url=new URL(req.url),path=url.pathname;
-  if(path!=='/api/owner-analytics'&&path!=='/api/owner-analytics/spend')return null;
+  if(path!=='/api/owner-analytics'&&path!=='/api/owner-analytics/spend'&&path!=='/api/owner-analytics/costs')return null;
   if(!env.DB)return reply({error:'Analytics storage is unavailable.'},503);
   if(!await ownerSession(req,env))return reply({error:'Sign in with an email link sent to the owner.'},401);
   try{
     if(path==='/api/owner-analytics'){
       if(req.method!=='GET')return reply({error:'Method not allowed.'},405);
-      return reply({...await buildReport(env,url,req),advertisingTracking:{googleTagConfigured:!!adConfig(env).tagId,leadConfigured:!!adConfig(env).lead,purchaseConfigured:!!adConfig(env).purchase,serverFeedPrepared:!!env.GOOGLE_ADS_FEED_PASSWORD,note:'Configuration only. Google acceptance and attributed results must be checked in Google Ads. Missing attribution is unknown, never proof of zero leads.'}});
+      return reply({...await buildReport(env,url,req),advertisingTracking:{googleTagConfigured:!!adConfig(env).tagId,leadConfigured:!!adConfig(env).lead,purchaseConfigured:!!adConfig(env).purchase,serverFeedPrepared:!!env.GOOGLE_ADS_FEED_PASSWORD,metaPixelConfigured:/^[0-9]{5,30}$/.test(env.META_PIXEL_ID||''),metaPurchaseConfigured:!!metaConfig(env),note:'Configuration only. Google acceptance and attributed results must be checked in Google Ads. Missing attribution is unknown, never proof of zero leads.'}});
     }
     if(req.method!=='POST')return reply({error:'Method not allowed.'},405);
     if(!sameOrigin(req))return reply({error:'Reload the page and try again.'},403);
-    let input;try{const raw=await req.text();if(raw.length>2048)throw Error('Too large');input=JSON.parse(raw);}catch{return reply({error:'Check the spend form and try again.'},400);}
+    let input;try{const raw=await req.text();if(raw.length>2048)throw Error('Too large');input=JSON.parse(raw);}catch{return reply({error:'Check the form and try again.'},400);}
+    if(path==='/api/owner-analytics/costs'){
+      const entries=Object.entries(input||{}).filter(([k])=>k in COST_DEFAULTS).map(([k,v])=>[k,Math.round(Number(v)*100)]);
+      if(!entries.length||entries.some(([,v])=>!Number.isFinite(v)||v<0||v>1000000))return reply({error:'Enter each cost as a number of pounds, and the fee as a percentage.'},400);
+      await env.DB.prepare(COSTS_TABLE).run();
+      for(const [k,v] of entries)await env.DB.prepare('INSERT INTO owner_cost_model (key, value, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at').bind(k,v,new Date().toISOString()).run();
+      return reply({ok:true,saved:Object.fromEntries(entries)});
+    }
     const day=input?.day,creative=input?.creative==='all'?'all':code(input?.creative),pence=Math.round(Number(input?.pounds)*100);
     if(!isDay(day)||!creative||!Number.isFinite(pence)||pence<0||pence>10000000)return reply({error:'Enter a date, an ad and an amount in pounds.'},400);
     await env.DB.prepare(SPEND_TABLE).run();

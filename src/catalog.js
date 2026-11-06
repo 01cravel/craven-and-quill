@@ -1,7 +1,7 @@
-export const CATALOG_VERSION='2026-10-25-offer';
+export const CATALOG_VERSION='2026-11-06-full-price';
 export const PRODUCTS={
-  a5:{id:'a5',label:'A5 hardback',widthMm:148,heightMm:210,sku:'BOOK-FE-A5-P-HARD-G',pricePence:3999,regularPricePence:4999,discountPercent:20,estimatedSupplierPence:1506},
-  a4:{id:'a4',label:'A4 hardback',widthMm:210,heightMm:297,sku:'BOOK-FE-A4-P-HARD-G',pricePence:4799,regularPricePence:5999,discountPercent:20,estimatedSupplierPence:1676},
+  a4:{id:'a4',label:'A4 hardback',widthMm:210,heightMm:297,sku:'BOOK-FE-A4-P-HARD-G',pricePence:5999,regularPricePence:5999,discountPercent:0,estimatedSupplierPence:1800},
+  a5:{id:'a5',label:'A5 hardback',widthMm:148,heightMm:210,sku:'BOOK-FE-A5-P-HARD-G',pricePence:4999,regularPricePence:4999,discountPercent:0,estimatedSupplierPence:1600},
 };
 // Owner-only test price: the code itself is never stored, only its SHA-256.
 export const OWNER_TEST={codeHash:'4494c8d03100dff3c9560ca54ada85bc13cacb7852092bb59fbc8166b0578cdb',email:'cravenluke@gmail.com',pricePence:200,expiresAt:'2026-12-01T00:00:00Z'};

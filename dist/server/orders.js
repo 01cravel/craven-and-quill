@@ -4251,23 +4251,62 @@ var require_pako = __commonJS({
   }
 });
 
-// dist/server/ad-measurement.js
+// src/ad-measurement.js
 var AD_CONSENT_VERSION = "ads-2026-11-06";
 var click = (v2) => typeof v2 === "string" && /^[A-Za-z0-9_-]{1,500}$/.test(v2) ? v2 : null;
 function adConsent(m) {
   if (m?.advertisingConsent !== true || m?.advertisingConsentVersion !== AD_CONSENT_VERSION) return null;
-  return { version: AD_CONSENT_VERSION, at: (/* @__PURE__ */ new Date()).toISOString(), gclid: click(m.gclid), gbraid: click(m.gbraid), wbraid: click(m.wbraid) };
+  return { version: AD_CONSENT_VERSION, at: (/* @__PURE__ */ new Date()).toISOString(), gclid: click(m.gclid), gbraid: click(m.gbraid), wbraid: click(m.wbraid), fbclid: click(m.fbclid) };
 }
 function internalTraffic(email, m = {}, env2 = {}) {
   const e = String(email || "").toLowerCase();
   return e === "cravenluke@gmail.com" || e === String(env2.ORDERS_ADMIN_EMAIL || "").toLowerCase() || e.endsWith("@breeztechnologies.com") || /@(?:example\.(?:com|test)|mailinator\.com)$/.test(e) || /^qa(?:[_.-]|$)/.test(m.campaign || "") || m.campaign === "tracking_test" || m.source === "qa";
 }
+function purchaseConversion(o, env2) {
+  const d = o.data || JSON.parse(o.state || "{}"), m = d.measurement || {}, ads = m.ads;
+  if (o.payment_status !== "paid" || o.payment_mode !== "live" || d.discount?.ownerTest || internalTraffic(o.email, m, env2) || ads?.version !== AD_CONSENT_VERSION || ads.revokedAt || !d.paidAt) return null;
+  if (!Number.isSafeInteger(o.amount) || o.amount <= 0) return null;
+  return { eventId: o.id, at: d.paidAt, value: d.refund?.status === "completed" ? 0 : o.amount / 100, currency: "GBP", gclid: click(ads.gclid), gbraid: click(ads.gbraid), wbraid: click(ads.wbraid) };
+}
+function metaConfig(env2) {
+  return /^[0-9]{5,30}$/.test(env2.META_PIXEL_ID || "") && typeof env2.META_CAPI_TOKEN === "string" && env2.META_CAPI_TOKEN.length >= 20 ? { pixelId: env2.META_PIXEL_ID, token: env2.META_CAPI_TOKEN } : null;
+}
+function metaPurchase(o, env2) {
+  const c = purchaseConversion(o, env2);
+  if (!c) return null;
+  const d = o.data || JSON.parse(o.state || "{}"), fbclid = click(d.measurement?.ads?.fbclid);
+  if (!fbclid) return null;
+  const at = Math.floor(Date.parse(c.at) / 1e3), clickAt = Math.floor(Date.parse(d.measurement.ads.at || c.at) / 1e3) * 1e3;
+  return {
+    event_name: "Purchase",
+    event_time: at,
+    event_id: o.id,
+    action_source: "website",
+    event_source_url: "https://cravenandquill.com/order.html",
+    user_data: { fbc: `fb.1.${clickAt}.${fbclid}`, country: ["0b407281768f0e833afef47ed464b6571d01ca4d53c12ce5c51d1462f4ad6677"] },
+    custom_data: { currency: "GBP", value: c.value, order_id: o.id, content_type: "product", content_ids: [o.size || "book"], num_items: 1 }
+  };
+}
+async function sendMetaPurchase(env2, o) {
+  const config2 = metaConfig(env2);
+  if (!config2) return { status: "skipped", reason: "not_configured" };
+  const event = metaPurchase(o, env2);
+  if (!event) return { status: "skipped", reason: "no_consented_meta_click" };
+  const r = await (env2.fetch || fetch)(`https://graph.facebook.com/v21.0/${config2.pixelId}/events`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: [event], access_token: config2.token }), signal: AbortSignal.timeout(15e3) });
+  let body2 = null;
+  try {
+    body2 = await r.json();
+  } catch {
+  }
+  if (!r.ok || !body2?.events_received) return { status: "failed", reason: "http_" + r.status };
+  return { status: "sent", received: body2.events_received };
+}
 
 // src/catalog.js
-var CATALOG_VERSION = "2026-10-25-offer";
+var CATALOG_VERSION = "2026-11-06-full-price";
 var PRODUCTS = {
-  a5: { id: "a5", label: "A5 hardback", widthMm: 148, heightMm: 210, sku: "BOOK-FE-A5-P-HARD-G", pricePence: 3999, regularPricePence: 4999, discountPercent: 20, estimatedSupplierPence: 1506 },
-  a4: { id: "a4", label: "A4 hardback", widthMm: 210, heightMm: 297, sku: "BOOK-FE-A4-P-HARD-G", pricePence: 4799, regularPricePence: 5999, discountPercent: 20, estimatedSupplierPence: 1676 }
+  a4: { id: "a4", label: "A4 hardback", widthMm: 210, heightMm: 297, sku: "BOOK-FE-A4-P-HARD-G", pricePence: 5999, regularPricePence: 5999, discountPercent: 0, estimatedSupplierPence: 1800 },
+  a5: { id: "a5", label: "A5 hardback", widthMm: 148, heightMm: 210, sku: "BOOK-FE-A5-P-HARD-G", pricePence: 4999, regularPricePence: 4999, discountPercent: 0, estimatedSupplierPence: 1600 }
 };
 var OWNER_TEST = { codeHash: "4494c8d03100dff3c9560ca54ada85bc13cacb7852092bb59fbc8166b0578cdb", email: "cravenluke@gmail.com", pricePence: 200, expiresAt: "2026-12-01T00:00:00Z" };
 var BOOK = { pdfPages: 28, interiorPages: 26, spreads: 10, paper: "200gsm gloss", cover: "Matte hardback", safeMm: 10 };
@@ -52877,6 +52916,23 @@ async function measurePaid(env2, o) {
     console.error("Paid measurement failed", o.id);
   }
 }
+async function runMetaPurchaseJobs(env2, onlyId = null) {
+  const rows = (await q(env2, "SELECT id,email,size,amount,payment_status,payment_mode,state FROM customer_orders WHERE payment_status='paid' AND payment_mode='live' AND json_extract(state,'$.metaPurchase.status') IN ('pending','failed') AND (?1 IS NULL OR id=?1) ORDER BY created_at LIMIT 5", onlyId).all()).results || [];
+  const results = [];
+  for (const row of rows) {
+    const claimed = await q(env2, "UPDATE customer_orders SET state=json_set(state,'$.metaPurchase.status','sending','$.metaPurchase.attempts',COALESCE(json_extract(state,'$.metaPurchase.attempts'),0)+1),revision=revision+1 WHERE id=?1 AND json_extract(state,'$.metaPurchase.status') IN ('pending','failed') RETURNING id", row.id).first();
+    if (!claimed) continue;
+    let result;
+    try {
+      result = await sendMetaPurchase(env2, { ...row, data: JSON.parse(row.state) });
+    } catch (error2) {
+      result = { status: "failed", reason: error2?.name === "TimeoutError" ? "timeout" : "network" };
+    }
+    await q(env2, "UPDATE customer_orders SET state=json_set(state,'$.metaPurchase.status',?1,'$.metaPurchase.reason',?2,'$.metaPurchase.at',?3),revision=revision+1 WHERE id=?4", result.status, result.reason || null, now2(), row.id).run();
+    results.push({ orderId: row.id, ...result });
+  }
+  return { results };
+}
 async function claimBookSoldAlerts(env2) {
   const rows = (await q(env2, "SELECT id,size,amount,email,state FROM customer_orders WHERE payment_status='paid' AND payment_mode='live' AND json_extract(state,'$.bookSoldAlert.status')='pending' ORDER BY created_at LIMIT 20").all()).results || [];
   const alerts = [];
@@ -52896,6 +52952,11 @@ https://cravenandquill.com/orders`;
 }
 async function receiptEmail(env2, o, kind = "receipt") {
   await measurePaid(env2, o);
+  try {
+    await runMetaPurchaseJobs(env2, o.id);
+  } catch {
+    console.error("Meta purchase report failed", o.id);
+  }
   if (o.payment_status !== "paid" || o.payment_mode !== "live" || o.data.emails?.[kind]?.sent) return o;
   const link = `https://cravenandquill.com/order.html?id=${o.id}#key=${await privateKey(env2, o.data.privateKey, true)}`;
   const result = await notify(env2, o, kind, link);
@@ -52933,6 +52994,7 @@ async function verifyPayment(req, env2) {
   if (live) {
     o.data.autoGeneration = { status: "pending", queuedAt: now2() };
     o.data.bookSoldAlert = { status: "pending", queuedAt: now2() };
+    o.data.metaPurchase = { status: "pending", queuedAt: now2() };
   }
   const changed = await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND payment_status='unpaid' AND session_id=?5 RETURNING id", live ? "live" : "test", JSON.stringify(o.data), now2(), o.id, s.id).first();
   if (!changed) return { ok: true, duplicate: true };
@@ -52973,6 +53035,7 @@ async function ziinaConfirm(env2, o) {
     if (o.data.payment.mode === "live") {
       o.data.autoGeneration = { status: "pending", queuedAt: now2() };
       o.data.bookSoldAlert = { status: "pending", queuedAt: now2() };
+      o.data.metaPurchase = { status: "pending", queuedAt: now2() };
     }
     const changed = await q(env2, "UPDATE customer_orders SET payment_status='paid',payment_mode=?1,status='awaiting_review',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' RETURNING id", o.data.payment.mode, JSON.stringify(o.data), now2(), o.id, o.revision).first();
     if (changed) await audit(env2, o.id, "payment_confirmed", "ziina", { mode: o.data.payment.mode });
@@ -53706,6 +53769,7 @@ export {
   recordFollowupConsent,
   runArtworkJobs,
   runFollowups,
+  runMetaPurchaseJobs,
   unsubscribeFollowup,
   verifyPayment,
   ziina,

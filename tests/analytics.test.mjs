@@ -240,3 +240,24 @@ test('report shows everyone counted without cookies, per ad, filtered and by day
   const only=(await (await get(env,'?creative=d_video')).json()).everyone;
   assert.equal(only.steps[0].count,7);assert.equal(only.ads.length,1);
 });
+
+test('profit uses owner costs, counts every preview, and shows ad room and the stop line',async()=>{
+  const env=environment();
+  const v=visit(env,['landing_view','maker_start','preview_start','preview_success','price_view','checkout_start']);
+  order(env,{visitId:v,amount:5999});
+  env.DB.sqlite.prepare("UPDATE customer_orders SET size='a4', state=json_set(state,'$.paidAt',?)").run(new Date(Date.now()-3*86400000).toISOString());
+  env.DB.sqlite.prepare('INSERT INTO preview_daily_usage (day, attempts) VALUES (?, 4)').run(day);
+  assert.equal((await spend(env,{day,creative:'all',pounds:20})).status,200);
+  let e=(await (await get(env)).json()).economics;
+  assert.equal(e.sales,1);assert.equal(e.revenuePence,5999);assert.equal(e.feesPence,266);assert.equal(e.printPence,1800);assert.equal(e.artPence,150);
+  assert.equal(e.previewAttempts,4);assert.equal(e.previewPence,40);assert.equal(e.spendPence,2000);assert.equal(e.profitPence,5999-266-1800-150-40-2000);
+  assert.deepEqual(e.room.map(r=>[r.size,r.adRoomPence]),[['a4',5999-266-1800-150-500],['a5',4999-225-1600-150-500]]);
+  assert.equal(e.stop.spentSinceSalePence,2000);assert.ok(e.stop.lastSaleAt);
+  const costs=(env,body)=>analyticsApi(new Request(origin+'/api/owner-analytics/costs',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json',...owner},body:JSON.stringify(body)}),env);
+  assert.equal((await costs(env,{print_a4:19,fee_percent:3,bogus:1})).status,200);
+  assert.equal((await costs(env,{print_a4:-1})).status,400);
+  assert.equal((await costs(env,{nothing:1})).status,400);
+  e=(await (await get(env)).json()).economics;
+  assert.equal(e.costs.print_a4,1900);assert.equal(e.costs.fee_percent,300);assert.equal(e.printPence,1900);assert.equal(e.feesPence,200);
+  const ad=(await (await get(env)).json()).ads.find(a=>a.creative==='d_static');assert.equal(ad.costPence,200+1900+150);
+});

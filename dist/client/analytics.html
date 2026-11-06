@@ -24,6 +24,29 @@
     <div id="report" hidden>
       <section class="headline panel" aria-label="Headline numbers"><dl id="headline"></dl></section>
 
+      <section class="panel profit-panel" aria-labelledby="profit-title">
+        <div class="panel-head"><div><h2 id="profit-title">Profit after everything</h2><p class="sub">Sales in this range, minus the payment fee, printing, the finished drawings, every preview drawn (bought or not) and the ad spend you entered.</p></div></div>
+        <div class="profit-grid">
+          <dl id="ledger" class="ledger"></dl>
+          <div class="room">
+            <h3>Room for ads at £5 profit a book</h3>
+            <ul id="room" class="room-list"></ul>
+            <h3>Stop line</h3>
+            <p id="stop-line" class="stop-line"></p>
+            <div class="stop-bar" aria-hidden="true"><span id="stop-fill"></span></div>
+          </div>
+        </div>
+        <form id="cost-form" class="spend-form cost-form">
+          <label>A5 print (£) <input name="print_a5" type="number" min="0" step="0.01" inputmode="decimal" required></label>
+          <label>A4 print (£) <input name="print_a4" type="number" min="0" step="0.01" inputmode="decimal" required></label>
+          <label>Payment fee (%) <input name="fee_percent" type="number" min="0" step="0.01" inputmode="decimal" required></label>
+          <label>Fee per payment (£) <input name="fee_fixed" type="number" min="0" step="0.01" inputmode="decimal" required></label>
+          <label>Drawings per book (£) <input name="art_book" type="number" min="0" step="0.01" inputmode="decimal" required></label>
+          <label>One preview (£) <input name="preview" type="number" min="0" step="0.01" inputmode="decimal" required></label>
+          <button class="button secondary" type="submit">Save costs</button>
+        </form>
+        <p class="sub">Take the fee from the Ziina settlement statement and print costs from the Prodigi invoice. Delivery, replacements, refunds and your time are not counted.</p>
+      </section>
       <section class="panel"><h2>Advertising tracking</h2><p id="ad-tracking-status" class="sub">Checking configuration…</p><p class="sub">Saved emails, marketing subscribers and paid sales are different measures. Google delivery must be checked in Google Ads. Missing attribution means unknown.</p></section>
       <section class="panel funnel-panel" aria-labelledby="funnel-title">
         <div class="panel-head"><div><h2 id="funnel-title">Where people stop</h2><p class="sub">Every visit, counted without cookies. Each block is the visits that reached that page; the red figure is how many stopped before the next one.</p></div></div>
@@ -40,7 +63,7 @@
         </section>
         <section class="panel" aria-labelledby="ads-title">
           <div class="panel-head"><div><h2 id="ads-title">Each ad compared</h2><p class="sub">Spend comes from what you enter below.</p></div></div>
-          <div class="table-wrap"><table class="compact"><thead><tr><th>Ad</th><th class="num">Visits</th><th class="num">Previews</th><th class="num">Saw price</th><th class="num">Pressed pay</th><th class="num">Sales</th><th class="num">Spend</th><th class="num">Per visit</th><th class="num">Per sale</th></tr></thead><tbody id="ads"></tbody></table></div>
+          <div class="table-wrap"><table class="compact"><thead><tr><th>Ad</th><th class="num">Visits</th><th class="num">Previews</th><th class="num">Saw price</th><th class="num">Pressed pay</th><th class="num">Sales</th><th class="num">Spend</th><th class="num">Per visit</th><th class="num">Per sale</th><th class="num">Profit</th></tr></thead><tbody id="ads"></tbody></table></div>
         </section>
       </div>
 

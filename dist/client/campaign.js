@@ -11,11 +11,11 @@
   let visitId=(query.get('v')||'').toLowerCase();if(!UUID.test(visitId))visitId=crypto.randomUUID();
   if(query.get('v')!==visitId){try{const url=new URL(location.href);url.searchParams.set('v',visitId);history.replaceState(history.state,'',url);}catch{}}
   let preference='';try{preference=localStorage.getItem('cq-measurement-v3')||(localStorage.getItem('cq-measurement-v2')==='no'?'no':'');}catch{}
-  let adClick={gclid:click(query.get('gclid')),gbraid:click(query.get('gbraid')),wbraid:click(query.get('wbraid'))};
-  const hasNewClick=Object.values(adClick).some(Boolean);
-  if(preference==='ads'){try{const saved=JSON.parse(localStorage.getItem('cq-ad-click-v1')||'null');if(!hasNewClick&&!query.has('utm_source')&&saved?.expires>Date.now()){adClick=saved.click;attribution=saved.attribution;}}catch{}}
+  let adClick={gclid:click(query.get('gclid')),gbraid:click(query.get('gbraid')),wbraid:click(query.get('wbraid')),fbclid:click(query.get('fbclid'))};
+  const hasNewClick=Boolean(adClick.gclid||adClick.gbraid||adClick.wbraid),hasAnyClick=hasNewClick||Boolean(adClick.fbclid);
+  if(preference==='ads'){try{const saved=JSON.parse(localStorage.getItem('cq-ad-click-v1')||'null');if(!hasAnyClick&&!query.has('utm_source')&&saved?.expires>Date.now()){adClick={fbclid:null,...saved.click};attribution=saved.attribution;}}catch{}}
   if((hasNewClick||['g_birthday','g_christmas','g_grandchild','g_adult'].includes(attribution.creative))&&attribution.source==='direct'){attribution={...attribution,source:'google',medium:'cpc',campaign:['g_birthday','g_christmas','g_grandchild','g_adult'].includes(attribution.creative)?'cq_gifts':'google_untagged'};}
-  function persistClick(){if(preference!=='ads')return;try{if(hasNewClick||query.has('utm_source'))localStorage.setItem('cq-ad-click-v1',JSON.stringify({click:adClick,attribution,expires:Date.now()+30*86400000}));}catch{}}
+  function persistClick(){if(preference!=='ads')return;try{if(hasAnyClick||query.has('utm_source'))localStorage.setItem('cq-ad-click-v1',JSON.stringify({click:adClick,attribution,expires:Date.now()+30*86400000}));}catch{}}
   let pixelId=null,pixelStarted=false,configPromise=null;const sent=new Set(),counted=new Set(),leadSent=new Set();
   function context(){return{...attribution,measurementConsent:true,visitId,...(preference==='ads'?{advertisingConsent:true,advertisingConsentVersion:AD_VERSION,...adClick}:{})};}
   // Daily totals per step, with no visitor reference at all: a second, simpler count to check the journeys against.
@@ -90,7 +90,7 @@
     if(googleStarted)window.gtag('consent','update',{ad_storage:'denied',analytics_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
     const names=['_fbp','_fbc',...document.cookie.split(';').map(x=>x.trim().split('=')[0]).filter(x=>x.startsWith('_gcl_'))];
     try{localStorage.removeItem('cq-ad-click-v1');}catch{}
-    adClick={gclid:null,gbraid:null,wbraid:null};
+    adClick={gclid:null,gbraid:null,wbraid:null,fbclid:null};
     fetch('/api/ad-revoke',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({visitId}),keepalive:true}).catch(()=>{});
     for(const name of names)for(const domain of ['',location.hostname,'.'+location.hostname])document.cookie=name+'=; Max-Age=0; Path=/; SameSite=Lax'+(domain?'; Domain='+domain:'');
   }

@@ -50,3 +50,19 @@ test('empty reports expose only non-conversion schema metadata with no click, pe
   assert.equal(marker.at(-1)==='conversion',false);
  }
 });
+
+test('Meta purchase report needs consent, a Meta click and configuration, and never carries an email',async()=>{
+ const {metaPurchase,sendMetaPurchase}=await import('../dist/server/ad-measurement.js');
+ const o=order();assert.equal(metaPurchase(o,{}),null);
+ const withClick={...o,size:'a4',data:{...o.data,measurement:{...o.data.measurement,ads:adConsent({...consent,fbclid:'IwAR0abc-DEF_123'})}}};
+ const event=metaPurchase(withClick,{});
+ assert.equal(event.event_name,'Purchase');assert.equal(event.event_id,withClick.id);assert.equal(event.custom_data.value,37.99);assert.deepEqual(event.custom_data.content_ids,['a4']);
+ assert.match(event.user_data.fbc,/^fb\.1\.\d+\.IwAR0abc-DEF_123$/);assert.equal(JSON.stringify(event).includes('customer.co.uk'),false);assert.equal(event.user_data.em,undefined);
+ assert.equal(metaPurchase({...withClick,email:'cravenluke@gmail.com'},{}),null);
+ assert.deepEqual(await sendMetaPurchase({},withClick),{status:'skipped',reason:'not_configured'});
+ const calls=[];const env={META_PIXEL_ID:'123456789',META_CAPI_TOKEN:'t'.repeat(40),fetch:async(url,opts)=>{calls.push({url,body:JSON.parse(opts.body)});return Response.json({events_received:1});}};
+ assert.deepEqual(await sendMetaPurchase(env,o),{status:'skipped',reason:'no_consented_meta_click'});
+ assert.deepEqual(await sendMetaPurchase(env,withClick),{status:'sent',received:1});
+ assert.equal(calls[0].url,'https://graph.facebook.com/v21.0/123456789/events');assert.equal(calls[0].body.access_token,env.META_CAPI_TOKEN);assert.equal(calls[0].body.data[0].event_id,withClick.id);
+ env.fetch=async()=>new Response('bad',{status:400});assert.deepEqual(await sendMetaPurchase(env,withClick),{status:'failed',reason:'http_400'});
+});

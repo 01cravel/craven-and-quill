@@ -29,7 +29,7 @@ test('new consent sends one reminder and then a single 10% email after three day
   assert.equal(result.second.accepted,1);
   assert.equal(sent.length,2);
   assert.match(sent[1].body.html,/extra 10% off/);
-  assert.equal(DB.sqlite.prepare('SELECT discount_pence FROM customer_quotes WHERE email=?').get(email).discount_pence,400);
+  assert.equal(DB.sqlite.prepare('SELECT discount_pence FROM customer_quotes WHERE email=?').get(email).discount_pence,500);
   await runFollowups(env);
   assert.equal(sent.length,2);
 });
