@@ -1,6 +1,0 @@
-{
-  "version": "0.0.1",
-  "configurations": [
-    {"name": "cq-qa", "runtimeExecutable": "node", "runtimeArgs": ["scripts/preview-analytics.mjs"], "port": 4323}
-  ]
-}
