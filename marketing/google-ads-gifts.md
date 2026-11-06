@@ -77,3 +77,9 @@ Descriptions (90 characters max):
 2. Preview their character free, no card needed. Hardbacks from £39.99 with UK delivery.
 3. Pick a funny, gentle or adventure story, or give us your own idea for their book.
 4. Includes a gift page with your message. For Christmas, order by 1 December.
+
+## 6 November 2026: cheaper clicks and a stop line
+
+- Maximum cost per click bid limit lowered from £1.20 to £0.80 (campaign 24430097219, Maximise clicks, £10/day unchanged). At £0.80 a click, a £5 profit on a full-price A4 book needs roughly a 2.5% purchase rate instead of 3.5%.
+- Automated rule "Stop line: pause gift search after £100 more": every day at 23:00 Gulf time, pause any campaign whose all-time cost is over £125 (£25 spent before 6 November plus £100). Emails cravenluke@gmail.com when it fires. If a sale lands first, raise the threshold rather than deleting the rule.
+- The same £100 line is shown on the site dashboard under "Profit after everything", counted from ad spend entered after the last live sale.
