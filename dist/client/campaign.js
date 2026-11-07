@@ -6,13 +6,11 @@
   let attribution={source:safe(query.get('utm_source'))||'direct',medium:safe(query.get('utm_medium'))||'none',campaign:safe(query.get('utm_campaign'))||'organic',creative:safe(query.get('utm_content'))||'none'};
   // First-party visit measurement works for everyone and uses no cookies or device storage: the
   // visit's random reference travels in the page link (?v=) so a reload or the home-to-maker link
-  // keeps one journey together. Advertising identifiers use storage unless measurement is turned off.
+  // keeps one journey together. Advertising identifiers use storage only after explicit consent.
   const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   let visitId=(query.get('v')||'').toLowerCase();if(!UUID.test(visitId))visitId=crypto.randomUUID();
   if(query.get('v')!==visitId){try{const url=new URL(location.href);url.searchParams.set('v',visitId);history.replaceState(history.state,'',url);}catch{}}
-  // Advertising measurement (Google tag, Meta pixel) is on for everyone unless the visitor turned it
-  // off: ?measurement=no on any page (the privacy page links to it), remembered in local storage.
-  let preference='ads';try{const asked=query.get('measurement');if(asked==='no'||asked==='ads'){preference=asked;localStorage.setItem('cq-measurement-v3',asked);}else if(localStorage.getItem('cq-measurement-v3')==='no'||localStorage.getItem('cq-measurement-v2')==='no')preference='no';}catch{}
+  let preference='';try{preference=localStorage.getItem('cq-measurement-v3')||(localStorage.getItem('cq-measurement-v2')==='no'?'no':'');}catch{}
   let adClick={gclid:click(query.get('gclid')),gbraid:click(query.get('gbraid')),wbraid:click(query.get('wbraid')),fbclid:click(query.get('fbclid'))};
   const hasNewClick=Boolean(adClick.gclid||adClick.gbraid||adClick.wbraid),hasAnyClick=hasNewClick||Boolean(adClick.fbclid);
   if(preference==='ads'){try{const saved=JSON.parse(localStorage.getItem('cq-ad-click-v1')||'null');if(!hasAnyClick&&!query.has('utm_source')&&saved?.expires>Date.now()){adClick={fbclid:null,...saved.click};attribution=saved.attribution;}}catch{}}
@@ -105,8 +103,15 @@
     for(const key of ['fbclid','gclid','gbraid','wbraid']){const id=query.get(key);if(id&&/^[a-zA-Z0-9_.-]{1,500}$/.test(id))url.searchParams.set(key,id);}
     link.href=url.pathname+url.search;
   });
-  function choose(choice){if(!['no','ads'].includes(choice))return;preference=choice;try{localStorage.setItem('cq-measurement-v3',choice);}catch{}if(choice!=='ads')revokePixel();else{persistClick();void startPixel();void startGoogle();}}
-  window.cqMeasurement={record,context,savedLead,choose,previewLead:receipt=>googleConversion('lead',receipt)};
+  const banner=document.createElement('section');banner.setAttribute('aria-label','Cookie choices');banner.className='cq-measurement';
+  // In normal document flow, never covering the maker's Continue button.
+  banner.hidden=!!preference;
+  banner.innerHTML='<div><strong>Optional ad measurement</strong><p>May Google and Meta use cookies to measure which ads lead to previews and purchases? We share ad references and order totals, never your email, photos, names or story. Your choice does not affect your book. <a href="/privacy.html">Privacy details</a></p></div><div><button type="button" data-choice="ads">Allow ad measurement</button><button type="button" data-choice="no">No thanks</button></div>';
+  document.body.prepend(banner);
+  const style=document.createElement('style');style.textContent='.cq-measurement{position:relative;z-index:2;margin:12px auto;max-width:700px;box-sizing:border-box;width:calc(100% - 24px);max-height:75vh;overflow:auto;border:1px solid #dce2da;border-radius:20px;background:#fff;box-shadow:0 8px 40px #17332c25;color:#17332c;padding:18px;font:16px/1.4 Figtree,Arial,sans-serif}.cq-measurement[hidden]{display:none}.cq-measurement p{margin:4px 0 0}.cq-measurement a{color:inherit;text-decoration:underline}.cq-measurement>div:last-child{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.cq-measurement button{border:1px solid #17332c;background:#fff;color:#17332c;padding:12px 14px;border-radius:999px;font:600 14px Figtree,Arial,sans-serif;cursor:pointer}';document.head.append(style);
+  banner.addEventListener('click',event=>{const choice=event.target.dataset.choice;if(!['no','ads'].includes(choice))return;preference=choice;try{localStorage.setItem('cq-measurement-v3',choice);}catch{}banner.hidden=true;if(choice!=='ads')revokePixel();else{persistClick();void startPixel();void startGoogle();}});
+  document.querySelectorAll('.measurement-settings').forEach(button=>button.addEventListener('click',()=>{banner.hidden=false;banner.scrollIntoView?.({behavior:'smooth',block:'start'});}));
+  window.cqMeasurement={record,context,savedLead,previewLead:receipt=>googleConversion('lead',receipt)};
   let arrivedFrom='';try{arrivedFrom=document.referrer?new URL(document.referrer).origin:'';}catch{}
   if(!privatePage&&arrivedFrom!==location.origin)count('arrive');
   if(!privatePage){record(location.pathname.includes('create')?'maker_start':'landing_view');record(matchMedia('(max-width:779px)').matches?'device_mobile':'device_desktop');}
