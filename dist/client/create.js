@@ -67,7 +67,7 @@ function scrollToStepTop(number){
 }
 
 function showStep(number){
-  const order=[2,1,10,5,8,9,3,4,6,11,7];
+  const order=[1,8,9,3,2,10,5,4,6,11,7];
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
@@ -509,7 +509,7 @@ new ResizeObserver(fitCoverName).observe($('#mini-cover'));
 document.fonts.ready.then(fitCoverName);
 
 let quickAdvanceTimer;
-for(const [name,step,next] of [['age',8,9],['mood',3,4],['story-mode',12,9],['product',6,11]]){
+for(const [name,step,next] of [['age',8,9],['mood',3,2],['story-mode',12,9],['product',6,11]]){
   for(const input of $$(`input[name="${name}"]`))input.addEventListener('click',()=>{
     if(state.step!==step)return;
     clearTimeout(quickAdvanceTimer);
@@ -518,7 +518,7 @@ for(const [name,step,next] of [['age',8,9],['mood',3,4],['story-mode',12,9],['pr
 }
 $('#names').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();document.querySelector('[data-step="1"] [data-next]').click();}});
 $('#story-maker').addEventListener('submit',event=>event.preventDefault());
-showStep(2);
+showStep(1);
 
 function fillReview(){
   const name=fullNames()||'your character';
