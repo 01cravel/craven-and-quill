@@ -251,7 +251,7 @@ test('profit uses owner costs, counts every preview, and shows ad room and the s
   let e=(await (await get(env)).json()).economics;
   assert.equal(e.sales,1);assert.equal(e.revenuePence,5999);assert.equal(e.feesPence,266);assert.equal(e.printPence,1800);assert.equal(e.artPence,150);
   assert.equal(e.previewAttempts,4);assert.equal(e.previewPence,40);assert.equal(e.spendPence,2000);assert.equal(e.profitPence,5999-266-1800-150-40-2000);
-  assert.deepEqual(e.room.map(r=>[r.size,r.adRoomPence]),[['a4',5999-266-1800-150-500],['a5',4999-225-1600-150-500]]);
+  assert.deepEqual(e.room.map(r=>[r.size,r.adRoomPence]),[['a4',4799-217-1800-150-500],['a5',3999-184-1600-150-500]]);
   assert.equal(e.stop.spentSinceSalePence,2000);assert.ok(e.stop.lastSaleAt);
   const costs=(env,body)=>analyticsApi(new Request(origin+'/api/owner-analytics/costs',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json',...owner},body:JSON.stringify(body)}),env);
   assert.equal((await costs(env,{print_a4:19,fee_percent:3,bogus:1})).status,200);

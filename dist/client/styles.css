@@ -149,6 +149,7 @@ h2{font:400 clamp(2.2rem,4.2vw,3.7rem)/1.04 var(--serif);letter-spacing:-.02em;m
 .price h3{margin:0;font-size:1.15rem;font-weight:600}
 .price p{margin:8px 0 0;color:var(--muted);max-width:26rem}
 .price strong{font:400 clamp(3rem,5vw,4rem)/1 var(--serif);letter-spacing:-.02em;margin:auto 0 28px;padding-top:36px}
+.price strong del,.hero-price del{font-size:.6em;font-weight:400;color:var(--muted);text-decoration:line-through;margin-right:.15em}.hero-price del{font-size:.95em}
 .price-featured{background:var(--lamp)}
 .price-featured p{color:var(--pine-soft)}
 
