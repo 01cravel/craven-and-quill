@@ -67,7 +67,7 @@ function scrollToStepTop(number){
 }
 
 function showStep(number){
-  const order=[1,8,9,3,2,10,5,4,6,11,7];
+  const order=[1,8,9,3,2,5,10,4,6,11,7];
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
@@ -200,9 +200,12 @@ $('#generate-story').addEventListener('click',()=>{
   if(!JSON.parse(storyBasis()).idea){$('#step-4-error').textContent='Add a starting idea first.';$('#own-idea').focus();return;}
   void writeStory(draftValid(state.storyDraft));
 });
-$('#start-preview').addEventListener('click',()=>{
+$('#start-preview').addEventListener('click',async()=>{
   if(!validPreviewEmail()){$('#step-10-error').textContent='Enter a valid email address to keep your preview.';$('#email').focus();return;}
-  $('#step-10-error').textContent='';showStep(5);void preparePreview();
+  const button=$('#start-preview');button.disabled=true;$('#step-10-error').textContent='';
+  try{await capturePreviewEmail();}catch(error){$('#step-10-error').textContent=error.message||'We could not save your email. Please try again.';return;}finally{button.disabled=false;}
+  showStep(4);
+  if(!storyWriting&&(!draftValid(state.storyDraft)||state.storyBasis!==storyBasis()))void writeStory(draftValid(state.storyDraft));
 });
 $('#revise-story').addEventListener('click',()=>{void writeStory(true);});
 $('#story-previous').addEventListener('click',()=>turnStoryPage(state.storyPage-1));
@@ -378,7 +381,6 @@ async function preparePreview(){
   $('#making-state').hidden=false;$('#result-state').hidden=true;
   $('#generation-error').hidden=true;$('#blocked-actions').hidden=true;$('#retry-generation').hidden=false;drawingProgress=window.cqPreviewProgress.start();if(state.step===5)scrollToStepTop(5);
   try{
-    await capturePreviewEmail();
     await renderStoryArt();
     await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
     drawingProgress.stop(true);
@@ -426,7 +428,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   }
   if(state.step===2){updateLive();if(!$('#second-person').hidden&&!state.secondName){$('#step-2-error').textContent='Add the second first name or remove that option.';$('#second-name').focus();return;}}
   if(state.step===2||(state.step===4&&!state.characterImages.length)){
-    const photoReady=validPhotoCount()&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#photo-permission').checked&&validPreviewEmail();
+    const photoReady=validPhotoCount()&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#photo-permission').checked;
     if(state.step===4&&!photoReady)showStep(2);
     const requiredCount=$('#second-person').hidden?1:2;
     if(!validPhotoCount()){$('#step-2-error').textContent=`Add ${requiredCount===2?'one clear photo for each person':'one clear photo'} to continue.`;return;}
@@ -435,8 +437,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(failedPhoto){$('#step-2-error').textContent=failedPhoto.message;$('#photo-check').scrollIntoView({behavior:'smooth',block:'center'});return;}
     
     if(!$('#photo-permission').checked){$('#step-2-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
-    if(state.step===4&&!validPreviewEmail()){showStep(10);$('#step-10-error').textContent='Enter your email to create the preview.';return;}
-    $('#step-2-error').textContent='';if(state.step===4)void preparePreview();
+    $('#step-2-error').textContent='';void preparePreview();
   }
   if(state.step===4&&state.characterImages.length){$('#story-copy').textContent=previewText(selectedStory());}
   if(state.step===5&&!state.characterImages[0]){$('#step-5-error').textContent='Wait for the first page to finish before choosing your book.';return;}

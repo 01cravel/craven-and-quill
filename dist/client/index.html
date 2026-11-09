@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=59">
+  <link rel="stylesheet" href="styles.css?v=60">
 </head>
 <body>
   <a class="skip" href="#main">Skip to main content</a>
@@ -48,6 +48,7 @@
         <p class="hero-lede">Add one photo and we draw them as the star of their own illustrated book. Preview their character and first page free.</p>
         <div class="hero-offer">
           <p class="hero-price"><b>20% off: A4 hardback <del>£59.99</del> £47.99</b> or A5 <del>£49.99</del> £39.99. UK delivery and a digital copy included. Nothing to pay until you have seen the preview.</p>
+          <p class="offer-clock" data-offer-clock><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>20% off ends at midnight</span> <time aria-hidden="true"></time></p>
           <p class="hero-christmas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z"/></svg>Order by 1 December and it arrives in time for Christmas.</p>
         </div>
         <div class="hero-actions">
@@ -203,5 +204,6 @@
   <script>(()=>{const card=document.querySelector(".stage-photo");if(!card)return;let runs=0;card.addEventListener("animationiteration",()=>{if(++runs>=3)card.closest(".hero-stage").classList.add("settled");});})();</script>
   <script src="campaign.js?v=5" defer></script>
   <script src="app.js?v=5" defer></script>
+  <script src="offer-clock.js?v=1" defer></script>
 </body>
 </html>

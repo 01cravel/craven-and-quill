@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=intro-20261109">
+  <link rel="stylesheet" href="create.css?v=clock-20261109">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -63,7 +63,7 @@
           <div class="step-actions step-actions-single"><button class="next" type="button" data-next="8">Continue <span>→</span></button></div>
         </section>
 
-<section class="step" data-step="8" aria-labelledby="step-8-title" hidden><h1 id="step-8-title">Who are we writing for?</h1><p class="intro">Now let’s write their story. Tap a reading level to continue.</p>          <fieldset>
+<section class="step" data-step="8" aria-labelledby="step-8-title" hidden><h1 id="step-8-title">What’s their reading level?</h1><p class="intro">We’ll pitch the words to suit them. Tap one to continue.</p>          <fieldset>
             <legend>Choose the reading level <span>Required</span></legend>
             <div class="choice-grid four age-grid">
               <label class="choice"><input type="radio" name="age" value="3-5"><span><b>Age 3–5</b><small>Short, simple sentences</small></span></label>
@@ -96,8 +96,8 @@
           <details class="optional-detail photo-privacy"><summary>How we use your photos</summary><p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p></details>
 
           <div class="error" id="step-2-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next" id="photo-continue" type="button" data-next="10" disabled>Continue <span>→</span></button></div>
-          <p class="under-button">Free. No card needed.</p><p class="privacy-line">20% off: hardbacks from £39.99, UK delivery included.</p>
+          <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next" id="photo-continue" type="button" data-next="5" disabled>Draw my character <span>→</span></button></div>
+          <p class="under-button">Free. No card needed.</p><p class="privacy-line">20% off: hardbacks from £39.99, UK delivery included.</p><p class="offer-clock" data-offer-clock><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>20% off ends at midnight</span> <time aria-hidden="true"></time></p>
         </section>
 
 <section class="step" data-step="9" aria-labelledby="step-9-title" hidden><h1 id="step-9-title">What makes them, them?</h1><p class="intro" id="brief-intro">Who they are, what they love, and anything you’d like to happen. We’ll write the story from this.</p>
@@ -154,13 +154,13 @@
           <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" id="generate-story" type="button">Write their story</button><button class="next" id="use-story" type="button" data-next="6" disabled>Choose your book</button></div>
         </section>
 
-<section class="step" data-step="10" aria-labelledby="step-10-title" hidden><h1 id="step-10-title">Where shall we send their character?</h1><p class="intro">We’ll draw them now and keep your preview safe. No marketing subscription.</p>          <div id="preview-email-wrap">
+<section class="step" data-step="10" aria-labelledby="step-10-title" hidden><h1 id="step-10-title">Where shall we send their character?</h1><p class="intro">We’ll keep their character and story safe so you can come back to them. No marketing subscription.</p>          <div id="preview-email-wrap">
             <label class="field-label" for="email">Your email</label>
             <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
             <p class="privacy-line" id="preview-email-note">We use your email for this book, not a marketing subscription.</p>
           </div>
 
-<div class="error" id="step-10-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" type="button" id="start-preview">Draw my character <span>→</span></button></div></section>
+<div class="error" id="step-10-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" type="button" id="start-preview">Save and write the story <span>→</span></button></div></section>
         <section class="step preview-step" data-step="5" aria-labelledby="step-5-title" hidden>
           <div id="making-state">
             <div class="drawing-brand"><img src="assets/logo-mark-on-white.png?v=gold-alpha-20261026" alt="" width="64" height="64"><span>Craven &amp; Quill</span></div>
@@ -187,13 +187,14 @@
               <p class="preview-explainer">Next, we write their ten-page story. After you order, we illustrate <strong id="illustration-count">10 story illustrations and a cover</strong> with this character. You approve the finished book before printing.</p><p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>Rated 4.9★</b> with 3,000+ books sold across our book catalogue</span></p><div id="locked-dots" hidden></div>
             </section>
 <div class="error" id="step-5-error" role="alert"></div>
-            <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="choose-book" type="button" data-next="4" disabled>Write their story <span>→</span></button></div>
+            <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="choose-book" type="button" data-next="10" disabled>Write their story <span>→</span></button></div>
           </div>
         </section>
 
         <section class="step checkout-step" data-step="6" aria-labelledby="step-6-title" hidden>
           <h1 id="step-6-title">Choose their book.</h1>
           <p class="intro">Tap a size to continue. Both include UK delivery. Your full proof is ready within 7 calendar days of payment.</p>
+          <p class="offer-clock" data-offer-clock><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>20% off ends at midnight</span> <time aria-hidden="true"></time></p>
           <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>Rated 4.9★</b> with 3,000+ books sold across our book catalogue</span></p>
 
           <fieldset>
@@ -241,7 +242,7 @@
             </div>
           </figure>
           <p class="review-paint-note">After you order, we illustrate every page with <span data-review-name>your character</span>.</p>
-          <section class="order-total" aria-label="Your selected book"><div><span id="order-label">A4 hardback + digital PDF</span><small>UK delivery included</small></div><strong id="order-price">£47.99</strong></section>
+          <section class="order-total" aria-label="Your selected book"><div><span id="order-label">A4 hardback + digital PDF</span><small>UK delivery included</small></div><strong id="order-price">£47.99</strong></section><p class="offer-clock" data-offer-clock><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>20% off ends at midnight</span> <time aria-hidden="true"></time></p>
           <p id="offer-code-note" class="privacy-line" hidden></p>
           <div class="offer-code-field" id="offer-code-field" hidden><label for="offer-code">Discount code</label><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="CQ…"></div>
           <div id="launch-form">
@@ -271,9 +272,10 @@
 
   <footer><span>Images are used to create your preview and, if you save a book, to prepare its artwork.</span><a href="privacy.html">Privacy</a></footer>
   <script src="campaign.js?v=5" defer></script>
+  <script src="offer-clock.js?v=1" defer></script>
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=27" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=order-20261108" defer></script><script src="draft-save.js?v=order-20261108" defer></script>
+  <script src="create.js?v=email-20261109" defer></script><script src="draft-save.js?v=email-20261109" defer></script>
 </body>
 </html>

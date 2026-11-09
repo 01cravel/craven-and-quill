@@ -273,7 +273,7 @@ footer small{flex-basis:100%;font-size:.84rem}
   .hero-lede{order:2;margin:14px 0 0;font-size:1rem;line-height:1.5;max-width:30ch}
   .hero-actions{order:3;width:100%;margin-top:16px;justify-content:center}
   .hero-copy>.trust-line{order:4}
-  .hero-offer{order:5;margin:16px 0 0;max-width:34ch}.hero-price{font-size:.88rem;line-height:1.5}.hero-christmas{font-size:.86rem;margin-top:10px}
+  .hero-offer{order:5;margin:16px 0 0;max-width:34ch}.hero-price{font-size:.88rem;line-height:1.5}.hero-christmas{font-size:.86rem;margin-top:10px}.hero .offer-clock{font-size:.86rem}
   .publishing-proof,.hero-notes{order:6}
   .publishing-proof{text-align:left;width:100%}
 }
@@ -284,3 +284,5 @@ footer small{flex-basis:100%;font-size:.84rem}
 .trust-line b{font-weight:700;color:#17332c}
 .hero-copy>.trust-line{margin:22px 0 0}
 @media (max-width:640px){.hero-copy>.trust-line{max-width:330px;margin:14px 0 0;text-align:left}}
+.offer-clock{display:inline-flex;align-items:center;gap:7px;margin:10px 0 0;padding:5px 12px 5px 9px;border-radius:999px;background:#e7d8b7;color:#17332c;font-size:.82rem;font-weight:600;line-height:1.3}.offer-clock svg{width:15px;height:15px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.offer-clock time{font-variant-numeric:tabular-nums;font-weight:700;min-width:8ch}.offer-clock time:empty{display:none}
+.hero .offer-clock{margin-top:14px;padding:9px 14px 9px 11px;gap:9px;font-weight:500}@media (min-width:641px){.hero .offer-clock{font-size:.95rem}}.hero .offer-clock svg{width:16px;height:16px}
