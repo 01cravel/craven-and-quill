@@ -4303,10 +4303,10 @@ async function sendMetaPurchase(env2, o) {
 }
 
 // src/catalog.js
-var CATALOG_VERSION = "2026-11-08-offer";
+var CATALOG_VERSION = "2026-11-09-ten-off";
 var PRODUCTS = {
-  a4: { id: "a4", label: "A4 hardback", widthMm: 210, heightMm: 297, sku: "BOOK-FE-A4-P-HARD-G", pricePence: 4799, regularPricePence: 5999, discountPercent: 20, estimatedSupplierPence: 1800 },
-  a5: { id: "a5", label: "A5 hardback", widthMm: 148, heightMm: 210, sku: "BOOK-FE-A5-P-HARD-G", pricePence: 3999, regularPricePence: 4999, discountPercent: 20, estimatedSupplierPence: 1600 }
+  a4: { id: "a4", label: "A4 hardback", widthMm: 210, heightMm: 297, sku: "BOOK-FE-A4-P-HARD-G", pricePence: 2999, regularPricePence: 3999, discountPercent: 25, estimatedSupplierPence: 1800 },
+  a5: { id: "a5", label: "A5 hardback", widthMm: 148, heightMm: 210, sku: "BOOK-FE-A5-P-HARD-G", pricePence: 2499, regularPricePence: 3499, discountPercent: 28, estimatedSupplierPence: 1600 }
 };
 var OWNER_TEST = { codeHash: "4494c8d03100dff3c9560ca54ada85bc13cacb7852092bb59fbc8166b0578cdb", email: "cravenluke@gmail.com", pricePence: 200, expiresAt: "2026-12-01T00:00:00Z" };
 var BOOK = { pdfPages: 28, interiorPages: 26, spreads: 10, paper: "200gsm gloss", cover: "Matte hardback", safeMm: 10 };
