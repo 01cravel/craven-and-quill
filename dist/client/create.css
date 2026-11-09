@@ -499,7 +499,7 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .gift-page-preview .gift-message{font-size:13px;margin:18px 0 0}
 .mobile-gift-preview{display:none}
 .step[data-step="7"] .gift-page-preview{max-width:280px;margin:22px auto}
-@media(max-width:780px){.mobile-gift-preview{display:block;margin:12px 0}.mobile-gift-preview .gift-page-preview{max-width:230px;aspect-ratio:auto;min-height:160px;padding:20px}.mobile-gift-preview .gift-page-preview strong{font-size:26px;margin-bottom:12px}.mobile-gift-preview .gift-page-preview p{font-size:13px}.step[data-step="1"] h1{font-size:2rem}.step[data-step="1"] .intro,.step[data-step="1"] .privacy-line{display:none}.gift-message-field{margin:6px 0}.gift-message-field summary{padding:8px 0}}
+@media(max-width:780px){.mobile-gift-preview{display:block;margin:12px 0}.mobile-gift-preview .gift-page-preview{max-width:230px;aspect-ratio:auto;min-height:160px;padding:20px}.mobile-gift-preview .gift-page-preview strong{font-size:26px;margin-bottom:12px}.mobile-gift-preview .gift-page-preview p{font-size:13px}.step[data-step="1"] h1{font-size:2rem}.step[data-step="1"] .privacy-line{display:none}.step[data-step="1"] .intro{font-size:.95rem;margin-bottom:10px}.gift-message-field{margin:6px 0}.gift-message-field summary{padding:8px 0}}
 
 /* Review & pay: their book, open at page one, with everything needed to order above the fold */
 .pay-step h1{font-size:clamp(2rem,6.5vw,2.8rem);line-height:1.02;margin:0 0 14px}
