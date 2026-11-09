@@ -59,7 +59,7 @@ Headlines (30 characters max):
 2. They Star In Their Own Book
 3. One Photo, A Whole Story
 4. See A Free Preview First
-5. Hardbacks From £39.99
+5. £10 Off: Hardbacks From £24.99 (pinned position 2)
 6. UK Delivery Included
 7. Order By 1 Dec For Christmas
 8. Ten Illustrated Pages
@@ -74,7 +74,7 @@ Group-specific headline:
 
 Descriptions (90 characters max):
 1. Add one photo and we draw them as the hero of a 10-page illustrated hardback story.
-2. Preview their character free, no card needed. Hardbacks from £39.99 with UK delivery.
+2. Preview their character free, no card needed. Hardbacks from £24.99 with UK delivery.
 3. Pick a funny, gentle or adventure story, or give us your own idea for their book.
 4. Includes a gift page with your message. For Christmas, order by 1 December.
 
