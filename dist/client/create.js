@@ -40,11 +40,36 @@ function updateGiftPage(){
  $$('[data-gift-message]').forEach(el=>{el.textContent=message;el.hidden=!message;});
 }
 
+// Tap-to-choose interests. Choices are written into the description box as one plain
+// sentence ("Loves football and baking."), so the story, the draft and the checks all
+// keep reading a single field.
+const LIKES={child:['Football','Dinosaurs','Unicorns','Animals','Space','Baking','Dancing','Superheroes','Princesses','Trains','Pirates','Drawing'],
+  grown:['Football','Cooking','Gardening','Travel','Music','Dogs','Cats','Golf','Fishing','Running','Films','Books']};
+const LIKE_SENTENCE=/^Loves ([^.]+)\.\s*/;
+function readLikes(text){const found=LIKE_SENTENCE.exec(text);return {items:found?found[1].split(/,\s*|\s+and\s+/).map(v=>v.trim()).filter(Boolean):[],rest:found?text.slice(found[0].length):text};}
+function writeLikes(items,rest){const list=items.length>1?items.slice(0,-1).join(', ')+' and '+items[items.length-1]:items[0]||'';return [list&&`Loves ${list}.`,rest.trim()].filter(Boolean).join(' ');}
+function syncLikes(){
+  const box=$('#like-chips'),field=$('#personal-details');if(!box||!field)return;
+  const set=state.age==='teen-adult'?'grown':'child';
+  if(box.dataset.set!==set){box.dataset.set=set;box.replaceChildren(...LIKES[set].map(label=>{const chip=document.createElement('button');chip.type='button';chip.className='like-chip';chip.textContent=label;chip.dataset.like=label.toLowerCase();return chip;}));}
+  const chosen=new Set(readLikes(field.value).items.map(v=>v.toLowerCase()));
+  for(const chip of box.children)chip.setAttribute('aria-pressed',String(chosen.has(chip.dataset.like)));
+}
+function toggleLike(like){
+  const field=$('#personal-details'),{items,rest}=readLikes(field.value);
+  const at=items.findIndex(v=>v.toLowerCase()===like);
+  if(at>=0)items.splice(at,1);else items.push(like);
+  field.value=writeLikes(items,rest).slice(0,800);
+  $('#step-9-error').textContent='';
+  field.dispatchEvent(new Event('input',{bubbles:true}));
+}
+
 function updateLive(){
   updateGiftPage();
   state.names=$('#names').value.trim();
   state.secondName=$('#second-person').hidden?'':$('#second-name').value.trim();
   state.age=($('input[name="age"]:checked')||{}).value||'';
+  syncLikes();
   state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';
   state.details=state.storyMode==='plot'?'':$('#personal-details').value.trim();
   $('#live-name').textContent=(fullNames()||'Someone special').toUpperCase();
@@ -94,14 +119,14 @@ function showStep(number){
 function configureBrief(){
  const own=state.storyMode==='plot';
  $('#interests-options').hidden=own;$('#own-options').hidden=!own;
- $('#step-9-title').textContent=own?'What should happen?':'What makes them, them?';
- $('#brief-intro').textContent=own?'Share your plot, even in one sentence. We’ll turn it into a complete story.':'Who they are, what they love, and anything you’d like to happen. We’ll write the story from this.';
+ $('#step-9-title').textContent=own?'What should happen?':'What do they love?';
+ $('#brief-intro').textContent=own?'Share your plot, even in one sentence. We’ll turn it into a complete story.':'Tap a few. We’ll build their story around them.';
  $('#brief-help-copy').textContent=own?'Who is the hero? What do they want? What goes wrong? For example: they score the winning goal at Wembley, but their lucky boots have gone missing.':'Say who they are (a child, a grown-up or a pet), one or two things they love, and anything you’d like to happen.';
 }
 function validBrief(){
  const field=state.storyMode==='plot'?$('#own-idea'):$('#personal-details');
  if(field.value.trim())return true;
- showStep(9);$('#step-9-error').textContent=state.storyMode==='plot'?'Give us a sentence about what should happen.':'Tell us one thing about them so we can make it personal.';field.focus();return false;
+ showStep(9);$('#step-9-error').textContent=state.storyMode==='plot'?'Give us a sentence about what should happen.':'Tap one thing they love, or write a line about them.';field.focus();return false;
 }
 function buildIdeas(){
  if(state.storyMode==='plot'){const own=$('#own-idea').value.trim(),about=$('#personal-details');if(own&&!about.value.trim())about.value=own;state.storyMode='invent';state.details=about.value.trim();}
@@ -235,6 +260,7 @@ $('#sender-name').addEventListener('input',updateGiftPage);
 $('#dedication').addEventListener('input',updateGiftPage);
 $('#second-name').addEventListener('input',updateLive);
 $$('input[name="age"]').forEach(input=>input.addEventListener('change',updateLive));
+$('#like-chips').addEventListener('click',event=>{const chip=event.target.closest('.like-chip');if(chip)toggleLike(chip.dataset.like);});
 $$('input[name="mood"]').forEach(input=>input.addEventListener('change',()=>{ideaOffset=0;buildIdeas();}));
 
 $$('[data-prompt]').forEach(button=>button.addEventListener('click',()=>{$('#own-idea').value=button.dataset.prompt;updateLive();$('#own-idea').focus();}));
@@ -408,7 +434,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     $('#step-1-error').textContent='';
   }
   if(state.step===8&&!$('input[name="age"]:checked')){$('#step-8-error').textContent='Choose a reading level.';return;}
-  if(state.step===9){updateLive();const own=state.storyMode==='plot';const field=own?$('#own-idea'):$('#personal-details');if(!field.value.trim()){$('#step-9-error').textContent=own?'Give us a sentence about what should happen.':'Tell us one thing about them so we can make it personal.';field.focus();return;}$('#step-9-error').textContent='';buildIdeas();}
+  if(state.step===9){updateLive();const own=state.storyMode==='plot';const field=own?$('#own-idea'):$('#personal-details');if(!field.value.trim()){$('#step-9-error').textContent=own?'Give us a sentence about what should happen.':'Tap one thing they love, or write a line about them.';field.focus();return;}$('#step-9-error').textContent='';buildIdeas();}
   if(state.step===11){
     const invalid=['recipient-name','address-line1','town','postcode'].find(id=>!$('#'+id).value.trim());
     if(invalid){if(invalid!=='recipient-name'&&addressFinder.mode==='search'){$('#step-11-error').textContent='Start typing their address and pick it from the list, or enter it yourself.';$('#address-search').focus();return;}$('#step-11-error').textContent='Complete the delivery address to continue.';$('#'+invalid).focus();return;}

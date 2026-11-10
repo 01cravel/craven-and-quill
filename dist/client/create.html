@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=clock-20261109">
+  <link rel="stylesheet" href="create.css?v=landing-20261110">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -47,20 +47,18 @@
     <section class="step-panel">
       <form id="story-maker" novalidate>
         <section class="step active" data-step="1" aria-labelledby="step-1-title">
-          <p class="eyebrow">Let’s begin</p>
-          <h1 id="step-1-title">What’s their first name?</h1>
-          <p class="intro">We draw them into their own illustrated hardback storybook, from one photo. Start with their name.</p>
-          <p class="quick-reassurance">Free preview · No card needed · For Christmas, order by 1 December</p>
-          <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>Rated 4.9★</b> with 3,000+ books sold across our book catalogue</span></p>
-          <label for="names">First name <span>Required</span></label>
+          <figure class="example-pair" aria-label="Example: a photo of Oliver, and Oliver drawn into his storybook"><span class="example-photo"><img src="assets/example-photo.webp" width="250" height="300" alt="A photo of a boy called Oliver"><i>Their photo</i></span><span class="example-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></span><span class="example-art"><img src="assets/example-character.webp" width="600" height="440" alt="Oliver drawn as a storybook character, carrying a cake beside a fox cub"><i>Their storybook</i></span></figure>
+          <h1 id="step-1-title">They star in their own storybook.</h1>
+          <p class="intro">Drawn from one photo into a ten-page illustrated hardback. See their character free.</p>
+          <p class="start-price"><b>From £24.99</b> <del>£34.99</del> with UK delivery. <span class="start-christmas">Arrives for Christmas if ordered by 1 December.</span></p>
+          <p class="offer-clock" data-offer-clock><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>£10 off ends at midnight</span> <time aria-hidden="true"></time></p>
+          <label for="names">Start with their first name</label>
           <input id="names" enterkeyhint="next" name="names" maxlength="40" autocomplete="off" placeholder="For example, Leo" required>
-
-          <label for="sender-name">Who is it from? <span>Optional</span></label>
-          <input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad">
-          <details class="optional-detail gift-message-field"><summary>Add a personal message <span>Optional</span></summary><label for="dedication">Your message inside the book</label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea></details>
+          <details class="optional-detail gift-message-field"><summary>Add who it’s from and a message <span>Optional</span></summary><label for="sender-name">Who is it from?</label><input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad"><label for="dedication">Your message inside the book</label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea></details>
           <div class="mobile-gift-preview"><div class="gift-page-preview" aria-label="Inside gift page preview"><p>A story just for</p><strong data-gift-name>Someone special</strong><p data-gift-sender hidden></p><p class="gift-message" data-gift-message hidden></p></div></div>
           <div class="error" id="step-1-error" role="alert"></div>
-          <div class="step-actions step-actions-single"><button class="next" type="button" data-next="8">Continue <span>→</span></button></div>
+          <div class="step-actions step-actions-single"><button class="next" type="button" data-next="8">Start their book <span>→</span></button></div>
+          <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>Rated 4.9★</b> with 3,000+ books sold across our book catalogue</span></p>
         </section>
 
 <section class="step" data-step="8" aria-labelledby="step-8-title" hidden><h1 id="step-8-title">What’s their reading level?</h1><p class="intro">We’ll pitch the words to suit them. Tap one to continue.</p>          <fieldset>
@@ -77,7 +75,8 @@
         <section class="step" data-step="2" aria-labelledby="step-2-title" hidden>
           <p class="eyebrow">Now, the star</p>
           <h1 id="step-2-title">Drop in a photo.</h1>
-          <p class="intro">We’ll draw them as a storybook character in about a minute. One clear face photo is enough.</p>
+          <p class="intro">One clear face photo is enough. We draw their character in about a minute.</p>
+          <figure class="example-pair example-pair-small" aria-label="Example: a photo of Oliver, and Oliver drawn into his storybook"><span class="example-photo"><img src="assets/example-photo.webp" width="250" height="300" alt="A photo of a boy called Oliver"><i>Their photo</i></span><span class="example-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></span><span class="example-art"><img src="assets/example-character.webp" width="600" height="440" alt="Oliver drawn as a storybook character, carrying a cake beside a fox cub"><i>Their storybook</i></span></figure>
           <div id="second-person" hidden>
             <label for="second-name">Second first name <span>Required</span></label>
             <input id="second-name" name="second-name" maxlength="40" autocomplete="off" placeholder="For example, Maya">
@@ -91,6 +90,8 @@
           <div id="extra-photo-wrap" hidden><label class="extra-photo-label" for="extra-photos">+ Add up to 2 more for a better likeness <span>Optional</span></label><input id="extra-photos" type="file" accept="image/*,.heic,.heif,.avif" multiple aria-label="Add more photos of the same person"><p class="extra-photo-help">Same person, recent photos. Try a front view and a slight side angle.</p></div>
           <div class="photo-check" id="photo-check" hidden aria-live="polite"></div>
 
+          <p class="photo-promise"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>We use the photo only to draw their character. The original is not stored on our servers.</p>
+
           <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I have permission to use these photos</b><small>I’m an adult, with parent or guardian permission for a child.</small></span></label>
 
           <details class="optional-detail photo-privacy"><summary>How we use your photos</summary><p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p></details>
@@ -100,15 +101,15 @@
           <p class="under-button">Free. No card needed.</p><p class="privacy-line">£10 off: hardbacks from £24.99, UK delivery included.</p><p class="offer-clock" data-offer-clock><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>£10 off ends at midnight</span> <time aria-hidden="true"></time></p>
         </section>
 
-<section class="step" data-step="9" aria-labelledby="step-9-title" hidden><h1 id="step-9-title">What makes them, them?</h1><p class="intro" id="brief-intro">Who they are, what they love, and anything you’d like to happen. We’ll write the story from this.</p>
-<div id="interests-options"><label for="personal-details">Tell us about them</label><textarea id="personal-details" name="personal-details" rows="4" maxlength="800" placeholder="Alfie is 6 and football mad. He’d love to score the winning goal for Leeds." aria-describedby="personal-details-note"></textarea><p class="privacy-line" id="personal-details-note">Leave out surnames, school names and other private details.</p></div>
+<section class="step" data-step="9" aria-labelledby="step-9-title" hidden><h1 id="step-9-title">What do they love?</h1><p class="intro" id="brief-intro">Tap a few. We’ll build their story around them.</p>
+<div id="interests-options"><div class="like-chips" id="like-chips" role="group" aria-label="Things they love"></div><label for="personal-details">Or say it in your own words <span>Optional</span></label><textarea id="personal-details" name="personal-details" rows="2" maxlength="800" placeholder="Alfie would love to score the winning goal for Leeds." aria-describedby="personal-details-note"></textarea><p class="privacy-line" id="personal-details-note">Leave out surnames, school names and other private details.</p></div>
           <div id="own-options" hidden>
             <label for="own-idea">What should happen? <span>Required</span></label>
             <textarea id="own-idea" name="own-idea" rows="5" maxlength="500" placeholder="For example, Leo finds three friendly aliens above Dubai and helps them get home."></textarea>
 
           </div>
 
-<details class="optional-detail" id="brief-help"><summary>Help me get started</summary><p id="brief-help-copy">Say who they are (a child, a grown-up or a pet), one or two things they love, and anything you’d like to happen.</p></details>
+<details class="optional-detail" id="brief-help" hidden><summary>Help me get started</summary><p id="brief-help-copy">Say who they are (a child, a grown-up or a pet), one or two things they love, and anything you’d like to happen.</p></details>
 <div class="error" id="step-9-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="8">Back</button><button class="next" type="button" data-next="3">Choose the tone →</button></div></section>
         <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
           <p class="eyebrow">Story direction</p>
@@ -276,6 +277,6 @@
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=27" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=price-20261109" defer></script><script src="draft-save.js?v=email-20261109" defer></script>
+  <script src="create.js?v=landing-20261110" defer></script><script src="draft-save.js?v=email-20261109" defer></script>
 </body>
 </html>

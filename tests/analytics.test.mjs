@@ -233,11 +233,12 @@ test('report shows everyone counted without cookies, per ad, filtered and by day
   add('d_static','arrive',20);add('d_static','maker_start',18);add('d_static','preview_start',3);add('d_video','arrive',5);
   env.DB.sqlite.prepare('INSERT INTO visit_counts VALUES (?,?,?,?,?,?,?,?,?)').run(day,'arrive','meta','paid_social','cq_d','d_video','AE','desktop',2);
   env.DB.sqlite.prepare('INSERT INTO visit_counts VALUES (?,?,?,?,?,?,?,?,?)').run('2020-01-01','arrive','meta','paid_social','cq_d','d_static','GB','mobile',99);
-  const e=(await (await get(env)).json()).everyone;
+  assert.equal((await (await get(env)).json()).everyone.steps[0].count,25,'default view leaves out visits from abroad');
+  const e=(await (await get(env,'?audience=all')).json()).everyone;
   assert.equal(e.steps[0].count,27);assert.equal(e.steps.find(s=>s.step==='preview_start').count,3);
   assert.deepEqual(e.ads.map(a=>[a.creative,a.counts.arrive,a.counts.maker_start]),[['d_static',20,18],['d_video',7,0]]);
   assert.equal(e.byDay.at(-1).arrived,27);assert.deepEqual(e.devices,[{key:'mobile',count:25},{key:'desktop',count:2}]);assert.deepEqual(e.countries,[{key:'GB',count:25},{key:'AE',count:2}]);
-  const only=(await (await get(env,'?creative=d_video')).json()).everyone;
+  const only=(await (await get(env,'?creative=d_video&audience=all')).json()).everyone;
   assert.equal(only.steps[0].count,7);assert.equal(only.ads.length,1);
 });
 
@@ -260,4 +261,20 @@ test('profit uses owner costs, counts every preview, and shows ad room and the s
   e=(await (await get(env)).json()).economics;
   assert.equal(e.costs.print_a4,1900);assert.equal(e.costs.fee_percent,300);assert.equal(e.printPence,1900);assert.equal(e.feesPence,200);
   const ad=(await (await get(env)).json()).ads.find(a=>a.creative==='d_static');assert.equal(ad.costPence,200+1900+150);
+});
+
+test('default view shows UK shoppers only; crawlers and visits from abroad are counted and hidden',async()=>{
+  const env=environment(),now=new Date().toISOString();
+  visit(env,['maker_start','step_1','device_mobile'],{source:'google',creative:'g_birthday'});
+  const checker=visit(env,['maker_start','step_1','device_desktop'],{source:'google',creative:'g_birthday',country:'US'});
+  const crawler=visit(env,['landing_view','device_mobile'],{source:'direct',creative:'none'});
+  visit(env,['landing_view','device_desktop'],{source:'direct',creative:'none',country:'FR'});
+  const detail=env.DB.sqlite.prepare('INSERT INTO visit_details (visit_id, ip_prefix, town, region, created_at) VALUES (?,?,?,?,?)');
+  detail.run(checker,'74.125.210.0',null,null,now);detail.run(crawler,'66.249.74.0',null,null,now);
+  const uk=await(await get(env)).json();
+  assert.equal(uk.headline.visits,1);assert.equal(uk.funnel.find(f=>f.step==='maker_start').visits,1);
+  assert.deepEqual(uk.audience,{mode:'uk',hidden:{crawlers:2,abroad:1}});
+  assert.deepEqual(uk.traffic.country.map(x=>x.key),['GB']);
+  const all=await(await get(env,'?audience=all')).json();
+  assert.equal(all.headline.visits,4);assert.deepEqual(all.audience,{mode:'all',hidden:{crawlers:0,abroad:0}});
 });

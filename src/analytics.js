@@ -29,6 +29,10 @@ export const COUNT_STEPS=[
   ['step_4','Story page'],['step_6','Book size page'],['price_view','Saw the prices'],['step_11','Delivery page'],['step_7','Review and pay'],['book_saved','Saved a book'],['checkout_start','Pressed pay']
 ];
 const ERRORS={preview_error:'Preview failed',checkout_error:'Payment page failed'};
+// Address ranges used by ad checkers and search crawlers (Google, Meta, Bing). They load
+// pages but are never shoppers, so the default view leaves them out.
+const CRAWLER_RANGES=['66.249.','66.102.','64.233.','72.14.','74.125.','209.85.','216.239.','31.13.','66.220.','69.63.','69.171.','173.252.','40.77.','157.55.','207.46.'];
+export const isCrawler=ip=>typeof ip==='string'&&CRAWLER_RANGES.some(range=>ip.startsWith(range));
 const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
 const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const code=value=>typeof value==='string'&&/^[a-zA-Z0-9_.-]{1,100}$/.test(value)?value:'';
@@ -120,6 +124,18 @@ export async function buildReport(env,url,req=null){
     if(e.created_at>v.lastAt)v.lastAt=e.created_at;
     if(e.event==='device_mobile')v.device='mobile';else if(e.event==='device_desktop')v.device='desktop';
     else if(!v.events.has(e.event))v.events.set(e.event,e.created_at);
+  }
+
+  // The book only ships to the UK, so the default view is UK shoppers: visits from abroad
+  // and from known crawlers are counted and hidden. ?audience=all shows every visit.
+  const audience=url.searchParams.get('audience')==='all'?'all':'uk';
+  const hidden={crawlers:0,abroad:0};
+  if(audience==='uk'){
+    const ipByVisit=new Map(detailRows.map(x=>[x.visit_id,x.ip_prefix]));
+    for(const [id,v] of visits){
+      if(isCrawler(ipByVisit.get(id))){hidden.crawlers++;visits.delete(id);}
+      else if(v.country&&v.country!=='GB'&&v.country!=='XX'){hidden.abroad++;visits.delete(id);}
+    }
   }
 
   const orders=orderRows.map(o=>{const d=json(o.state),m=d.measurement||null;return {
@@ -231,9 +247,9 @@ export async function buildReport(env,url,req=null){
   for(const r of receipts)if(!r.email&&!visitByRef.has('preview:'+r.id)&&!filtered)anonymous.push({kind:'preview',email:null,firstAt:r.created_at,lastAt:r.created_at,visits:0,furthestIndex:index.get(r.status==='succeeded'?'preview_success':'preview_start'),steps:[],activity:['Preview request'],previews:1,previewMade:r.status==='succeeded'?1:0,source:null,creative:null,country:null,where:null});
   const people=[...peopleByEmail.values()].map(({sourceAt,...p})=>({...p,kind:'email',steps:[...p.steps],activity:[...p.activity],furthest:p.steps.size?FUNNEL[p.furthestIndex][1]:'No measured visit'})).concat(anonymous.map(p=>({...p,furthest:FUNNEL[p.furthestIndex][1]}))).sort((a,b)=>(b.lastAt||'').localeCompare(a.lastAt||''));
 
-  const everyone=countReport(countRows.filter(r=>matches(r)),from,to);
+  const everyone=countReport(countRows.filter(r=>matches(r)&&(audience==='all'||!r.country||r.country==='GB'||r.country==='XX')),from,to);
   return {
-    range:{from,to},filter,everyone,zone:ZONE,generatedAt:new Date().toISOString(),
+    range:{from,to},filter,audience:{mode:audience,hidden},everyone,zone:ZONE,generatedAt:new Date().toISOString(),
     // What location detail the host attaches to requests, checked on the owner's own request.
     hostLocation:req?{locationObject:Boolean(req.cf),town:Boolean(req.cf?.city),townHeader:Boolean(req.headers.get('cf-ipcity')),region:Boolean(req.cf?.region||req.cf?.regionCode),regionHeader:Boolean(req.headers.get('cf-region')||req.headers.get('cf-region-code'))}:null,
     options:{sources:[...new Set(options.map(o=>o.source))].sort(),creatives:[...new Set(options.map(o=>o.creative))].filter(c=>c!=='all').sort()},

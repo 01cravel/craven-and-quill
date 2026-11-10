@@ -18,6 +18,7 @@
       <label>To <input id="to" type="date" required></label>
       <label>Ad <select id="creative"><option value="">All ads and visits</option></select></label>
       <label>Source <select id="source"><option value="">All sources</option></select></label>
+      <label class="audience-toggle"><input id="audience-all" type="checkbox"> Include bots and visits from abroad</label>
       <button id="refresh" class="button secondary" type="submit">Refresh</button>
     </form>
 
@@ -50,6 +51,7 @@
       <section class="panel"><h2>Advertising tracking</h2><p id="ad-tracking-status" class="sub">Checking configuration…</p><p class="sub">Saved emails, marketing subscribers and paid sales are different measures. Google delivery must be checked in Google Ads. Missing attribution means unknown.</p></section>
       <section class="panel funnel-panel" aria-labelledby="funnel-title">
         <div class="panel-head"><div><h2 id="funnel-title">Where people stop</h2><p class="sub">Every visit, counted without cookies. Each block is the visits that reached that page; the red figure is how many stopped before the next one.</p></div></div>
+        <p id="audience-note" class="sub" role="status"></p>
         <div id="funnel-chips" class="chips" role="group" aria-label="Pick an ad"></div>
         <div id="funnel" class="river"></div>
         <p id="funnel-errors" class="sub"></p>

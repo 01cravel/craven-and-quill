@@ -19,7 +19,7 @@ document.addEventListener('pointermove',e=>{const t=e.target.closest?.('[data-ti
 document.addEventListener('focusin',e=>{const t=e.target.closest?.('[data-tip]');if(!t)return;const r=t.getBoundingClientRect();tip.textContent=t.dataset.tip;tip.hidden=false;tip.style.left=Math.min(r.left,innerWidth-tip.offsetWidth-8)+'px';tip.style.top=Math.max(4,r.top-tip.offsetHeight-8)+'px';});
 document.addEventListener('focusout',()=>{tip.hidden=true;});
 
-function params(){const p=new URLSearchParams({from:$('#from').value,to:$('#to').value});if($('#creative').value)p.set('creative',$('#creative').value);if($('#source').value)p.set('source',$('#source').value);return p;}
+function params(){const p=new URLSearchParams({from:$('#from').value,to:$('#to').value});if($('#creative').value)p.set('creative',$('#creative').value);if($('#source').value)p.set('source',$('#source').value);if($('#audience-all').checked)p.set('audience','all');return p;}
 function setPreset(days){const to=ukDay(new Date());$('#to').value=to;$('#from').value=addDays(to,-(days-1));}
 function markPreset(){const to=ukDay(new Date());for(const b of document.querySelectorAll('.presets button'))b.setAttribute('aria-pressed',String($('#to').value===to&&$('#from').value===addDays(to,-(Number(b.dataset.days)-1))));}
 
@@ -77,6 +77,8 @@ function chips(d){
 let riverWidth=0;
 function funnel(d){
   chips(d);
+  const a=d.audience,gone=a?a.hidden.crawlers+a.hidden.abroad:0;
+  $('#audience-note').textContent=!a?'':a.mode==='all'?'Showing every visit, including bots and visits from abroad.':`Showing UK shoppers only. Hidden: ${num(a.hidden.crawlers)} bot visits and ${num(a.hidden.abroad)} from abroad${gone?'':' (none in this range)'}.`;
   const root=$('#funnel');root.replaceChildren();
   const steps=d.funnel,top=steps[0].visits||0,n=steps.length;
   const W=Math.round(root.clientWidth||root.getBoundingClientRect().width||900);riverWidth=W;
@@ -307,9 +309,10 @@ $('#spend-form').addEventListener('submit',async e=>{
 
 document.querySelectorAll('.presets button').forEach(b=>b.addEventListener('click',()=>{setPreset(Number(b.dataset.days));void load();}));
 $('#filters').addEventListener('submit',e=>{e.preventDefault();void load();});
-for(const id of ['#creative','#source'])$(id).addEventListener('change',()=>void load());
+for(const id of ['#creative','#source','#audience-all'])$(id).addEventListener('change',()=>void load());
 const start=new URLSearchParams(location.search);
 if(/^\d{4}-\d{2}-\d{2}$/.test(start.get('from')||'')&&/^\d{4}-\d{2}-\d{2}$/.test(start.get('to')||'')){$('#from').value=start.get('from');$('#to').value=start.get('to');}else setPreset(7);
 $('#spend-day').value=ukDay(new Date());
+$('#audience-all').checked=start.get('audience')==='all';
 for(const [id,key] of [['#creative','creative'],['#source','source']])if(start.get(key)){const o=E('option',start.get(key));o.value=start.get(key);$(id).append(o);$(id).value=start.get(key);}
 void load();
