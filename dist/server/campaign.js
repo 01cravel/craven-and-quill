@@ -2,7 +2,7 @@ import {adConfig,leadConversion,adFeed} from './ad-measurement.js';
 export const CONSENT_VERSION='storybook-validation-2026-09-29';
 export const CONSENT_TEXT='Email me when Craven & Quill storybooks are ready to order. I can unsubscribe at any time.';
 const PRODUCTS={digital:1900,hardback:3500,bundle:4999};
-const EVENTS=new Set(['landing_view','maker_start','photo_open','photo_picked','photo_passed','photo_failed','preview_start','preview_success','preview_error','price_view',...Array.from({length:11},(_,i)=>'step_'+(i+1)),'story_generated','story_edited','checkout_start','checkout_error','book_saved','device_mobile','device_desktop']);
+const EVENTS=new Set(['landing_view','maker_start','photo_open','photo_picked','photo_passed','photo_failed','preview_start','preview_success','preview_error','price_view',...Array.from({length:11},(_,i)=>'step_'+(i+1)),'story_generated','story_edited','checkout_start','checkout_error','book_saved','device_mobile','device_desktop','stay_5s','stay_15s','stay_30s','stay_60s','name_typed','start_tapped','page_error','timer_on']);
 // Cookie-free counts add one arrival marker; device comes from the browser's own request header.
 const COUNT_EVENTS=new Set(['arrive',...[...EVENTS].filter(e=>!e.startsWith('device_'))]);
 const ukToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London'}).format(new Date());

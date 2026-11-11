@@ -3,6 +3,16 @@ const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const track=(event,data={})=>{const names={story_maker_open:'maker_start',free_preview_created:'preview_success',free_preview_failed:'preview_error'};const allowed=['maker_start','photo_open','photo_picked','photo_passed','photo_failed','story_generated','story_edited','checkout_start','checkout_error','book_saved'];const value=names[event]||(event==='story_step_view'?'step_'+data.step:event==='photos_checked'?(data.passed?'photo_passed':'photo_failed'):event);if(allowed.includes(value)||/^step_(?:[1-9]|10|11)$/.test(value)||names[event])window.cqMeasurement?.record(value);};
 track('story_maker_open',{offer:'one_page_free'});
+// First-screen behaviour: how long the name page is on screen (visible time only), whether
+// they typed a name, whether they pressed start, and any script error on the page. Tells a
+// shopper who left in two seconds apart from one who read the page and then left.
+let onFirstScreen=true,firstScreenSeconds=0;
+window.cqMeasurement?.record('timer_on');
+setInterval(()=>{if(!onFirstScreen||document.visibilityState!=='visible')return;firstScreenSeconds++;if([5,15,30,60].includes(firstScreenSeconds))window.cqMeasurement?.record('stay_'+firstScreenSeconds+'s');},1000);
+$('#names').addEventListener('input',()=>window.cqMeasurement?.record('name_typed'),{once:true});
+$('.step[data-step="1"] [data-next="8"]').addEventListener('click',()=>window.cqMeasurement?.record('start_tapped'));
+addEventListener('error',()=>window.cqMeasurement?.record('page_error'));
+addEventListener('unhandledrejection',()=>window.cqMeasurement?.record('page_error'));
 
 const ideaBanks={
   funny:[
@@ -112,6 +122,7 @@ function showStep(number){
   if(number===5&&state.storyDraft)$('#illustration-count').textContent=`${state.storyDraft.spreads.length} story illustrations and a cover`;
   if(number===5&&state.characterImages[0])renderPreviewBook();
   scrollToStepTop(number);
+  onFirstScreen=number===1;
   track('story_step_view',{step:number});
   window.dispatchEvent(new Event('cq-draft-change'));
 }

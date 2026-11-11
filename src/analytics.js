@@ -28,7 +28,8 @@ export const COUNT_STEPS=[
   ['preview_start','Asked for a preview'],['preview_success','Got their character'],['step_5','Character page'],['step_10','Email page'],
   ['step_4','Story page'],['step_6','Book size page'],['price_view','Saw the prices'],['step_11','Delivery page'],['step_7','Review and pay'],['book_saved','Saved a book'],['checkout_start','Pressed pay']
 ];
-const ERRORS={preview_error:'Preview failed',checkout_error:'Payment page failed'};
+const ERRORS={preview_error:'Preview failed',checkout_error:'Payment page failed',page_error:'Page error'};
+const STAYS=[['stay_60s','60s+'],['stay_30s','30s+'],['stay_15s','15s+'],['stay_5s','5s+']];
 // Address ranges used by ad checkers and search crawlers (Google, Meta, Bing). They load
 // pages but are never shoppers, so the default view leaves them out.
 const CRAWLER_RANGES=['66.249.','66.102.','64.233.','72.14.','74.125.','209.85.','216.239.','31.13.','66.220.','69.63.','69.171.','173.252.','40.77.','157.55.','207.46.'];
@@ -204,7 +205,8 @@ export async function buildReport(env,url,req=null){
   const journeys=scope.sort((a,b)=>b.firstAt.localeCompare(a.firstAt)).slice(0,LIST_LIMIT).map(v=>{const last=furthest(v),lead=leadByVisit.get(v.id);return {
     firstAt:v.firstAt,lastAt:v.lastAt,source:v.source,medium:v.medium,campaign:v.campaign,creative:v.creative,country:v.country,device:v.device,
     furthest:last[1],furthestIndex:FUNNEL.indexOf(last),steps:FUNNEL.filter(([s])=>reached(v,s)).map(([s])=>s),
-    errors:Object.keys(ERRORS).filter(k=>v.events.has(k)).map(k=>ERRORS[k]),extras:['story_generated','story_edited'].filter(k=>v.events.has(k)),
+    errors:Object.keys(ERRORS).filter(k=>v.events.has(k)).map(k=>ERRORS[k]),extras:['story_generated','story_edited','name_typed','start_tapped'].filter(k=>v.events.has(k)),
+    firstScreen:v.events.has('timer_on')?(STAYS.find(([k])=>v.events.has(k))||[null,'under 5s'])[1]:null,
     signup:lead?{email:lead.email,product:lead.product}:null,where:place(v.id),made:madeByVisit.get(v.id)||null};});
 
   const previewsByEmail=new Map();for(const r of receipts)if(r.email)tally(previewsByEmail,r.email);
