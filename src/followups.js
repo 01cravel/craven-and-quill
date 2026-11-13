@@ -1,7 +1,7 @@
 import {template1 as firstHtml,template2 as firstText,template3 as secondHtml,template4 as secondText} from './followup-templates.generated.js';
 import {PRODUCTS} from './catalog.js';
 
-export const FOLLOWUP_CONSENT = 'Email me up to two follow-up emails about my book if I do not buy. The second may include an offer. I can unsubscribe at any time.';
+export const FOLLOWUP_CONSENT = 'Shown on the email page (soft opt-in, not ticked off): We’ll email you their character. If you don’t finish, we’ll send up to two reminders, the second with 10% off. Unsubscribe any time. [Don’t send me reminders]';
 const DAY = 86400000;
 const TABLE = `CREATE TABLE IF NOT EXISTS followup_sequences (
   email TEXT PRIMARY KEY, episode_id TEXT NOT NULL, consent_text TEXT NOT NULL, consent_at TEXT,
@@ -61,7 +61,7 @@ async function canSend(env,email){
   const row=await db(env,`SELECT q.email,q.size,q.unsubscribe_token,q.offer_consent_at,q.offer_unsubscribed_at,q.email_status,f.episode_id,f.consent_at,f.first_status,f.first_sent_at,f.second_status
     FROM customer_quotes q JOIN followup_sequences f ON f.email=q.email WHERE q.email=?1`,email).first();
   if(!row?.consent_at||!row.offer_consent_at||row.offer_unsubscribed_at)return null;
-  const order=await db(env,`SELECT id FROM customer_orders WHERE email=?1 AND (payment_status='paid' OR status IN ('awaiting_payment','checkout_pending')) LIMIT 1`,email).first();
+  const order=await db(env,`SELECT id FROM customer_orders WHERE email=?1 AND payment_status='paid' LIMIT 1`,email).first();
   return order?null:row;
 }
 async function send(env,step,quote){
@@ -106,18 +106,18 @@ export async function runFollowups(env){
   if(env.FOLLOWUP_EMAILS_ENABLED!=='true')return {paused:true};
   if(!env.DB||!env.RESEND_API_KEY||!env.ORDER_EMAIL_FROM)return {error:'Email or storage is not configured.'};
   await ensureFollowupTable(env);
-  const cutoffFirst=new Date(Date.now()-DAY).toISOString(),cutoffSecond=new Date(Date.now()-3*DAY).toISOString();
+  const cutoffFirst=new Date(Date.now()-DAY).toISOString(),cutoffSecond=new Date(Date.now()-6*DAY).toISOString();
   const first=(await db(env,`SELECT f.email FROM followup_sequences f JOIN customer_quotes q ON q.email=f.email
     WHERE f.consent_at IS NOT NULL AND f.first_status IS NULL AND q.offer_consent_at IS NOT NULL AND q.offer_unsubscribed_at IS NULL
     AND q.email_status IS NULL AND q.last_shown_at<=?1 AND NOT EXISTS
-    (SELECT 1 FROM customer_orders o WHERE o.email=f.email AND (o.payment_status='paid' OR o.status IN ('awaiting_payment','checkout_pending')))
+    (SELECT 1 FROM customer_orders o WHERE o.email=f.email AND o.payment_status='paid')
     ORDER BY q.last_shown_at LIMIT 20`,cutoffFirst).all()).results||[];
   const results={first:{accepted:0,unknown:0,suppressed:0},second:{accepted:0,unknown:0,suppressed:0}};
   for(const row of first){const outcome=await send(env,1,row);if(outcome in results.first)results.first[outcome]++;}
   const second=(await db(env,`SELECT f.email FROM followup_sequences f JOIN customer_quotes q ON q.email=f.email
     WHERE f.consent_at IS NOT NULL AND f.first_status='accepted' AND f.first_sent_at<=?1 AND f.second_status IS NULL
     AND q.offer_consent_at IS NOT NULL AND q.offer_unsubscribed_at IS NULL AND q.email_status IS NULL
-    AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=f.email AND (o.payment_status='paid' OR o.status IN ('awaiting_payment','checkout_pending')))
+    AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=f.email AND o.payment_status='paid')
     ORDER BY f.first_sent_at LIMIT 20`,cutoffSecond).all()).results||[];
   for(const row of second){const outcome=await send(env,2,row);if(outcome in results.second)results.second[outcome]++;}
   return results;

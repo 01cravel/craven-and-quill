@@ -749,3 +749,5 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 @media (max-width:560px){.hardback{width:116px}.hardback[data-size="a5"]{width:84px}.hardback-stage{margin-bottom:16px}}
 
 .step[data-step="1"] .start-price{margin:6px 0 16px}
+
+.reminder-optout{display:flex;align-items:center;gap:8px;margin:2px 0 0;font-size:.86rem;color:var(--muted);cursor:pointer}.reminder-optout input{width:18px;height:18px;margin:0;accent-color:#17332c}

@@ -537,6 +537,7 @@ async function saveQuote(explicitConsent){
  const r=await fetch('/api/orders/quote-interest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
  if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||'Could not save your offer preference.');
 }
+const reminderChoice=()=>void saveQuote(!$('#no-reminders').checked).catch(()=>{});$('#no-reminders').addEventListener('change',reminderChoice);$('#start-preview').addEventListener('click',reminderChoice);
 $('#offer-email-consent').addEventListener('change',async event=>{try{await saveQuote(event.target.checked);$('#step-6-error').textContent='';}catch(e){event.target.checked=!event.target.checked;$('#step-6-error').textContent=e.message;}});
 async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Secure payment, then we create the rest of your illustrations. You and our team approve the finished proof before printing.';$('#join-launch').textContent='Next';}updateProduct();}catch{}}
 function updateProduct(){

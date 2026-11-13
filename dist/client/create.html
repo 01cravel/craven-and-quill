@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=noprice-2">
+  <link rel="stylesheet" href="create.css?v=remind-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -158,10 +158,10 @@
           <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" id="generate-story" type="button">Write their story</button><button class="next" id="use-story" type="button" data-next="6" disabled>Choose your book</button></div>
         </section>
 
-<section class="step" data-step="10" aria-labelledby="step-10-title" hidden><h1 id="step-10-title">Where shall we send their character?</h1><p class="intro">We’ll keep their character and story safe so you can come back to them. No marketing subscription.</p>          <div id="preview-email-wrap">
+<section class="step" data-step="10" aria-labelledby="step-10-title" hidden><h1 id="step-10-title">Where shall we send their character?</h1><p class="intro">We’ll keep their character and story safe so you can come back to them. </p>          <div id="preview-email-wrap">
             <label class="field-label" for="email">Your email</label>
             <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
-            <p class="privacy-line" id="preview-email-note">We use your email for this book, not a marketing subscription.</p>
+            <p class="privacy-line" id="preview-email-note">We’ll email you their character. If you don’t finish, we’ll send up to two reminders, the second with 10% off. Unsubscribe any time.</p><label class="reminder-optout"><input id="no-reminders" type="checkbox"> <span>Don’t send me reminders</span></label>
           </div>
 
 <div class="error" id="step-10-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" type="button" id="start-preview">Save and write the story <span>→</span></button></div></section>
@@ -331,6 +331,6 @@
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=sketch-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=book-1" defer></script><script src="draft-save.js?v=email-20261109" defer></script>
+  <script src="create.js?v=remind-1" defer></script><script src="draft-save.js?v=email-20261109" defer></script>
 </body>
 </html>

@@ -39,13 +39,21 @@ function copy(o,kind){
     introText:['Your approved book has been sent to the printer. This is not a dispatch confirmation yet. Tracking will appear on your order page when it’s on its way.'],
     steps:[['Done','Proof approved.'],['Now','Printing and binding.'],['Next',`Posted${f.to?' to '+f.to:''}, with tracking on your order page.`]],
     note:'',button:'See your order'};
+  if(kind==='dispatched'){const t=(o.data?.shipments||[]).find(x=>x.trackingNumber)||{};return {
+    subject:`${f.name?f.poss[0].toUpperCase()+f.poss.slice(1):'Your'} book is on its way`,
+    preheader:t.trackingNumber?`Tracking number ${t.trackingNumber}.`:'Your book has been posted.',
+    kicker:'Posted',heading:`${f.name?f.poss[0].toUpperCase()+f.poss.slice(1):'Your'} book is on its way.`,
+    intro:[`It’s printed, bound and in the post${f.to?' to '+esc(f.to):''}. We hope ${esc(f.them)} loves it.`],
+    introText:[`It’s printed, bound and in the post${f.to?' to '+f.to:''}. We hope ${f.them} loves it.`],
+    steps:[['Done','Proof approved and printed.'],['Now',`On its way${t.carrier?' with '+(t.carrier.name||t.carrier):''}.`],['Next','Usually with you in a few working days.']],
+    stepNow:1,tracking:t,note:t.trackingNumber?`Tracking number: ${t.trackingNumber}`:'',button:t.trackingUrl?'Track your book':'See your order',buttonUrl:t.trackingUrl||null};}
   throw Error('Unknown email type');
 }
 
 function html(o,c,url){
   const f=facts(o);
   const p=(t,extra='')=>`<p style="margin:0 0 16px;color:#3c352f;font:16px/1.65 ${sans};${extra}">${t}</p>`;
-  const steps=c.steps.map(([when,what],i)=>`<tr><td width="22" valign="top" style="padding:${i?'14px':'0'} 0 0;"><div style="width:10px;height:10px;margin-top:5px;border-radius:50%;${i?'border:2px solid #c9bda6;background:#fffdfa;':'background:#ad843f;border:2px solid #ad843f;'}"></div></td><td style="padding:${i?'14px':'0'} 0 0;"><p style="margin:0;color:${i?'#7a6e60':'#846329'};font:700 12px/1.4 ${sans};">${esc(when)}</p><p style="margin:2px 0 0;color:#2b2621;font:15px/1.5 ${sans};">${esc(what)}</p></td></tr>`).join('');
+  const cur=c.stepNow||0;const steps=c.steps.map(([when,what],i)=>`<tr><td width="22" valign="top" style="padding:${i?'14px':'0'} 0 0;"><div style="width:10px;height:10px;margin-top:5px;border-radius:50%;${i<cur?'background:#c9bda6;border:2px solid #c9bda6;':i>cur?'border:2px solid #c9bda6;background:#fffdfa;':'background:#ad843f;border:2px solid #ad843f;'}"></div></td><td style="padding:${i?'14px':'0'} 0 0;"><p style="margin:0;color:${i===cur?'#846329':'#7a6e60'};font:700 12px/1.4 ${sans};">${esc(when)}</p><p style="margin:2px 0 0;color:#2b2621;font:15px/1.5 ${sans};">${esc(what)}</p></td></tr>`).join('');
   const row=(k,v)=>`<tr><td style="padding:7px 0;color:#7a6e60;font:14px/1.45 ${sans};width:38%;" valign="top">${k}</td><td style="padding:7px 0;color:#2b2621;font:14px/1.45 ${sans};" valign="top">${v}</td></tr>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(c.subject)} | Craven &amp; Quill</title><style>@media only screen and (max-width:600px){.shell{width:100%!important}.content{padding:32px 24px 34px!important}.footer{padding:24px 24px 32px!important}.heading{font-size:31px!important}.button{display:block!important;text-align:center!important}}</style></head>
 <body style="margin:0;padding:0;background:#efeae0;color:#211d1a;-webkit-text-size-adjust:100%;">
@@ -58,7 +66,7 @@ function html(o,c,url){
 <h1 class="heading" style="margin:0 0 20px;color:#211d1a;font:normal 36px/1.12 ${serif};letter-spacing:-.5px;">${esc(c.heading)}</h1>
 ${c.intro.map(t=>p(t)).join('')}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:10px 0 28px;">${steps}</table>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 0 30px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${esc(url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${sans};">${esc(c.button)}</a></td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 0 30px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${esc(c.buttonUrl||url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${sans};">${esc(c.button)}</a></td></tr></table>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#f5f0e6;"><tr><td style="padding:16px 20px;border-left:3px solid #ad843f;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
 ${f.title?row('Book',`<i style="font-family:${serif};">${esc(f.title)}</i>`):''}${row('Format',esc(f.label)+' + digital PDF')}${row('Paid',esc(f.paid)+', UK delivery included')}${f.to?row('Posting to',esc(f.to)):''}${row('Order ref',esc(f.ref))}
@@ -76,7 +84,7 @@ export function orderEmail(o,kind,url){
   const c=copy(o,kind),f=facts(o);
   const text=[c.heading,...c.introText,c.steps.map(([w,t])=>`${w}: ${t}`).join('\n'),
     [f.title?`Book: ${f.title}`:'',`Format: ${f.label} + digital PDF`,`Paid: ${f.paid} including UK standard delivery`,f.to?`Posting to: ${f.to}`:'',`Order ref: ${f.ref}`].filter(Boolean).join('\n'),
-    `${c.button}: ${url}`,c.note,'This link is private to you. Please don’t forward it.\nQuestions? Just reply to this email.\n\nCraven & Quill'].filter(Boolean).join('\n\n');
+    `${c.button}: ${c.buttonUrl||url}`,c.buttonUrl?`Your order: ${url}`:'',c.note,'This link is private to you. Please don’t forward it.\nQuestions? Just reply to this email.\n\nCraven & Quill'].filter(Boolean).join('\n\n');
   return {subject:'Craven & Quill: '+c.subject,text,html:html(o,c,url),key:`${o.id}:${kind}:${kind==='proof'?o.data.proof?.hash:'1'}`};
 }
 

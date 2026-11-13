@@ -4527,12 +4527,30 @@ function copy(o, kind) {
     note: "",
     button: "See your order"
   };
+  if (kind === "dispatched") {
+    const t2 = (o.data?.shipments || []).find((x) => x.trackingNumber) || {};
+    return {
+      subject: `${f.name ? f.poss[0].toUpperCase() + f.poss.slice(1) : "Your"} book is on its way`,
+      preheader: t2.trackingNumber ? `Tracking number ${t2.trackingNumber}.` : "Your book has been posted.",
+      kicker: "Posted",
+      heading: `${f.name ? f.poss[0].toUpperCase() + f.poss.slice(1) : "Your"} book is on its way.`,
+      intro: [`It\u2019s printed, bound and in the post${f.to ? " to " + esc(f.to) : ""}. We hope ${esc(f.them)} loves it.`],
+      introText: [`It\u2019s printed, bound and in the post${f.to ? " to " + f.to : ""}. We hope ${f.them} loves it.`],
+      steps: [["Done", "Proof approved and printed."], ["Now", `On its way${t2.carrier ? " with " + (t2.carrier.name || t2.carrier) : ""}.`], ["Next", "Usually with you in a few working days."]],
+      stepNow: 1,
+      tracking: t2,
+      note: t2.trackingNumber ? `Tracking number: ${t2.trackingNumber}` : "",
+      button: t2.trackingUrl ? "Track your book" : "See your order",
+      buttonUrl: t2.trackingUrl || null
+    };
+  }
   throw Error("Unknown email type");
 }
 function html(o, c, url) {
   const f = facts(o);
   const p = (t2, extra = "") => `<p style="margin:0 0 16px;color:#3c352f;font:16px/1.65 ${sans};${extra}">${t2}</p>`;
-  const steps = c.steps.map(([when, what], i4) => `<tr><td width="22" valign="top" style="padding:${i4 ? "14px" : "0"} 0 0;"><div style="width:10px;height:10px;margin-top:5px;border-radius:50%;${i4 ? "border:2px solid #c9bda6;background:#fffdfa;" : "background:#ad843f;border:2px solid #ad843f;"}"></div></td><td style="padding:${i4 ? "14px" : "0"} 0 0;"><p style="margin:0;color:${i4 ? "#7a6e60" : "#846329"};font:700 12px/1.4 ${sans};">${esc(when)}</p><p style="margin:2px 0 0;color:#2b2621;font:15px/1.5 ${sans};">${esc(what)}</p></td></tr>`).join("");
+  const cur = c.stepNow || 0;
+  const steps = c.steps.map(([when, what], i4) => `<tr><td width="22" valign="top" style="padding:${i4 ? "14px" : "0"} 0 0;"><div style="width:10px;height:10px;margin-top:5px;border-radius:50%;${i4 < cur ? "background:#c9bda6;border:2px solid #c9bda6;" : i4 > cur ? "border:2px solid #c9bda6;background:#fffdfa;" : "background:#ad843f;border:2px solid #ad843f;"}"></div></td><td style="padding:${i4 ? "14px" : "0"} 0 0;"><p style="margin:0;color:${i4 === cur ? "#846329" : "#7a6e60"};font:700 12px/1.4 ${sans};">${esc(when)}</p><p style="margin:2px 0 0;color:#2b2621;font:15px/1.5 ${sans};">${esc(what)}</p></td></tr>`).join("");
   const row = (k, v2) => `<tr><td style="padding:7px 0;color:#7a6e60;font:14px/1.45 ${sans};width:38%;" valign="top">${k}</td><td style="padding:7px 0;color:#2b2621;font:14px/1.45 ${sans};" valign="top">${v2}</td></tr>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(c.subject)} | Craven &amp; Quill</title><style>@media only screen and (max-width:600px){.shell{width:100%!important}.content{padding:32px 24px 34px!important}.footer{padding:24px 24px 32px!important}.heading{font-size:31px!important}.button{display:block!important;text-align:center!important}}</style></head>
 <body style="margin:0;padding:0;background:#efeae0;color:#211d1a;-webkit-text-size-adjust:100%;">
@@ -4545,7 +4563,7 @@ function html(o, c, url) {
 <h1 class="heading" style="margin:0 0 20px;color:#211d1a;font:normal 36px/1.12 ${serif};letter-spacing:-.5px;">${esc(c.heading)}</h1>
 ${c.intro.map((t2) => p(t2)).join("")}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:10px 0 28px;">${steps}</table>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 0 30px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${esc(url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${sans};">${esc(c.button)}</a></td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 0 30px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${esc(c.buttonUrl || url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${sans};">${esc(c.button)}</a></td></tr></table>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#f5f0e6;"><tr><td style="padding:16px 20px;border-left:3px solid #ad843f;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
 ${f.title ? row("Book", `<i style="font-family:${serif};">${esc(f.title)}</i>`) : ""}${row("Format", esc(f.label) + " + digital PDF")}${row("Paid", esc(f.paid) + ", UK delivery included")}${f.to ? row("Posting to", esc(f.to)) : ""}${row("Order ref", esc(f.ref))}
@@ -4565,7 +4583,8 @@ function orderEmail(o, kind, url) {
     ...c.introText,
     c.steps.map(([w, t2]) => `${w}: ${t2}`).join("\n"),
     [f.title ? `Book: ${f.title}` : "", `Format: ${f.label} + digital PDF`, `Paid: ${f.paid} including UK standard delivery`, f.to ? `Posting to: ${f.to}` : "", `Order ref: ${f.ref}`].filter(Boolean).join("\n"),
-    `${c.button}: ${url}`,
+    `${c.button}: ${c.buttonUrl || url}`,
+    c.buttonUrl ? `Your order: ${url}` : "",
     c.note,
     "This link is private to you. Please don\u2019t forward it.\nQuestions? Just reply to this email.\n\nCraven & Quill"
   ].filter(Boolean).join("\n\n");
@@ -52659,7 +52678,7 @@ var template3 = `<!doctype html>
 var template4 = "Subject: A little extra for their story: 10% off\nPreheader: Take an extra 10% off one Craven & Quill book with your personal code.\n\nIf you are still thinking about their book, here is an extra 10% off the current book price.\n\nUse code {{discount_code}} at checkout. It is for your email address, works on one book, and expires on {{expiry_date}} at {{expiry_time}} UK time.\n\nA free character and first-page preview comes before payment. Your hardback also includes a digital PDF and UK standard delivery.\n\nMake their book with 10% off: {{continue_url}}\n\nWe hope it helps you make a story that feels unmistakably theirs. Questions? Reply to this email.\n\nCraven & Quill \xB7 Personalised books, made for one reader at a time.\nYou asked to hear from us about your book. Stop these emails: {{unsubscribe_url}}\n";
 
 // src/followups.js
-var FOLLOWUP_CONSENT = "Email me up to two follow-up emails about my book if I do not buy. The second may include an offer. I can unsubscribe at any time.";
+var FOLLOWUP_CONSENT = "Shown on the email page (soft opt-in, not ticked off): We\u2019ll email you their character. If you don\u2019t finish, we\u2019ll send up to two reminders, the second with 10% off. Unsubscribe any time. [Don\u2019t send me reminders]";
 var DAY = 864e5;
 var TABLE = `CREATE TABLE IF NOT EXISTS followup_sequences (
   email TEXT PRIMARY KEY, episode_id TEXT NOT NULL, consent_text TEXT NOT NULL, consent_at TEXT,
@@ -52723,7 +52742,7 @@ async function canSend(env2, email) {
   const row = await db(env2, `SELECT q.email,q.size,q.unsubscribe_token,q.offer_consent_at,q.offer_unsubscribed_at,q.email_status,f.episode_id,f.consent_at,f.first_status,f.first_sent_at,f.second_status
     FROM customer_quotes q JOIN followup_sequences f ON f.email=q.email WHERE q.email=?1`, email).first();
   if (!row?.consent_at || !row.offer_consent_at || row.offer_unsubscribed_at) return null;
-  const order = await db(env2, `SELECT id FROM customer_orders WHERE email=?1 AND (payment_status='paid' OR status IN ('awaiting_payment','checkout_pending')) LIMIT 1`, email).first();
+  const order = await db(env2, `SELECT id FROM customer_orders WHERE email=?1 AND payment_status='paid' LIMIT 1`, email).first();
   return order ? null : row;
 }
 async function send(env2, step, quote) {
@@ -52778,11 +52797,11 @@ async function runFollowups(env2) {
   if (env2.FOLLOWUP_EMAILS_ENABLED !== "true") return { paused: true };
   if (!env2.DB || !env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { error: "Email or storage is not configured." };
   await ensureFollowupTable(env2);
-  const cutoffFirst = new Date(Date.now() - DAY).toISOString(), cutoffSecond = new Date(Date.now() - 3 * DAY).toISOString();
+  const cutoffFirst = new Date(Date.now() - DAY).toISOString(), cutoffSecond = new Date(Date.now() - 6 * DAY).toISOString();
   const first = (await db(env2, `SELECT f.email FROM followup_sequences f JOIN customer_quotes q ON q.email=f.email
     WHERE f.consent_at IS NOT NULL AND f.first_status IS NULL AND q.offer_consent_at IS NOT NULL AND q.offer_unsubscribed_at IS NULL
     AND q.email_status IS NULL AND q.last_shown_at<=?1 AND NOT EXISTS
-    (SELECT 1 FROM customer_orders o WHERE o.email=f.email AND (o.payment_status='paid' OR o.status IN ('awaiting_payment','checkout_pending')))
+    (SELECT 1 FROM customer_orders o WHERE o.email=f.email AND o.payment_status='paid')
     ORDER BY q.last_shown_at LIMIT 20`, cutoffFirst).all()).results || [];
   const results = { first: { accepted: 0, unknown: 0, suppressed: 0 }, second: { accepted: 0, unknown: 0, suppressed: 0 } };
   for (const row of first) {
@@ -52792,7 +52811,7 @@ async function runFollowups(env2) {
   const second = (await db(env2, `SELECT f.email FROM followup_sequences f JOIN customer_quotes q ON q.email=f.email
     WHERE f.consent_at IS NOT NULL AND f.first_status='accepted' AND f.first_sent_at<=?1 AND f.second_status IS NULL
     AND q.offer_consent_at IS NOT NULL AND q.offer_unsubscribed_at IS NULL AND q.email_status IS NULL
-    AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=f.email AND (o.payment_status='paid' OR o.status IN ('awaiting_payment','checkout_pending')))
+    AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=f.email AND o.payment_status='paid')
     ORDER BY f.first_sent_at LIMIT 20`, cutoffSecond).all()).results || [];
   for (const row of second) {
     const outcome = await send(env2, 2, row);
@@ -53835,7 +53854,15 @@ You can stop offer emails here: ${unsubscribe}`;
       requireThat(d.order?.id === o.data.supplierId && d.order.merchantReference === id, "Printer order did not match.", 502);
       o.data.supplierStatus = d.order.status;
       o.data.shipments = (d.order.shipments || []).map((x) => ({ carrier: x.carrier, trackingNumber: x.trackingNumber, trackingUrl: typeof x.trackingUrl === "string" && x.trackingUrl.startsWith("https://") ? x.trackingUrl : null }));
-      return reply(publicOrder(await save(env2, o, o.data), true));
+      o = await save(env2, o, o.data);
+      if (o.data.shipments.some((x) => x.trackingNumber)) {
+        try {
+          o = await receiptEmail(env2, o, "dispatched");
+        } catch {
+          console.error("Dispatch email failed", id);
+        }
+      }
+      return reply(publicOrder(o, true));
     }
     throw new OrderError("Not found.", 404);
   } catch (e) {
