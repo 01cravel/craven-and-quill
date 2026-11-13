@@ -743,3 +743,7 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .art-badge{position:absolute;left:50%;top:9%;transform:translateX(-50%);z-index:1;padding:4px 10px;border-radius:99px;background:#17332ce6;color:#fff;font-size:.7rem;font-weight:700;white-space:nowrap}
 @media (max-width:560px){.review-prev{left:-8px}.review-next{right:-8px}.review-arrow{width:34px;height:34px;margin-top:-17px}}
 @media (max-width:560px){.review-book{padding-bottom:46px}.review-arrow{top:auto;bottom:0;margin-top:0;width:38px;height:38px}.review-prev{left:calc(50% - 96px)}.review-next{right:calc(50% - 96px)}.review-pos{margin-top:-36px;margin-bottom:22px;line-height:38px}}
+
+.hardback{width:140px}.hardback[data-size="a5"]{width:100px}
+.hb-copy strong{overflow:visible}
+@media (max-width:560px){.hardback{width:116px}.hardback[data-size="a5"]{width:84px}.hardback-stage{margin-bottom:16px}}

@@ -256,7 +256,7 @@ function quillDesk(){
 function updateHardback(){const book=$('#hardback');if(!book)return;const size=$('input[name="product"]:checked')?.value||'a4';book.dataset.size=size;
   $('#hb-art').src=state.characterImages[0]||'assets/storybook.webp';$('#hb-name').textContent=(fullNames()||'Someone special').toUpperCase();$('#hb-title').textContent=$('#live-title').textContent||'';
   $('#hb-caption').textContent=size==='a5'?'A5 hardback, 14.8 × 21 cm':'A4 hardback, 21 × 29.7 cm';
-  requestAnimationFrame(()=>{const name=$('#hb-name');name.style.fontSize='';let px=parseFloat(getComputedStyle(name).fontSize);while(name.scrollWidth>name.clientWidth&&px>10){px-=1;name.style.fontSize=px+'px';}});}
+  const label=$('#hb-name').textContent,w=size==='a5'?(innerWidth<=560?84:100):(innerWidth<=560?116:140);$('#hb-name').style.fontSize=Math.max(8,Math.min(22,w*.8/(Math.max(4,label.length)*.68)))+'px';}
 document.querySelectorAll('input[name="product"]').forEach(r=>r.addEventListener('change',updateHardback));
 
 // Delivery: send straight to the child or to the buyer first. Prefills the child's name when sending to them.
