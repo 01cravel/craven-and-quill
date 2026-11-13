@@ -338,6 +338,7 @@ function scorecard(d){
   const box=$('#sc-tiles');box.replaceChildren();
   for(const [lab,big,cls,note] of tiles){const t=el('div','sc-tile');t.append(el('span','lab',lab),el('span','big '+cls,big),el('span','note',note));box.append(t);}
   if(limit){const t=el('div','sc-tile');t.append(el('span','lab','Spent since last sale'),el('span','big '+(spent>=limit?'bad':spent>=limit*.7?'warn':''),pounds(spent)));const m=el('div','sc-meter'),i=el('i');i.style.width=Math.min(100,spent/limit*100)+'%';m.append(i);t.append(m,el('span','note',spend?`Stop line ${pounds(limit)}. No sale by then means stop.`:'Enter Google spend in Ad spend below to track this.'));box.append(t);}
+  const fu=d.followups;if(fu&&!fu.error){const t=el('div','sc-tile');t.append(el('span','lab','Reminder emails'),el('span','big '+(fu.enabled?'ok':'bad'),fu.enabled?'On':'Off'),el('span','note',fu.enabled?`${num(fu.firstSent)} reminders and ${num(fu.secondSent)} 10% codes sent. ${num(fu.enrolled)} people signed up.`:'Turn on FOLLOWUP_EMAILS_ENABLED in the site settings to start sending.'));box.append(t);}
   const steps=[['Arrived',arrived],['Opened the maker',opened],['Got past the name page',pastName],['Added a photo',photo],['Got their character',character],['Saw the prices',prices],['Pressed pay',pressed],['Paid',sales]];
   let worst=-1,worstDrop=0;steps.forEach(([,n],i)=>{if(i){const drop=steps[i-1][1]-n;if(drop>worstDrop){worstDrop=drop;worst=i;}}});
   const fun=$('#sc-funnel');fun.replaceChildren();

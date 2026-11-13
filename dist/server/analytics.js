@@ -1,6 +1,22 @@
 import {adConfig,metaConfig} from './ad-measurement.js';
 import {ownerSession} from './owner-auth.js';
 import {PRODUCTS} from './catalog.js';
+import {runFollowups,followupStatus} from './orders.js';
+
+// Reminder emails ride on the owner's daily dashboard load: at most one send run every 6 hours, only when the switch is on.
+async function followupTick(env){
+  try{
+    await env.DB.prepare('CREATE TABLE IF NOT EXISTS owner_jobs (name TEXT PRIMARY KEY, ran_at TEXT NOT NULL)').run();
+    let ran=null;
+    if(env.FOLLOWUP_EMAILS_ENABLED==='true'){
+      const cutoff=new Date(Date.now()-6*3600000).toISOString(),stamp=new Date().toISOString();
+      const claimed=await env.DB.prepare("INSERT INTO owner_jobs (name,ran_at) VALUES ('followups',?1) ON CONFLICT(name) DO UPDATE SET ran_at=excluded.ran_at WHERE owner_jobs.ran_at<=?2 RETURNING name").bind(stamp,cutoff).first();
+      if(claimed)ran=await runFollowups(env);
+    }
+    const last=await env.DB.prepare("SELECT ran_at FROM owner_jobs WHERE name='followups'").first();
+    return {...await followupStatus(env),lastRunAt:last?.ran_at||null,thisLoad:ran};
+  }catch(e){return {error:'Reminder status unavailable.'};}
+}
 
 // Owner-only analytics. Every visit is measured without cookies: a random visit reference travels in
 // the page link. The privacy notice covers a shortened IP, town, and links from the visit to its
@@ -290,7 +306,7 @@ export async function analyticsApi(req,env){
   try{
     if(path==='/api/owner-analytics'){
       if(req.method!=='GET')return reply({error:'Method not allowed.'},405);
-      return reply({...await buildReport(env,url,req),advertisingTracking:{googleTagConfigured:!!adConfig(env).tagId,leadConfigured:!!adConfig(env).lead,purchaseConfigured:!!adConfig(env).purchase,serverFeedPrepared:!!env.GOOGLE_ADS_FEED_PASSWORD,metaPixelConfigured:/^[0-9]{5,30}$/.test(env.META_PIXEL_ID||''),metaPurchaseConfigured:!!metaConfig(env),note:'Configuration only. Google acceptance and attributed results must be checked in Google Ads. Missing attribution is unknown, never proof of zero leads.'}});
+      const followups=await followupTick(env);return reply({...await buildReport(env,url,req),followups,advertisingTracking:{googleTagConfigured:!!adConfig(env).tagId,leadConfigured:!!adConfig(env).lead,purchaseConfigured:!!adConfig(env).purchase,serverFeedPrepared:!!env.GOOGLE_ADS_FEED_PASSWORD,metaPixelConfigured:/^[0-9]{5,30}$/.test(env.META_PIXEL_ID||''),metaPurchaseConfigured:!!metaConfig(env),note:'Configuration only. Google acceptance and attributed results must be checked in Google Ads. Missing attribution is unknown, never proof of zero leads.'}});
     }
     if(req.method!=='POST')return reply({error:'Method not allowed.'},405);
     if(!sameOrigin(req))return reply({error:'Reload the page and try again.'},403);
