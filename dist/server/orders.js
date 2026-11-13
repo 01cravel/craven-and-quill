@@ -53075,7 +53075,7 @@ async function ziinaCheckout(env2, o, origin) {
   o = await save(env2, o, o.data, "checkout_pending");
   const link = origin + "/order.html?id=" + o.id;
   try {
-    const p = await ziina(env2, "/payment_intent", { amount: o.amount, currency_code: "GBP", message: "CQ " + o.size.toUpperCase() + " book " + o.id, success_url: link, cancel_url: link, failure_url: link, test: o.data.payment.mode !== "live", allow_tips: false });
+    const p = await ziina(env2, "/payment_intent", { amount: o.amount, currency_code: "GBP", message: "Personalised storybook for " + String(o.data.names || "your child").slice(0, 40) + ", " + PRODUCTS[o.size].label + ". Order ref " + o.id, success_url: link, cancel_url: link, failure_url: link, test: o.data.payment.mode !== "live", allow_tips: false });
     requireThat(typeof p.id === "string" && p.id.length < 100, "Missing Ziina payment reference.", 502);
     matchZiina(p, { ...o, session_id: p.id });
     const redirect = ziinaUrl(p);

@@ -668,3 +668,4 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .pay-marks .mark-apple{color:#111;font-weight:600}
 .pay-marks .mark-apple svg{width:13px;height:13px;fill:#111}
 .pay-trust-note{margin:0;font-size:.76rem;line-height:1.4;color:var(--muted)}
+.pay-marks .mark-gpay{color:#3c4043;font-weight:600}.pay-marks .mark-gpay b{color:#4285f4;font-weight:800;margin-right:2px}
