@@ -2969,7 +2969,7 @@ var require_inflate = __commonJS({
       state.distcode = distfix;
       state.distbits = 5;
     }
-    function updatewindow(strm, src2, end, copy) {
+    function updatewindow(strm, src2, end, copy2) {
       var dist;
       var state = strm.state;
       if (state.window === null) {
@@ -2978,20 +2978,20 @@ var require_inflate = __commonJS({
         state.whave = 0;
         state.window = new utils2.Buf8(state.wsize);
       }
-      if (copy >= state.wsize) {
+      if (copy2 >= state.wsize) {
         utils2.arraySet(state.window, src2, end - state.wsize, state.wsize, 0);
         state.wnext = 0;
         state.whave = state.wsize;
       } else {
         dist = state.wsize - state.wnext;
-        if (dist > copy) {
-          dist = copy;
+        if (dist > copy2) {
+          dist = copy2;
         }
-        utils2.arraySet(state.window, src2, end - copy, dist, state.wnext);
-        copy -= dist;
-        if (copy) {
-          utils2.arraySet(state.window, src2, end - copy, copy, 0);
-          state.wnext = copy;
+        utils2.arraySet(state.window, src2, end - copy2, dist, state.wnext);
+        copy2 -= dist;
+        if (copy2) {
+          utils2.arraySet(state.window, src2, end - copy2, copy2, 0);
+          state.wnext = copy2;
           state.whave = state.wsize;
         } else {
           state.wnext += dist;
@@ -3014,7 +3014,7 @@ var require_inflate = __commonJS({
       var hold;
       var bits3;
       var _in, _out;
-      var copy;
+      var copy2;
       var from;
       var from_source;
       var here = 0;
@@ -3209,11 +3209,11 @@ var require_inflate = __commonJS({
             /* falls through */
             case EXTRA:
               if (state.flags & 1024) {
-                copy = state.length;
-                if (copy > have) {
-                  copy = have;
+                copy2 = state.length;
+                if (copy2 > have) {
+                  copy2 = have;
                 }
-                if (copy) {
+                if (copy2) {
                   if (state.head) {
                     len5 = state.head.extra_len - state.length;
                     if (!state.head.extra) {
@@ -3225,17 +3225,17 @@ var require_inflate = __commonJS({
                       next,
                       // extra field is limited to 65536 bytes
                       // - no need for additional size check
-                      copy,
+                      copy2,
                       /*len + copy > state.head.extra_max - len ? state.head.extra_max : copy,*/
                       len5
                     );
                   }
                   if (state.flags & 512) {
-                    state.check = crc32(state.check, input2, copy, next);
+                    state.check = crc32(state.check, input2, copy2, next);
                   }
-                  have -= copy;
-                  next += copy;
-                  state.length -= copy;
+                  have -= copy2;
+                  next += copy2;
+                  state.length -= copy2;
                 }
                 if (state.length) {
                   break inf_leave;
@@ -3249,18 +3249,18 @@ var require_inflate = __commonJS({
                 if (have === 0) {
                   break inf_leave;
                 }
-                copy = 0;
+                copy2 = 0;
                 do {
-                  len5 = input2[next + copy++];
+                  len5 = input2[next + copy2++];
                   if (state.head && len5 && state.length < 65536) {
                     state.head.name += String.fromCharCode(len5);
                   }
-                } while (len5 && copy < have);
+                } while (len5 && copy2 < have);
                 if (state.flags & 512) {
-                  state.check = crc32(state.check, input2, copy, next);
+                  state.check = crc32(state.check, input2, copy2, next);
                 }
-                have -= copy;
-                next += copy;
+                have -= copy2;
+                next += copy2;
                 if (len5) {
                   break inf_leave;
                 }
@@ -3275,18 +3275,18 @@ var require_inflate = __commonJS({
                 if (have === 0) {
                   break inf_leave;
                 }
-                copy = 0;
+                copy2 = 0;
                 do {
-                  len5 = input2[next + copy++];
+                  len5 = input2[next + copy2++];
                   if (state.head && len5 && state.length < 65536) {
                     state.head.comment += String.fromCharCode(len5);
                   }
-                } while (len5 && copy < have);
+                } while (len5 && copy2 < have);
                 if (state.flags & 512) {
-                  state.check = crc32(state.check, input2, copy, next);
+                  state.check = crc32(state.check, input2, copy2, next);
                 }
-                have -= copy;
-                next += copy;
+                have -= copy2;
+                next += copy2;
                 if (len5) {
                   break inf_leave;
                 }
@@ -3421,23 +3421,23 @@ var require_inflate = __commonJS({
               state.mode = COPY;
             /* falls through */
             case COPY:
-              copy = state.length;
-              if (copy) {
-                if (copy > have) {
-                  copy = have;
+              copy2 = state.length;
+              if (copy2) {
+                if (copy2 > have) {
+                  copy2 = have;
                 }
-                if (copy > left) {
-                  copy = left;
+                if (copy2 > left) {
+                  copy2 = left;
                 }
-                if (copy === 0) {
+                if (copy2 === 0) {
                   break inf_leave;
                 }
-                utils2.arraySet(output, input2, next, copy, put);
-                have -= copy;
-                next += copy;
-                left -= copy;
-                put += copy;
-                state.length -= copy;
+                utils2.arraySet(output, input2, next, copy2, put);
+                have -= copy2;
+                next += copy2;
+                left -= copy2;
+                put += copy2;
+                state.length -= copy2;
                 break;
               }
               state.mode = TYPE;
@@ -3538,7 +3538,7 @@ var require_inflate = __commonJS({
                       break;
                     }
                     len5 = state.lens[state.have - 1];
-                    copy = 3 + (hold & 3);
+                    copy2 = 3 + (hold & 3);
                     hold >>>= 2;
                     bits3 -= 2;
                   } else if (here_val === 17) {
@@ -3554,7 +3554,7 @@ var require_inflate = __commonJS({
                     hold >>>= here_bits;
                     bits3 -= here_bits;
                     len5 = 0;
-                    copy = 3 + (hold & 7);
+                    copy2 = 3 + (hold & 7);
                     hold >>>= 3;
                     bits3 -= 3;
                   } else {
@@ -3570,16 +3570,16 @@ var require_inflate = __commonJS({
                     hold >>>= here_bits;
                     bits3 -= here_bits;
                     len5 = 0;
-                    copy = 11 + (hold & 127);
+                    copy2 = 11 + (hold & 127);
                     hold >>>= 7;
                     bits3 -= 7;
                   }
-                  if (state.have + copy > state.nlen + state.ndist) {
+                  if (state.have + copy2 > state.nlen + state.ndist) {
                     strm.msg = "invalid bit length repeat";
                     state.mode = BAD;
                     break;
                   }
-                  while (copy--) {
+                  while (copy2--) {
                     state.lens[state.have++] = len5;
                   }
                 }
@@ -3798,39 +3798,39 @@ var require_inflate = __commonJS({
               if (left === 0) {
                 break inf_leave;
               }
-              copy = _out - left;
-              if (state.offset > copy) {
-                copy = state.offset - copy;
-                if (copy > state.whave) {
+              copy2 = _out - left;
+              if (state.offset > copy2) {
+                copy2 = state.offset - copy2;
+                if (copy2 > state.whave) {
                   if (state.sane) {
                     strm.msg = "invalid distance too far back";
                     state.mode = BAD;
                     break;
                   }
                 }
-                if (copy > state.wnext) {
-                  copy -= state.wnext;
-                  from = state.wsize - copy;
+                if (copy2 > state.wnext) {
+                  copy2 -= state.wnext;
+                  from = state.wsize - copy2;
                 } else {
-                  from = state.wnext - copy;
+                  from = state.wnext - copy2;
                 }
-                if (copy > state.length) {
-                  copy = state.length;
+                if (copy2 > state.length) {
+                  copy2 = state.length;
                 }
                 from_source = state.window;
               } else {
                 from_source = output;
                 from = put - state.offset;
-                copy = state.length;
+                copy2 = state.length;
               }
-              if (copy > left) {
-                copy = left;
+              if (copy2 > left) {
+                copy2 = left;
               }
-              left -= copy;
-              state.length -= copy;
+              left -= copy2;
+              state.length -= copy2;
               do {
                 output[put++] = from_source[from++];
-              } while (--copy);
+              } while (--copy2);
               if (state.length === 0) {
                 state.mode = LEN;
               }
@@ -4473,27 +4473,109 @@ async function ownerSession(req, env2) {
 }
 
 // src/order-email.js
+var LOGO = "https://cravenandquill.com/assets/craven-quill-gold-logo.png";
+var esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+var possessive = (n) => n ? n + (/s$/i.test(n) ? "\u2019" : "\u2019s") : "their";
+var sans = "Arial,Helvetica,sans-serif";
+var serif = "Georgia,'Times New Roman',serif";
+function facts(o) {
+  const d = o.data || {}, name5 = String(d.names || "").trim(), title2 = String(d.story?.title || "").trim();
+  const r = d.recipient || {}, postcode = r.address?.postalOrZipCode || "";
+  return {
+    name: name5,
+    title: title2,
+    poss: possessive(name5),
+    them: name5 || "them",
+    label: PRODUCTS[o.size].label,
+    paid: "\xA3" + (o.amount / 100).toFixed(2),
+    to: [r.name, postcode].filter(Boolean).join(", "),
+    ref: String(o.id).slice(0, 8).toUpperCase()
+  };
+}
+function copy(o, kind) {
+  const f = facts(o);
+  if (kind === "receipt") return {
+    subject: `Payment received, we\u2019re making ${f.poss} book`,
+    preheader: `Payment received. Your proof arrives within 7 days.`,
+    kicker: "Order confirmed",
+    heading: `We\u2019re making ${f.poss} book now.`,
+    intro: [`Thank you. Your payment is in and our team has started on ${f.title ? `<i>${esc(f.title)}</i>` : "their story"}. We can\u2019t wait for ${esc(f.them)} to see it.`],
+    introText: [`Thank you. Your payment is in and our team has started on ${f.title || "their story"}. We can\u2019t wait for ${f.them} to see it.`],
+    steps: [["Now", `We draw ${f.them} into every page.`], ["Within 7 days", "We email you the finished proof to check."], ["Then 7\u201312 working days", `Printed and posted${f.to ? " to " + f.to : ""}.`]],
+    note: "Nothing prints until you\u2019ve approved the proof.",
+    button: "See your order"
+  };
+  if (kind === "proof") return {
+    subject: `Your proof is ready, check ${f.poss} book`,
+    preheader: "Check every page, then approve it for printing.",
+    kicker: "Your proof is ready",
+    heading: `${f.name ? f.poss[0].toUpperCase() + f.poss.slice(1) : "Your"} book is ready to check.`,
+    intro: ["Open your book and check every page: the names, the words and the pictures. Printing stays on hold until you approve this version."],
+    introText: ["Open your book and check every page: the names, the words and the pictures. Printing stays on hold until you approve this version."],
+    steps: [["Now", "Check every page and approve it."], ["Next", "We do a final check and send it to print."], ["Then 7\u201312 working days", `Printed and posted${f.to ? " to " + f.to : ""}.`]],
+    note: "Spotted something? Reply to this email before approving and we\u2019ll fix it.",
+    button: "Check the proof"
+  };
+  if (kind === "shipped") return {
+    subject: `${f.name ? f.poss : "Your"} book has gone to the printer`,
+    preheader: "Tracking will appear on your order page.",
+    kicker: "At the printer",
+    heading: `${f.name ? f.poss[0].toUpperCase() + f.poss.slice(1) : "Your"} book is being printed.`,
+    intro: ["Your approved book has been sent to the printer. This is not a dispatch confirmation yet. Tracking will appear on your order page when it\u2019s on its way."],
+    introText: ["Your approved book has been sent to the printer. This is not a dispatch confirmation yet. Tracking will appear on your order page when it\u2019s on its way."],
+    steps: [["Done", "Proof approved."], ["Now", "Printing and binding."], ["Next", `Posted${f.to ? " to " + f.to : ""}, with tracking on your order page.`]],
+    note: "",
+    button: "See your order"
+  };
+  throw Error("Unknown email type");
+}
+function html(o, c, url) {
+  const f = facts(o);
+  const p = (t2, extra = "") => `<p style="margin:0 0 16px;color:#3c352f;font:16px/1.65 ${sans};${extra}">${t2}</p>`;
+  const steps = c.steps.map(([when, what], i4) => `<tr><td width="22" valign="top" style="padding:${i4 ? "14px" : "0"} 0 0;"><div style="width:10px;height:10px;margin-top:5px;border-radius:50%;${i4 ? "border:2px solid #c9bda6;background:#fffdfa;" : "background:#ad843f;border:2px solid #ad843f;"}"></div></td><td style="padding:${i4 ? "14px" : "0"} 0 0;"><p style="margin:0;color:${i4 ? "#7a6e60" : "#846329"};font:700 12px/1.4 ${sans};">${esc(when)}</p><p style="margin:2px 0 0;color:#2b2621;font:15px/1.5 ${sans};">${esc(what)}</p></td></tr>`).join("");
+  const row = (k, v2) => `<tr><td style="padding:7px 0;color:#7a6e60;font:14px/1.45 ${sans};width:38%;" valign="top">${k}</td><td style="padding:7px 0;color:#2b2621;font:14px/1.45 ${sans};" valign="top">${v2}</td></tr>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(c.subject)} | Craven &amp; Quill</title><style>@media only screen and (max-width:600px){.shell{width:100%!important}.content{padding:32px 24px 34px!important}.footer{padding:24px 24px 32px!important}.heading{font-size:31px!important}.button{display:block!important;text-align:center!important}}</style></head>
+<body style="margin:0;padding:0;background:#efeae0;color:#211d1a;-webkit-text-size-adjust:100%;">
+<div style="display:none;font-size:1px;color:#efeae0;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${esc(c.preheader)}</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#efeae0;"><tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" class="shell" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;max-width:560px;background:#fffdfa;">
+<tr><td align="center" style="padding:30px 24px 22px;border-bottom:1px solid #e9dec7;"><a href="https://cravenandquill.com"><img src="${LOGO}" width="150" alt="Craven &amp; Quill" style="display:block;width:150px;height:auto;border:0;color:#211d1a;font:21px ${serif};"></a></td></tr>
+<tr><td class="content" style="padding:40px 48px 44px;">
+<p style="margin:0 0 14px;color:#846329;font:700 13px/1.5 ${sans};">${esc(c.kicker)}</p>
+<h1 class="heading" style="margin:0 0 20px;color:#211d1a;font:normal 36px/1.12 ${serif};letter-spacing:-.5px;">${esc(c.heading)}</h1>
+${c.intro.map((t2) => p(t2)).join("")}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:10px 0 28px;">${steps}</table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 0 30px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${esc(url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${sans};">${esc(c.button)}</a></td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#f5f0e6;"><tr><td style="padding:16px 20px;border-left:3px solid #ad843f;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+${f.title ? row("Book", `<i style="font-family:${serif};">${esc(f.title)}</i>`) : ""}${row("Format", esc(f.label) + " + digital PDF")}${row("Paid", esc(f.paid) + ", UK delivery included")}${f.to ? row("Posting to", esc(f.to)) : ""}${row("Order ref", esc(f.ref))}
+</table></td></tr></table>
+${c.note ? p(esc(c.note), "margin:24px 0 0;color:#655a50;font-size:14px;") : ""}
+<p style="margin:${c.note ? "8px" : "24px"} 0 0;color:#655a50;font:14px/1.6 ${sans};">Questions? Just reply to this email.</p>
+</td></tr>
+<tr><td class="footer" style="padding:24px 48px 34px;border-top:1px solid #e9dec7;background:#faf7f0;">
+<p style="margin:0 0 8px;color:#655a50;font:13px/1.55 ${sans};">Craven &amp; Quill. Personalised books, made for one reader at a time.</p>
+<p style="margin:0;color:#8a7f73;font:12px/1.55 ${sans};">The button opens your private order page. Please don\u2019t forward this email.</p>
+</td></tr></table></td></tr></table></body></html>`;
+}
 function orderEmail(o, kind, url) {
-  const titles = { receipt: "Payment received, your book is being prepared", proof: "Your book proof is ready", shipped: "Your book has been sent to the printer" };
-  if (!titles[kind]) throw Error("Unknown email type");
-  const lines = { receipt: "We have received your payment. We will send your first complete illustrated proof within 7 calendar days. Estimated UK delivery is 7\u201312 working days after final proof approval. Nothing prints until you approve the proof and we complete our final check.", proof: "Please open your private link and check every page. Printing stays on hold until you approve this version.", shipped: "Your approved book has been sent to the printer. This is not a dispatch confirmation. Tracking will appear on your order page when available." };
-  return { subject: "Craven & Quill: " + titles[kind], text: `${titles[kind]}
-
-${PRODUCTS[o.size].label} \xB7 \xA3${(o.amount / 100).toFixed(2)} including UK standard delivery
-Order: ${o.id}
-
-${lines[kind]}
-
-${url}
-
-Keep this private link safe. It gives access to your book.
-Questions? Reply to this email.`, key: `${o.id}:${kind}:${kind === "proof" ? o.data.proof?.hash : "1"}` };
+  const c = copy(o, kind), f = facts(o);
+  const text = [
+    c.heading,
+    ...c.introText,
+    c.steps.map(([w, t2]) => `${w}: ${t2}`).join("\n"),
+    [f.title ? `Book: ${f.title}` : "", `Format: ${f.label} + digital PDF`, `Paid: ${f.paid} including UK standard delivery`, f.to ? `Posting to: ${f.to}` : "", `Order ref: ${f.ref}`].filter(Boolean).join("\n"),
+    `${c.button}: ${url}`,
+    c.note,
+    "This link is private to you. Please don\u2019t forward it.\nQuestions? Just reply to this email.\n\nCraven & Quill"
+  ].filter(Boolean).join("\n\n");
+  return { subject: "Craven & Quill: " + c.subject, text, html: html(o, c, url), key: `${o.id}:${kind}:${kind === "proof" ? o.data.proof?.hash : "1"}` };
 }
 async function sendOrderEmail(env2, o, kind, url) {
   if (!env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { sent: false, message: "Order email is not connected. Use your private order link." };
   const message2 = orderEmail(o, kind, url);
   try {
-    const r = await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${env2.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": message2.key }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, reply_to: env2.ORDER_EMAIL_REPLY_TO || "cravenluke@gmail.com", to: [o.email], subject: message2.subject, text: message2.text }), signal: AbortSignal.timeout(15e3) });
+    const r = await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${env2.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": message2.key }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, reply_to: env2.ORDER_EMAIL_REPLY_TO || "cravenluke@gmail.com", to: [o.email], subject: message2.subject, html: message2.html, text: message2.text }), signal: AbortSignal.timeout(15e3) });
     const d = await r.json();
     return { sent: !!(r.ok && d.id), providerId: r.ok ? d.id : null, kind, proofHash: kind === "proof" ? o.data.proof?.hash : null, message: r.ok && d.id ? "Email accepted by provider; inbox delivery not yet confirmed." : "Email was not accepted. Retry from the order desk." };
   } catch {
@@ -21203,7 +21285,7 @@ var buffer = createCommonjsModule(function(module, exports) {
   Buffer3.prototype.writeDoubleBE = function writeDoubleBE(value, offset, noAssert) {
     return writeDouble(this, value, offset, false, noAssert);
   };
-  Buffer3.prototype.copy = function copy(target, targetStart, start, end) {
+  Buffer3.prototype.copy = function copy2(target, targetStart, start, end) {
     if (!Buffer3.isBuffer(target)) throw new TypeError("argument should be a Buffer");
     if (!start) start = 0;
     if (!end && end !== 0) end = this.length;
@@ -21727,11 +21809,11 @@ function spliceOne(list, index) {
   list.pop();
 }
 function arrayClone(arr, i4) {
-  var copy = new Array(i4);
+  var copy2 = new Array(i4);
   while (i4--) {
-    copy[i4] = arr[i4];
+    copy2[i4] = arr[i4];
   }
-  return copy;
+  return copy2;
 }
 function unwrapListeners(arr) {
   var ret = new Array(arr.length);
@@ -41010,7 +41092,7 @@ var BBox = /* @__PURE__ */ (function() {
       }
     }
   };
-  _proto.copy = function copy() {
+  _proto.copy = function copy2() {
     return new BBox2(this.minX, this.minY, this.maxX, this.maxY);
   };
   _createClass$1(BBox2, [{
@@ -43467,7 +43549,7 @@ var GlyphInfo = /* @__PURE__ */ (function() {
     this.isMultiplied = false;
   }
   var _proto = GlyphInfo2.prototype;
-  _proto.copy = function copy() {
+  _proto.copy = function copy2() {
     return new GlyphInfo2(this._font, this.id, this.codePoints, this.features);
   };
   _createClass$4(GlyphInfo2, [{
@@ -46173,7 +46255,7 @@ var Point = /* @__PURE__ */ (function() {
     this.y = y;
   }
   var _proto = Point2.prototype;
-  _proto.copy = function copy() {
+  _proto.copy = function copy2() {
     return new Point2(this.onCurve, this.endContour, this.x, this.y);
   };
   return Point2;
@@ -52619,10 +52701,10 @@ async function unsubscribeFollowup(env2, token) {
   return true;
 }
 var escapeHtml = (value) => String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-function render(template, bindings, html = false) {
+function render(template, bindings, html2 = false) {
   let result = template;
-  for (const [key2, value] of Object.entries(bindings)) result = result.replaceAll(`{{${key2}}}`, html ? escapeHtml(value) : String(value));
-  if (html) result = result.replaceAll('src="craven-quill-gold-logo.png"', 'src="https://cravenandquill.com/assets/craven-quill-gold-logo.png"');
+  for (const [key2, value] of Object.entries(bindings)) result = result.replaceAll(`{{${key2}}}`, html2 ? escapeHtml(value) : String(value));
+  if (html2) result = result.replaceAll('src="craven-quill-gold-logo.png"', 'src="https://cravenandquill.com/assets/craven-quill-gold-logo.png"');
   return result;
 }
 function message(step, quote, code2, expiry) {
