@@ -53441,6 +53441,9 @@ You can stop offer emails here: ${unsubscribe}`;
       const rows = (await q(env2, "SELECT kind,actor,details,created_at FROM order_audit WHERE order_id=?1 ORDER BY created_at DESC LIMIT 100", id).all()).results || [];
       return reply({ activity: rows.map((x) => ({ kind: x.kind, actor: x.actor, details: JSON.parse(x.details || "{}"), at: x.created_at })) });
     }
+    if (action === "return-link" && req.method === "POST") {
+      return reply({ url: `${url.origin}/order.html?id=${id}#key=${await privateKey(env2, o.data.privateKey, true)}` });
+    }
     const b = await input(req);
     requireThat(b.revision === o.revision, "This order changed. Reload before continuing.", 409);
     if (action === "apply-offer") {
@@ -53509,9 +53512,6 @@ You can stop offer emails here: ${unsubscribe}`;
       const updated = await q(env2, "UPDATE customer_orders SET session_id=?1,status='awaiting_payment',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 RETURNING id", s.id, now2(), id, o.revision).first();
       requireThat(updated, "Checkout changed. Reload your order.", 409);
       return reply({ url: s.url });
-    }
-    if (action === "return-link") {
-      return reply({ url: `${url.origin}/order.html?id=${id}#key=${await privateKey(env2, o.data.privateKey, true)}` });
     }
     if (action === "approve-proof") {
       requireThat(o.payment_status === "paid" && o.data.proof && b.proofHash === o.data.proof.hash && b.confirm === true && o.status === "proof_ready", "Check the latest paid book proof before approving.", 409);
