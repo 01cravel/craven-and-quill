@@ -747,3 +747,5 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .hardback{width:140px}.hardback[data-size="a5"]{width:100px}
 .hb-copy strong{overflow:visible}
 @media (max-width:560px){.hardback{width:116px}.hardback[data-size="a5"]{width:84px}.hardback-stage{margin-bottom:16px}}
+
+.step[data-step="1"] .start-price{margin:6px 0 16px}
