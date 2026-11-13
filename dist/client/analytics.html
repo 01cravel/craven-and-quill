@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
-  <title>Analytics | Craven &amp; Quill</title><link rel="stylesheet" href="/orders-admin.css"><link rel="stylesheet" href="/analytics.css">
-</head>
+  <title>Analytics | Craven &amp; Quill</title><link rel="stylesheet" href="/orders-admin.css"><link rel="stylesheet" href="/analytics.css?v=sc-1">
+<link rel="stylesheet" href="/owner-theme.css?v=sc-1"></head>
 <body>
   <header class="app-header"><a class="identity" href="/"><span class="identity-mark">CQ</span><span>Craven &amp; Quill<small>Analytics</small></span></a><span class="owner-label">Private owner workspace</span></header>
   <main class="app-shell">
@@ -23,6 +23,12 @@
     </form>
 
     <div id="report" hidden>
+      <section class="sc" id="scorecard" aria-labelledby="sc-title">
+        <div class="panel"><h2 id="sc-title">Scorecard</h2><p id="sc-lede" class="sc-lede"></p></div>
+        <div id="sc-tiles" class="sc-tiles"></div>
+        <div class="panel"><h2>Where shoppers drop out</h2><p class="sub">Each bar is the share of arrivals who reached that step. Red marks the biggest drop.</p><div id="sc-funnel" class="sc-funnel"></div></div>
+        <div class="panel"><h2>What to watch, and how we're doing</h2><p class="sub">Each measure, the level that means it's working, and where it stands for the dates picked above.</p><div class="table-wrap"><table><thead><tr><th>Measure</th><th class="what">What it tells you</th><th>Now</th><th>Aim</th><th>Verdict</th></tr></thead><tbody id="sc-table"></tbody></table></div></div>
+      </section>
       <section class="headline panel" aria-label="Headline numbers"><dl id="headline"></dl></section>
 
       <section class="panel profit-panel" aria-labelledby="profit-title">
@@ -105,6 +111,6 @@
     </div>
   </main>
   <div id="tip" class="tip" role="tooltip" hidden></div>
-  <script src="/analytics.js" defer></script>
+  <script src="/analytics.js?v=sc-1" defer></script>
 </body>
 </html>

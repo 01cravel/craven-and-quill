@@ -42,7 +42,7 @@ function fillOptions(d){
   }
 }
 
-function render(d){const t=d.advertisingTracking;$('#ad-tracking-status').textContent=t?`Google tag: ${t.googleTagConfigured?'configured':'missing'}. Preview-email reporting: ${t.leadConfigured?'configured':'missing'}. Purchase goal: ${t.purchaseConfigured?'configured':'missing'}. Protected server feeds: ${t.serverFeedPrepared?'prepared, Google connection requires verification':'not prepared'}. Meta pixel: ${t.metaPixelConfigured?'configured':'missing'}. Meta purchase reporting from the server: ${t.metaPurchaseConfigured?'configured':'missing, add the Conversions API token'}.`:'Tracking configuration unavailable.';everyone(d);headline(d);profit(d);funnel(d);ads(d);days(d);hours(d);breakdowns(d);tabs(d);spend(d);$('#notes').replaceChildren(...d.notes.map(n=>E('li',n)));}
+function render(d){const t=d.advertisingTracking;$('#ad-tracking-status').textContent=t?`Google tag: ${t.googleTagConfigured?'configured':'missing'}. Preview-email reporting: ${t.leadConfigured?'configured':'missing'}. Purchase goal: ${t.purchaseConfigured?'configured':'missing'}. Protected server feeds: ${t.serverFeedPrepared?'prepared, Google connection requires verification':'not prepared'}. Meta pixel: ${t.metaPixelConfigured?'configured':'missing'}. Meta purchase reporting from the server: ${t.metaPurchaseConfigured?'configured':'missing, add the Conversions API token'}.`:'Tracking configuration unavailable.';try{scorecard(d);}catch(e){console.error('Scorecard failed',e);}everyone(d);headline(d);profit(d);funnel(d);ads(d);days(d);hours(d);breakdowns(d);tabs(d);spend(d);$('#notes').replaceChildren(...d.notes.map(n=>E('li',n)));}
 
 function headline(d){
   const h=d.headline,f=d.filter.creative||d.filter.source;
@@ -316,3 +316,42 @@ $('#spend-day').value=ukDay(new Date());
 $('#audience-all').checked=start.get('audience')==='all';
 for(const [id,key] of [['#creative','creative'],['#source','source']])if(start.get(key)){const o=E('option',start.get(key));o.value=start.get(key);$(id).append(o);$(id).value=start.get(key);}
 void load();
+
+// Scorecard: the few numbers that decide whether the ads are working, against their aims.
+function scorecard(d){
+  const el=(t,c,txt)=>{const n=document.createElement(t);if(c)n.className=c;if(txt!==undefined)n.textContent=txt;return n;};
+  const f=Object.fromEntries((d.funnel||[]).map(s=>[s.step,s.visits]));const v=k=>f[k]||0;
+  const from=d.range?.from,to=d.range?.to,days=from&&to?Math.max(1,Math.round((Date.parse(to)-Date.parse(from))/86400000)+1):1;
+  const arrived=v('visit'),opened=v('maker_start')||v('step_1'),pastName=v('step_8'),photo=v('photo_picked'),character=v('preview_success'),prices=v('price_view'),pressed=v('checkout_start'),sales=d.headline?.sales??v('paid');
+  const stop=d.economics?.stop||{},limit=stop.limitPence||0,spent=stop.spentSinceSalePence||0,spend=d.headline?.spendPence||0;
+  const rate=(a,b)=>b?a/b:null,p=x=>x===null?'—':Math.round(x*100)+'%';
+  const verdict=(now,aim,base,lower)=>{if(now===null||base<5)return['Too few yet',''];const r=lower?aim/Math.max(now,1e-9):now/aim;return r>=1?['On track','ok']:r>=.7?['Close','warn']:['Behind','bad'];};
+  const perDay=arrived/days;
+  $('#sc-lede').textContent=`${num(arrived)} real UK visitors in ${days===1?'this day':days+' days'} (${perDay.toFixed(1)} a day). ${num(character)} made a character, ${num(pressed)} pressed pay and ${sales?num(sales)+' paid':'nobody has paid yet'}.`;
+  const tiles=[
+    ['Visitors a day',perDay.toFixed(1),perDay>=15?'ok':perDay>=10?'warn':'bad','Aim: 15 a day from ads.'],
+    ['Got past the name page',p(rate(pastName,opened)),verdict(rate(pastName,opened),.4,opened)[1],`${num(pastName)} of ${num(opened)} who opened the maker.`],
+    ['Added a photo',p(rate(photo,pastName)),verdict(rate(photo,pastName),.5,pastName)[1],`${num(photo)} of ${num(pastName)} who got past the name.`],
+    ['Pressed pay',num(pressed),pressed?'ok':'',`${num(prices)} saw the prices.`],
+    ['Orders',num(sales),sales?'ok':'bad','The number that decides everything.']
+  ];
+  const box=$('#sc-tiles');box.replaceChildren();
+  for(const [lab,big,cls,note] of tiles){const t=el('div','sc-tile');t.append(el('span','lab',lab),el('span','big '+cls,big),el('span','note',note));box.append(t);}
+  if(limit){const t=el('div','sc-tile');t.append(el('span','lab','Spent since last sale'),el('span','big '+(spent>=limit?'bad':spent>=limit*.7?'warn':''),pounds(spent)));const m=el('div','sc-meter'),i=el('i');i.style.width=Math.min(100,spent/limit*100)+'%';m.append(i);t.append(m,el('span','note',spend?`Stop line ${pounds(limit)}. No sale by then means stop.`:'Enter Google spend in Ad spend below to track this.'));box.append(t);}
+  const steps=[['Arrived',arrived],['Opened the maker',opened],['Got past the name page',pastName],['Added a photo',photo],['Got their character',character],['Saw the prices',prices],['Pressed pay',pressed],['Paid',sales]];
+  let worst=-1,worstDrop=0;steps.forEach(([,n],i)=>{if(i){const drop=steps[i-1][1]-n;if(drop>worstDrop){worstDrop=drop;worst=i;}}});
+  const fun=$('#sc-funnel');fun.replaceChildren();
+  steps.forEach(([lab,n],i)=>{const r=el('div','sc-row'+(i===worst?' leak':''));const tr=el('div','track'),bar=el('i');bar.style.width=(arrived?n/arrived*100:0)+'%';tr.append(bar);const val=el('span','val');val.append(el('b','',num(n)),document.createTextNode(' '+(arrived?Math.round(n/arrived*100)+'%':'')));r.append(el('span','lab-txt',lab+(i===worst?` (−${worstDrop})`:'')),tr,val);fun.append(r);});
+  const rows=[
+    ['Visitors a day','Are the ads bringing people in?',perDay.toFixed(1),'15+',perDay>=15?['On track','ok']:perDay>=10?['Close','warn']:['Behind','bad']],
+    ['Got past the name page','Does the first screen hook them?',p(rate(pastName,opened)),'40%',verdict(rate(pastName,opened),.4,opened)],
+    ['Added a photo','Do they trust us with a photo?',p(rate(photo,pastName)),'50%',verdict(rate(photo,pastName),.5,pastName)],
+    ['Got their character','Does the free preview work?',p(rate(character,photo)),'90%',verdict(rate(character,photo),.9,photo)],
+    ['Character to prices','Do they like it enough to look at prices?',p(rate(prices,character)),'50%',verdict(rate(prices,character),.5,character)],
+    ['Prices to pressed pay','Is the price right?',p(rate(pressed,prices)),'50%',verdict(rate(pressed,prices),.5,prices)],
+    ['Pressed pay to paid','Does the payment page feel safe?',p(rate(sales,pressed)),'50%',verdict(rate(sales,pressed),.5,pressed)],
+    ['Orders','Are we making money?',num(sales),'1+',sales?['On track','ok']:['Behind','bad']]
+  ];
+  const tb=$('#sc-table');tb.replaceChildren();
+  for(const [m,w,now,aim,[vt,vc]] of rows){const tr=el('tr');const vd=el('td');vd.append(el('span','pill '+vc,vt));tr.append(el('td','',m),el('td','what',w),el('td','',now),el('td','',aim),vd);tb.append(tr);}
+}

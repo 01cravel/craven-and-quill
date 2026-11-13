@@ -1,0 +1,33 @@
+/* Owner workspace theme: matches the scorecard. Warm paper, serif figures, quiet lines. Loaded last on owner pages. */
+@font-face{font-family:Story;src:url('/assets/story-serif.ttf');font-display:swap}
+:root{--ink:#23221f;--muted:#6f6b63;--paper:#fffefb;--bg:#f6f5f1;--line:#e6e2d9;--blue:#2d5a47;--blue-soft:#e8efe9;--good:#2f7a4f;--good-soft:#e9f3ec;--warn:#9a6512;--warn-soft:#fbf1df;--bad:#b2412f;--bad-soft:#fbece8;--bar:#2d5a47;--bar-soft:#cddbd2;--lost:#b2412f;--serif:Story,Georgia,"Times New Roman",serif}
+html,body{background:var(--bg)}body{color:var(--ink);font-size:14px}
+.app-header{background:var(--paper);border-bottom:1px solid var(--line)}
+.identity{font-family:var(--serif);font-weight:400;font-size:18px}.identity small{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:11px}
+.identity-mark{background:var(--blue);border-radius:50%;font-family:var(--serif);font-weight:400;font-size:13px;letter-spacing:.02em}
+.page-heading h1,.panel h2,.sc h2{font-family:var(--serif);font-weight:400;letter-spacing:0}
+.page-heading h1{font-size:34px}.panel h2{font-size:20px;margin-bottom:4px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:none}
+.headline dd,.ledger dd,.big{font-family:var(--serif);font-weight:400;font-variant-numeric:tabular-nums}
+.button,button.button{background:var(--blue);border-color:var(--blue)}.button.secondary,button.secondary{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+.workspace-tabs a.active,.workspace-tabs button.active{color:var(--blue);border-color:var(--blue)}
+.presets button[aria-pressed=true]{background:var(--blue-soft);color:var(--blue)}
+th{color:var(--muted);font-weight:500}td,th{border-color:var(--line)}
+
+/* Scorecard */
+.sc{display:flex;flex-direction:column;gap:22px;margin:0 0 22px}
+.sc-lede{font-size:16px;line-height:1.5;max-width:68ch;margin:0}
+.sc-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.sc-tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.sc-tile .lab{font-size:12px;color:var(--muted)}.sc-tile .big{font-size:32px;line-height:1.1}.sc-tile .note{font-size:12px;color:var(--muted);line-height:1.4}
+.sc .ok{color:var(--good);background:none}.sc .warn{color:var(--warn);background:none}.sc .bad{color:var(--bad);background:none}
+.sc-meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden}.sc-meter i{display:block;height:100%;background:var(--warn)}
+.sc-funnel{display:grid;gap:7px;margin-top:6px}
+.sc-row{display:grid;grid-template-columns:minmax(120px,190px) 1fr 74px;gap:12px;align-items:center;font-size:13px}
+.sc-row .track{height:20px;background:var(--bg);border-radius:4px;overflow:hidden}.sc-row .track i{display:block;height:100%;background:var(--bar);border-radius:4px;min-width:2px}
+.sc-row .val{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}.sc-row .val b{color:var(--ink);font-weight:600}
+.sc-row.leak .lab-txt{color:var(--bad)}
+.sc table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.sc th,.sc td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.sc td.what{color:var(--muted)}
+.sc .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;border:1px solid currentColor;white-space:nowrap}
+@media(max-width:640px){.sc-row{grid-template-columns:110px 1fr 60px;gap:8px}.sc .what{display:none}.sc-tile .big{font-size:27px}}
