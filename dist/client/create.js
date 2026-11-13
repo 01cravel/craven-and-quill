@@ -108,6 +108,8 @@ function showStep(number){
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
   state.step=number;keepStepFields();
   if(number===2){updatePhotoGate();renderPhotoThumbnails(state.photos);}
+  if(number===11)updateSendTo(true);
+  if(number===6)updateHardback();
   if(number===9)configureBrief();
   if(number===6){window.cqMeasurement?.record('price_view');void saveQuote().catch(()=>{});}
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
@@ -212,7 +214,7 @@ async function writeStory(revision=false){
   const capturedBasis=storyBasis(),request=++storyRequest;
   const previous=revision?JSON.parse(JSON.stringify(state.storyDraft)):null;
   storyWriting=true;updateStoryGate();
-  $('#story-writing-status').textContent=revision?'Updating the story. Your current version stays below.':'Writing their ten-page story…';
+  $('#story-writing-status').textContent=revision?'Updating the story. Your current version stays below.':'Dipping the quill. Their story takes about 20 seconds.';const stopQuill=revision?()=>{}:quillDesk();
   $$('#story-editor input,#story-editor textarea').forEach(field=>field.disabled=true);
   try{
     const response=await fetch('/api/generate-story',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...basis,changes,previousStory:previous}),signal:AbortSignal.timeout(85000)});
@@ -226,8 +228,47 @@ async function writeStory(revision=false){
     window.dispatchEvent(new Event('cq-draft-change'));$('#story-changes').value='';$('#story-writing-status').textContent='';
     track('story_generated');if(!revision){$('#story-editor').open=false;if(state.characterImages.length)renderPreviewBook();else if(!state.photos.length){showStep(2);$('#step-2-error').textContent='Add your photo again to create a new preview. Your story is saved.';}else{showStep(5);void preparePreview();}}else{$('#story-editor').open=true;$('.rewrite-options').open=false;}
   }catch(cause){error.textContent=cause.name==='TimeoutError'?'The story took too long. Your draft has not changed. Please try again.':cause.message||'We could not write the story. Your draft has not changed.';$('#story-writing-status').textContent='';}
-  finally{storyWriting=false;$$('#story-editor input,#story-editor textarea').forEach(field=>field.disabled=false);updateStoryGate();}
+  finally{stopQuill();storyWriting=false;$$('#story-editor input,#story-editor textarea').forEach(field=>field.disabled=false);updateStoryGate();}
 }
+
+// Story wait: a Craven & Quill quill writes the opening lines about the child while the story is written.
+let quillRun=0;
+const QUILL='<svg class="quill" viewBox="0 0 64 64" aria-hidden="true"><path class="quill-feather" d="M60 3C40 5 24 16 16 33c-3 7-4 12-4 15l5-3c2-9 9-17 18-23-6 7-10 13-12 20 9-5 18-14 25-27 3-5 7-9 12-12z"/><path class="quill-shaft" d="M12 48 3 61"/><path class="quill-nib" d="M5 58l-2 4 4-2z"/></svg>';
+function quillDesk(){
+  const desk=$('#quill-desk'),out=$('#quill-lines');if(!desk||!out)return()=>{};
+  const run=++quillRun,first=(($('#names').value||'').trim().split(/,|&| and /i)[0]||'').trim(),name=first?first.charAt(0).toUpperCase()+first.slice(1):'our hero';
+  const raw=(($('#personal-details').value||'').trim()||($('#own-idea')?.value||'').trim()).replace(/\s+/g,' ');
+  let loves=raw.replace(/^loves?\s+/i,'').replace(/[.!]+$/,'');if(loves.length>70)loves=loves.slice(0,70).replace(/\s+\S*$/,'')+'…';
+  const lines=['Once upon a time,','there was a hero called '+name+'.',loves?(/^(loves?|likes?)\b/i.test(raw)||!/\b(loves?|likes?)\b/i.test(raw)?name+' loved '+loves.charAt(0).toLowerCase()+loves.slice(1)+'.':raw):name+' was ready for anything.','And today, an adventure begins…'];
+  out.innerHTML='';const pen=document.createElement('span');pen.className='quill-pen';pen.innerHTML=QUILL;
+  desk.hidden=false;
+  const calm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(calm){lines.forEach(l=>{const d=document.createElement('span');d.className='quill-line';d.textContent=l;out.append(d);});return()=>{quillRun++;desk.hidden=true;};}
+  (async()=>{const wait=ms=>new Promise(r=>setTimeout(r,ms));
+    while(run===quillRun){out.textContent='';
+      for(const l of lines){if(run!==quillRun)return;const d=document.createElement('span');d.className='quill-line';const t=document.createTextNode('');d.append(t,pen);out.append(d);
+        for(const ch of l){if(run!==quillRun)return;t.data+=ch;await wait(ch===' '?40:/[,.…]/.test(ch)?260:55+Math.random()*45);}await wait(380);}
+      await wait(2600);}})();
+  return()=>{quillRun++;desk.hidden=true;};
+}
+
+// Size page: a hardback book with their character on the cover, sized to the chosen format.
+function updateHardback(){const book=$('#hardback');if(!book)return;const size=$('input[name="product"]:checked')?.value||'a4';book.dataset.size=size;
+  $('#hb-art').src=state.characterImages[0]||'assets/storybook.webp';$('#hb-name').textContent=(fullNames()||'Someone special').toUpperCase();$('#hb-title').textContent=$('#live-title').textContent||'';
+  $('#hb-caption').textContent=size==='a5'?'A5 hardback, 14.8 × 21 cm':'A4 hardback, 21 × 29.7 cm';
+  requestAnimationFrame(()=>{const name=$('#hb-name');name.style.fontSize='';let px=parseFloat(getComputedStyle(name).fontSize);while(name.scrollWidth>name.clientWidth&&px>10){px-=1;name.style.fontSize=px+'px';}});}
+document.querySelectorAll('input[name="product"]').forEach(r=>r.addEventListener('change',updateHardback));
+
+// Delivery: send straight to the child or to the buyer first. Prefills the child's name when sending to them.
+function updateSendTo(entering){const to=$('input[name="send-to"]:checked')?.value||'them',field=$('#recipient-name'),child=fullNames();
+  document.querySelectorAll('[data-send-name]').forEach(el=>el.textContent=child||'them');
+  $('#recipient-name-label').textContent=to==='me'?'Your name on the parcel':'Their name on the parcel';
+  const set=v=>{field.value=v;field.dispatchEvent(new Event('input',{bubbles:true}));};
+  if(to==='them'&&child&&(!field.value.trim()||!entering&&field.dataset.autofill==='me')){set(child);field.dataset.autofill='them';}
+  else if(to==='me'&&!entering&&field.dataset.autofill==='them'){set('');field.dataset.autofill='me';field.focus();}
+  else if(entering&&!field.value.trim()&&to==='them'&&child){set(child);field.dataset.autofill='them';}}
+document.querySelectorAll('input[name="send-to"]').forEach(r=>r.addEventListener('change',()=>updateSendTo(false)));
+$('#recipient-name').addEventListener('input',e=>{if(e.isTrusted)delete $('#recipient-name').dataset.autofill;});
 $('#personal-details').addEventListener('input',updateLive);
 $('#own-idea').addEventListener('input',updateLive);
 $('#story-title').addEventListener('input',editDraft);$('#story-synopsis').addEventListener('input',editDraft);
@@ -563,8 +604,19 @@ function fillReview(){
   const art=$('#review-art');art.src=state.characterImages[0]||'assets/storybook.webp';art.alt=state.characterImages[0]?`${name}, illustrated`:'Sample storybook illustration';
   $$('[data-review-name]').forEach(el=>el.textContent=fullNames()||'your character');
   $('#review-chapter').textContent=state.storyDraft?.title||'Chapter one';
-  $('#review-text').textContent=state.storyDraft?previewText():previewText(selectedStory());
+  renderReviewPage();
 }
+// Review: flick through every page of their story. The left picture is a placeholder until we illustrate it.
+let reviewPage=0;
+function renderReviewPage(){const pages=state.storyDraft?.spreads||[];const total=pages.length;
+  if(!total){$('#review-text').textContent=previewText(selectedStory());$('#review-pos').hidden=true;$('#review-prev').hidden=$('#review-next').hidden=true;return;}
+  reviewPage=Math.max(0,Math.min(total-1,reviewPage));
+  $('#review-text').textContent=pages[reviewPage].text;$('#review-folio').textContent=reviewPage+1;
+  $('#review-pos').hidden=false;$('#review-pos').textContent=`Page ${reviewPage+1} of ${total}`;
+  $('#review-prev').hidden=$('#review-next').hidden=false;$('#review-prev').disabled=reviewPage===0;$('#review-next').disabled=reviewPage===total-1;}
+$('#review-prev').addEventListener('click',()=>{reviewPage--;renderReviewPage();});
+$('#review-next').addEventListener('click',()=>{reviewPage++;renderReviewPage();});
+{let x0=null;const spread=$('#review-spread');spread.addEventListener('pointerdown',e=>{x0=e.clientX;});spread.addEventListener('pointerup',e=>{if(x0===null)return;const dx=e.clientX-x0;x0=null;if(Math.abs(dx)>40){reviewPage+=dx<0?1:-1;renderReviewPage();}});}
 const examplesDialog=$('#examples-dialog');
 $('#open-examples').addEventListener('click',()=>{const frame=$('#examples-frame');if(frame.src==='about:blank'||!frame.src.includes('test-book'))frame.src='test-book.html?book=amara&sample=1&embed=1';examplesDialog.showModal();track('examples_opened');});
 $('#close-examples').addEventListener('click',()=>examplesDialog.close());

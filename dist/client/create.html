@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=trust-20261113">
+  <link rel="stylesheet" href="create.css?v=book-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -135,6 +135,9 @@
           <h1 id="step-4-title">Your story.</h1>
           <p class="intro" id="story-choice-intro">Swipe to read. Tap Edit text to make it yours.</p>
           <p id="story-writing-status" class="story-status" role="status" aria-live="polite"></p>
+          <figure class="quill-desk" id="quill-desk" aria-hidden="true" hidden>
+            <div class="quill-page"><p class="quill-lines" id="quill-lines"></p></div>
+          </figure>
           <p id="story-outdated" class="story-notice" hidden></p>
           <div id="story-editor" hidden>
             <p id="story-summary" hidden></p>
@@ -164,12 +167,39 @@
 <div class="error" id="step-10-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" type="button" id="start-preview">Save and write the story <span>→</span></button></div></section>
         <section class="step preview-step" data-step="5" aria-labelledby="step-5-title" hidden>
           <div id="making-state">
-            <div class="drawing-brand"><img src="assets/logo-mark-on-white.png?v=gold-alpha-20261026" alt="" width="64" height="64"><span>Craven &amp; Quill</span></div>
-            <h1 id="step-5-title" tabindex="-1">Their character is<br>taking shape.</h1>
+            <h1 id="step-5-title" tabindex="-1" class="sketch-title">Pencils out. We’re drawing <span id="sketch-name">them</span> now.</h1>
+            <figure class="sketchpad" aria-hidden="true">
+              <span class="tape tape-l"></span><span class="tape tape-r"></span>
+              <svg class="sketch" id="sketch" viewBox="0 0 200 240">
+                <g class="wash">
+                  <path class="w-skin" d="M62 84a38 38 0 1 0 76 0a38 38 0 1 0-76 0z"/>
+                  <path class="w-hair" d="M63 80c-2-20 12-34 26-35c6-10 18-12 26-6c12-6 26 4 25 18c9 6 9 16 4 24c-8-10-20-14-32-12c-12-6-26-4-34 6c-6 0-11 2-15 5z"/>
+                  <path class="w-shirt" d="M70 124c20-8 40-8 60 0l20 25-15 9-9-11v53H74v-53l-9 11-15-9z"/>
+                  <path class="w-shorts" d="M74 200h52v14H104l-4-6-4 6H74z"/>
+                  <circle class="w-cheek" cx="80" cy="96" r="6"/><circle class="w-cheek" cx="120" cy="96" r="6"/>
+                </g>
+                <g class="ink">
+                  <path d="M62 84a38 38 0 1 0 76 0a38 38 0 1 0-76 0"/>
+                  <path d="M63 80c-2-20 12-34 26-35c6-10 18-12 26-6c12-6 26 4 25 18c9 6 9 16 4 24c-8-10-20-14-32-12c-12-6-26-4-34 6c-6 0-11 2-15 5"/>
+                  <path d="M60 86c-6 0-8 10-1 13M140 86c6 0 8 10 1 13"/>
+                  <path d="M84 82c3-3 7-3 10 0M106 82c3-3 7-3 10 0"/>
+                  <path d="M88 89a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M107 89a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0"/>
+                  <path d="M88 101c7 9 17 9 24 0"/>
+                  <path d="M92 121v-4M108 121v-4"/>
+                  <path d="M70 124c20-8 40-8 60 0l20 25-15 9-9-11v53H74v-53l-9 11-15-9z"/>
+                  <path d="M100 150l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1z"/>
+                  <path d="M74 200h52v14H104l-4-6-4 6H74z"/>
+                  <path d="M80 214v18M120 214v18"/>
+                  <path d="M76 232h16c3 0 4 4 0 4H74c-2 0-2-4 2-4zM108 232h16c4 0 4 4 2 4h-18c-4 0-3-4 0-4z"/>
+                  <path d="M34 44v14M27 51h14M168 120v12M162 126h12M160 36l3 6 6 3-6 3-3 6-3-6-6-3 6-3z"/>
+                </g>
+                <g class="pencil" id="sketch-pencil"><path d="M0 0l6-16 26-26 10 10-26 26z"/><path class="lead" d="M0 0l6-16 4 6z"/></g>
+              </svg>
+            </figure>
             <div class="drawing-progress" id="drawing-progress" data-phase="saving">
-              <div class="ink-track" id="drawing-bar" role="progressbar" aria-label="Creating your free preview" aria-valuetext="Saving your preview details"><span class="ink-flow"></span></div>
-              <p id="drawing-stage" role="status">Saving your preview details.</p>
-              <p id="drawing-note">A little imagination. A story all their own.</p>
+              <p id="drawing-stage" class="sketch-stage" role="status">Getting the paper ready</p>
+              <div class="ink-track" id="drawing-bar" role="progressbar" aria-label="Drawing their character" aria-valuetext="Getting the paper ready"><span class="ink-flow"></span></div>
+              <p id="drawing-note" class="sketch-note">Takes about a minute. Stick the kettle on.</p>
             </div>
             <div class="generation-error" id="generation-error" role="alert" hidden><p id="generation-error-copy">We could not draw the character this time.</p><button type="button" id="retry-generation">Try again</button><div id="blocked-actions" hidden><button type="button" id="change-photo">Change photo</button><button type="button" id="change-story">Change story</button></div></div>
           </div>
@@ -195,6 +225,13 @@
         <section class="step checkout-step" data-step="6" aria-labelledby="step-6-title" hidden>
           <h1 id="step-6-title">Choose their book.</h1>
           <p class="intro">Tap a size to continue. Both include UK delivery. Your full proof is ready within 7 calendar days of payment.</p>
+          <figure class="hardback-stage" aria-label="Their hardback book">
+            <div class="hardback" id="hardback" data-size="a4">
+              <span class="hb-back"></span><span class="hb-pages"></span>
+              <div class="hb-cover"><img id="hb-art" src="assets/storybook.webp" width="900" height="1125" alt="Their book cover with their character"><span class="hb-shade"></span><div class="hb-copy"><span>A STORY FOR</span><strong id="hb-name">SOMEONE SPECIAL</strong><em id="hb-title"></em></div><span class="hb-hinge"></span><span class="hb-gloss"></span></div>
+            </div>
+            <figcaption id="hb-caption">A4 hardback, 21 × 29.7 cm</figcaption>
+          </figure>
           <p class="offer-clock" data-offer-clock><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>£10 off ends at midnight</span> <time aria-hidden="true"></time></p>
           <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>Rated 4.9★</b> with 3,000+ books sold across our book catalogue</span></p>
 
@@ -207,13 +244,19 @@
             <p class="privacy-line">Both include a digital PDF, matte hardback cover, full-colour 200gsm glossy pages and UK standard delivery. The same complete story in either size.</p>
             <div class="size-comparison" aria-label="Book size comparison"><div class="size-a5">A5<small>14.8 × 21 cm</small></div><div class="size-a4">A4<small>21 × 29.7 cm</small></div></div>
           </fieldset>
-          <label class="offer-choice"><input id="offer-email-consent" type="checkbox"><span>Email me up to two follow-up emails about my book if I do not buy. The second may include an offer. I can unsubscribe at any time.</span></label>
+          <label class="offer-choice" hidden><input id="offer-email-consent" type="checkbox"><span>Email me up to two follow-up emails about my book if I do not buy. The second may include an offer. I can unsubscribe at any time.</span></label>
 
           <div class="error" id="step-6-error" role="alert"></div>
           <div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next" type="button" data-next="11">Continue <span>→</span></button></div>
         </section>
 
-<section class="step" data-step="11" aria-labelledby="step-11-title" hidden><h1 id="step-11-title">Where should we send it?</h1><p class="intro">UK standard delivery is included.</p>            <label for="recipient-name">Recipient name</label><input id="recipient-name" maxlength="100" autocomplete="shipping name" required>
+<section class="step" data-step="11" aria-labelledby="step-11-title" hidden><h1 id="step-11-title">Where should we send it?</h1>
+          <p class="intro">You’ll see the whole book by email first. Once you approve it, we print the hardback and post it, usually within 7–12 working days. UK delivery is included.</p>
+          <fieldset class="send-to"><legend>Who should the parcel go to?</legend>
+            <label class="send-option"><input type="radio" name="send-to" value="them" checked><span><b>Straight to <span data-send-name>them</span></b><small>We post it to their address, ready to open.</small></span></label>
+            <label class="send-option"><input type="radio" name="send-to" value="me"><span><b>To me, I’ll hand it over</b><small>Comes to you first, so you can wrap it or keep it a surprise.</small></span></label>
+          </fieldset>
+          <label for="recipient-name" id="recipient-name-label">Their name on the parcel</label><input id="recipient-name" maxlength="100" autocomplete="shipping name" required>
             <div class="address-finder" id="address-finder" hidden>
               <label for="address-search">Address</label>
               <div class="address-search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg><input id="address-search" type="text" inputmode="search" autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="80" placeholder="Start typing the address or postcode" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="address-results" aria-describedby="address-search-note"><span class="address-spinner" id="address-spinner" hidden></span></div>
@@ -232,17 +275,23 @@
 <div class="error" id="step-11-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="6">Back</button><button class="next" type="button" data-next="7">Review my book <span>→</span></button></div></section>
         <section class="step pay-step" data-step="7" aria-labelledby="step-7-title" hidden>
           <h1 id="step-7-title">Their book is ready to make.</h1>
-          <figure class="review-spread" aria-label="Your book, opened at the first page">
+          <div class="review-book">
+          <button type="button" class="review-arrow review-prev" id="review-prev" aria-label="Previous page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <figure class="review-spread" id="review-spread" aria-label="Their book. Use the arrows to turn the pages">
             <div class="review-page review-art-page">
               <img id="review-art" src="assets/storybook.webp" width="900" height="1125" alt="">
+              <span class="art-badge">Placeholder picture</span>
             </div>
             <div class="review-page review-text-page">
               <p class="review-chapter" id="review-chapter">Chapter one</p>
               <p class="review-text" id="review-text"></p>
-              <span class="review-folio">5</span>
+              <span class="review-folio" id="review-folio">1</span>
             </div>
           </figure>
-          <p class="review-paint-note">After you order, we illustrate every page with <span data-review-name>your character</span>.</p>
+          <button type="button" class="review-arrow review-next" id="review-next" aria-label="Next page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+          </div>
+          <p class="review-pos" id="review-pos" role="status">Page 1 of 10</p>
+          <p class="review-paint-note">The picture on the left is a placeholder. After you order, we spend a day or so creating a brand-new illustration of <b data-review-name>your character</b> for every page.</p>
           <section class="order-total" aria-label="Your selected book"><div><span id="order-label">A4 hardback + digital PDF</span><small>UK delivery included</small></div><strong id="order-price">£29.99</strong></section><p class="offer-clock" data-offer-clock><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>£10 off ends at midnight</span> <time aria-hidden="true"></time></p>
           <p id="offer-code-note" class="privacy-line" hidden></p>
           <div class="offer-code-field" id="offer-code-field" hidden><label for="offer-code">Discount code</label><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="CQ…"></div>
@@ -280,8 +329,8 @@
   <script src="campaign.js?v=5" defer></script>
   <script src="offer-clock.js?v=1" defer></script>
   <script src="photo-upload.js?v=23" defer></script>
-  <script src="preview-progress.js?v=27" defer></script>
+  <script src="preview-progress.js?v=sketch-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=timer-20261111" defer></script><script src="draft-save.js?v=email-20261109" defer></script>
+  <script src="create.js?v=book-1" defer></script><script src="draft-save.js?v=email-20261109" defer></script>
 </body>
 </html>
