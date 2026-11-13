@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=landing-20261110">
+  <link rel="stylesheet" href="create.css?v=trust-20261113">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -250,6 +250,11 @@
             <div class="signup-honeypot" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" tabindex="-1" autocomplete="off"></div>
             <label class="launch-consent"><input id="purchase-intent" type="checkbox"><span id="purchase-intent-label">I’ve checked their name and story. I’ll approve the finished proof before printing.</span></label>
             <div class="error" id="step-7-error" role="alert"></div>
+            <div class="pay-trust" aria-label="How payment works">
+              <p class="pay-trust-head"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg><span><b>Secure checkout.</b> Pay by card or Apple Pay, charged in pounds.</span></p>
+              <ul class="pay-marks" aria-label="Accepted payments"><li class="mark-visa">VISA</li><li class="mark-mc"><i></i><i></i><span>Mastercard</span></li><li class="mark-apple"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.8zM14.1 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z"/></svg>Pay</li></ul>
+              <p class="pay-trust-note">Your card is handled by Ziina, our payment provider, on its own secure page. We never see your card details. The payee may show as cravenluke (Luke Craven, Craven &amp; Quill).</p>
+            </div>
             <button class="next checkout-button" id="join-launch" type="button">Next</button>
             <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>Rated 4.9★</b> with 3,000+ books sold across our book catalogue</span></p>
             <div class="review-links"><button class="shuffle" type="button" id="open-examples" aria-haspopup="dialog">See example books</button><button class="shuffle" type="button" id="show-offer-code" aria-controls="offer-code-field" aria-expanded="false">Have a code?</button><button class="back" type="button" data-back="11">Back</button></div>
