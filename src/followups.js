@@ -228,8 +228,12 @@ export async function runFollowups(env){
     if(first.length>1)await new Promise(resolve=>setTimeout(resolve,600));
   }
   const second=(await db(env,`SELECT f.email ${recipients} WHERE ${eligible} AND f.first_status='accepted'
-    AND f.first_sent_at<=?1 AND f.second_status IS NULL ORDER BY f.first_sent_at LIMIT 50`,cutoffSecond,FOLLOWUP_CONSENT,PREVIEW_NOTICE,PAST_CONTACTS).all()).results||[];
-  for(const row of second){const outcome=await send(env,2,row);if(outcome in results.second)results.second[outcome]++;}
+    AND f.first_sent_at<=?1 AND f.second_status IS NULL ORDER BY f.first_sent_at LIMIT 5`,cutoffSecond,FOLLOWUP_CONSENT,PREVIEW_NOTICE,PAST_CONTACTS).all()).results||[];
+  for(const row of second){
+    const outcome=await send(env,2,row);
+    if(outcome in results.second)results.second[outcome]++;
+    if(second.length>1)await new Promise(resolve=>setTimeout(resolve,600));
+  }
   return results;
 }
 

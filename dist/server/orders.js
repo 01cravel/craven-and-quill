@@ -52835,10 +52835,11 @@ async function runFollowups(env2) {
     if (first.length > 1) await new Promise((resolve) => setTimeout(resolve, 600));
   }
   const second = (await db(env2, `SELECT f.email ${recipients} WHERE ${eligible} AND f.first_status='accepted'
-    AND f.first_sent_at<=?1 AND f.second_status IS NULL ORDER BY f.first_sent_at LIMIT 50`, cutoffSecond, FOLLOWUP_CONSENT, PREVIEW_NOTICE, PAST_CONTACTS).all()).results || [];
+    AND f.first_sent_at<=?1 AND f.second_status IS NULL ORDER BY f.first_sent_at LIMIT 5`, cutoffSecond, FOLLOWUP_CONSENT, PREVIEW_NOTICE, PAST_CONTACTS).all()).results || [];
   for (const row of second) {
     const outcome = await send(env2, 2, row);
     if (outcome in results.second) results.second[outcome]++;
+    if (second.length > 1) await new Promise((resolve) => setTimeout(resolve, 600));
   }
   return results;
 }
