@@ -72,3 +72,9 @@ export const visitCounts=sqliteTable('visit_counts',{
 export const adLeads=sqliteTable('ad_leads',{
  id:text('id').primaryKey(),visitId:text('visit_id'),createdAt:text('created_at').notNull(),consentVersion:text('consent_version').notNull(),gclid:text('gclid'),gbraid:text('gbraid'),wbraid:text('wbraid'),revokedAt:text('revoked_at'),
 },t=>[index('ad_leads_created_idx').on(t.createdAt)]);
+
+// Codes for reminder recipients who may never have viewed a price.
+export const reminderOffers=sqliteTable('reminder_offers',{
+ email:text('email').primaryKey(),discountCode:text('discount_code').notNull().unique(),
+ codeExpiresAt:text('code_expires_at').notNull(),emailStatus:text('email_status').notNull(),redeemedOrderId:text('redeemed_order_id'),
+});

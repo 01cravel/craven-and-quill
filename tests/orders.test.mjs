@@ -323,3 +323,15 @@ test('Meta purchase job reports each consented live sale once, records the outco
  r=await runMetaPurchaseJobs(env);assert.deepEqual(r.results,[]);assert.equal(sends,2);
  const m=JSON.parse((await state(env,id)).state).metaPurchase;assert.equal(m.status,'sent');assert.equal(m.attempts,2);
 });
+
+test('10% preview reminder code works at the current price without a quote',async()=>{
+ const env=environment(),{id}=await create(env),o=await state(env,id),code='CQ1234567890';
+ env.DB.sqlite.prepare("INSERT INTO reminder_offers(email,discount_code,code_expires_at,email_status) VALUES (?,?,?,'accepted')")
+   .run(o.email,code,new Date(Date.now()+86400000).toISOString());
+ const response=await request(env,'/'+id+'/apply-offer',{revision:o.revision,code});
+ assert.equal(response.status,200);
+ const price=PRODUCTS[o.size].pricePence;
+ assert.equal((await response.json()).amount,price-Math.round(price*0.1));
+ assert.equal(env.DB.sqlite.prepare('SELECT redeemed_order_id FROM reminder_offers').get().redeemed_order_id,id);
+ assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM customer_quotes').get().n,0);
+});

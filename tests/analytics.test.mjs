@@ -296,3 +296,15 @@ test('a preview email links its own drawing without creating a quote or enrollin
  const report=await (await get(env)).json();
  assert.equal(report.quotes.length,0);
 });
+
+test('the preview form enrols only submissions with the current notice and respects a later opt-out',async()=>{
+ const env=environment(),email='shopper@somewhere.invalid',id=crypto.randomUUID();
+ env.DB.sqlite.prepare("INSERT INTO preview_receipts (id,status,created_at) VALUES (?,'succeeded',?)").run(id,new Date().toISOString());
+ const submit=async extra=>(await (await campaignApi(new Request(origin+'/api/preview-email',{method:'POST',
+   headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({email,previewId:id,...extra})}),env)).json());
+ assert.equal((await submit({})).reminderActive,false);
+ assert.equal((await submit({reminderNotice:'preview-price-v1',noReminders:false})).reminderActive,true);
+ assert.equal((await submit({reminderNotice:'preview-price-v1',noReminders:true})).reminderActive,false);
+ assert.equal((await submit({reminderNotice:'preview-price-v1',noReminders:false})).reminderActive,false);
+ assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM customer_quotes').get().n,0);
+});

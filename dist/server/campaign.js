@@ -1,3 +1,4 @@
+import {recordPreviewChoice} from './orders.js';
 import {adConfig,leadConversion,adFeed} from './ad-measurement.js';
 export const CONSENT_VERSION='storybook-validation-2026-09-29';
 export const CONSENT_TEXT='Email me when Craven & Quill storybooks are ready to order. I can unsubscribe at any time.';
@@ -126,12 +127,16 @@ export async function campaignApi(request,env){
       const now=new Date().toISOString();
       const result=await env.DB.prepare('INSERT INTO preview_contacts (email, source, medium, campaign, creative, country, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7) ON CONFLICT(email) DO UPDATE SET updated_at=excluded.updated_at').bind(email,...attribution(input),country(request),now).run();
       if(result.success===false)throw new Error('Preview email write failed');
+      let reminderActive=false;
       if(UUID.test(input.previewId||'')){
         await env.DB.prepare("UPDATE preview_receipts SET email=?1 WHERE id=?2 AND email IS NULL AND status='succeeded'").bind(email,input.previewId).run();
+        if(input.reminderNotice==='preview-price-v1'&&typeof input.noReminders==='boolean'){
+          reminderActive=await recordPreviewChoice(env,email,input.previewId,input.noReminders);
+        }
       }
       await linkVisit(env,input,'contact',email);
       let conversion=null;try{conversion=await leadConversion(env,email,input);}catch{console.error('Advertising lead receipt failed');}
-      return reply({ok:true,conversion});
+      return reply({ok:true,conversion,reminderActive});
     }
     if(input.consent!==true||input.consentVersion!==CONSENT_VERSION)return reply({error:'Please tick the email permission box to join the launch list.'},400);
     if(input.purchaseIntent!==true)return reply({error:'Confirm your interest at the displayed price to join this list.'},400);

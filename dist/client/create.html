@@ -158,10 +158,11 @@
           <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" id="generate-story" type="button">Write their story</button><button class="next" id="use-story" type="button" data-next="6" disabled>Choose your book</button></div>
         </section>
 
-<section class="step" data-step="10" aria-labelledby="step-10-title" hidden><h1 id="step-10-title">Where shall we send their character?</h1><p class="intro">We’ll keep their character and story safe so you can come back to them. </p>          <div id="preview-email-wrap">
+<section class="step" data-step="10" aria-labelledby="step-10-title" hidden><h1 id="step-10-title">Save their preview and see book prices</h1><p class="intro">We’ll keep their character and story safe so you can come back to them. </p>          <div id="preview-email-wrap">
             <label class="field-label" for="email">Your email</label>
             <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
-            <p class="privacy-line" id="preview-email-note">Enter your email to save your preview.</p>
+            <p class="privacy-line" id="preview-email-note">If you leave your book unfinished, we’ll email you up to twice about it, including a 10% offer. You can unsubscribe at any time.</p>
+            <label class="offer-choice"><input id="no-book-reminders" type="checkbox"><span>Don’t email me book reminders or the offer.</span></label>
           </div>
 
 <div class="error" id="step-10-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" type="button" id="start-preview">Save and write the story <span>→</span></button></div></section>
@@ -244,7 +245,6 @@
             <p class="privacy-line">Both include a digital PDF, matte hardback cover, full-colour 200gsm glossy pages and UK standard delivery. The same complete story in either size.</p>
             <div class="size-comparison" aria-label="Book size comparison"><div class="size-a5">A5<small>14.8 × 21 cm</small></div><div class="size-a4">A4<small>21 × 29.7 cm</small></div></div>
           </fieldset>
-          <label class="offer-choice"><input id="offer-email-consent" type="checkbox" disabled autocomplete="off"><span>Email me up to two follow-up emails about my book if I do not buy. The second may include an offer. I can unsubscribe at any time.</span></label>
 
           <div class="error" id="step-6-error" role="alert"></div>
           <div class="step-actions"><button class="back" type="button" data-back="4">Back</button><button class="next" type="button" data-next="11">Continue <span>→</span></button></div>
@@ -331,6 +331,6 @@
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=sketch-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=visible-quote-1" defer></script><script src="draft-save.js?v=one-person-1" defer></script>
+  <script src="create.js?v=preview-price-reminders-1" defer></script><script src="draft-save.js?v=one-person-1" defer></script>
 </body>
 </html>

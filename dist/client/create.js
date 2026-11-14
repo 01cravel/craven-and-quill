@@ -444,9 +444,12 @@ async function renderStoryArt(){
 }
 
 async function capturePreviewEmail(){
-  const response=await fetch('/api/preview-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#email').value.trim().toLowerCase(),website:$('#website').value,previewId:state.previewId,...window.cqMeasurement?.context()}),signal:AbortSignal.timeout(15000)});
+  const response=await fetch('/api/preview-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#email').value.trim().toLowerCase(),website:$('#website').value,previewId:state.previewId,reminderNotice:'preview-price-v1',noReminders:$('#no-book-reminders').checked,...window.cqMeasurement?.context()}),signal:AbortSignal.timeout(15000)});
   const result=await response.json().catch(()=>({}));
   if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save your email. Please try again.');
+  if(result.reminderActive&&state.characterImages[0]){
+    void postQuote('followup-character',{...quoteContact(),image:state.characterImages[0],names:fullNames()}).catch(()=>{});
+  }
   void window.cqMeasurement?.previewLead?.(result.conversion);
 }
 
@@ -464,7 +467,7 @@ async function preparePreview(){
     await renderStoryArt();
     await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
     drawingProgress.stop(true);
-    $('#making-state').hidden=true;$('#result-state').hidden=false;$('#choose-book').disabled=false;updateCover();renderPreviewBook();window.dispatchEvent(new Event('cq-draft-change'));track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});if(state.characterImages[0]&&state.previewId)void fetch('/api/orders/followup-character',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...quoteContact(),image:state.characterImages[0],names:fullNames()||state.names||''})}).catch(()=>{});
+    $('#making-state').hidden=true;$('#result-state').hidden=false;$('#choose-book').disabled=false;updateCover();renderPreviewBook();window.dispatchEvent(new Event('cq-draft-change'));track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});
   }catch(error){
     drawingProgress.stop(false);
     $('#generation-error-copy').textContent=error.message||'The character could not be drawn. Please try again.';$('#generation-error').hidden=false;
@@ -532,9 +535,8 @@ $$('[data-back]').forEach(button=>button.addEventListener('click',()=>{if(state.
 let orderCatalog=null,orderRequest=null;
 let offerCode=new URLSearchParams(location.search).get('offer')?.trim().toUpperCase()||'';
 if(/^CQ[A-Z0-9]{10}$/.test(offerCode)){$('#offer-code-note').hidden=false;$('#offer-code-note').textContent=`Offer code ${offerCode} will be checked before payment. No discount is applied until the final total updates.`;}
-const reminderBox=$('#offer-email-consent');
 const priceElements=$$('.product .current-price');
-let lastQuoteKey='',confirmedContact='',pendingChoice=false,saveQueue=Promise.resolve();
+let lastQuoteKey='',saveQueue=Promise.resolve();
 function quoteContact(){return {email:$('#email').value.trim().toLowerCase(),previewId:state.previewId};}
 async function postQuote(path,body){
  const response=await fetch('/api/orders/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -543,7 +545,6 @@ async function postQuote(path,body){
 function observeBookPrice(){
  if(state.step!==6||document.visibilityState!=='visible'||!state.previewId||!validPreviewEmail())return;
  const contact=quoteContact(),contactKey=JSON.stringify(contact);
- if(confirmedContact!==contactKey){reminderBox.disabled=true;reminderBox.checked=false;}
  // Check the price text itself, even on a narrow screen where the options sit below the cover.
  const visible=priceElements.filter(el=>{
    const r=el.getBoundingClientRect();
@@ -561,7 +562,6 @@ function observeBookPrice(){
  const body={...contact,size,pricePence,names:fullNames()||state.names||'',title:state.storyDraft?.title||''};
  saveQueue=saveQueue.then(async()=>{
    await postQuote('quote-view',body);
-   if(JSON.stringify(quoteContact())===contactKey){confirmedContact=contactKey;reminderBox.disabled=pendingChoice;}
  }).catch(()=>{if(lastQuoteKey===key)lastQuoteKey='';});
 }
 if('IntersectionObserver' in window){
@@ -573,14 +573,6 @@ if('IntersectionObserver' in window){
 }
 document.addEventListener('visibilitychange',observeBookPrice);
 window.addEventListener('online',observeBookPrice);
-reminderBox.addEventListener('change',async()=>{
- const contact=quoteContact(),optIn=reminderBox.checked;
- if(confirmedContact!==JSON.stringify(contact))return;
- pendingChoice=true;reminderBox.disabled=true;
- try{await postQuote('reminder-choice',{...contact,optIn});$('#step-6-error').textContent='';}
- catch(error){reminderBox.checked=!optIn;$('#step-6-error').textContent=error.message;}
- finally{pendingChoice=false;reminderBox.disabled=confirmedContact!==JSON.stringify(quoteContact());}
-});
 async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Secure payment, then we create the rest of your illustrations. You and our team approve the finished proof before printing.';$('#join-launch').textContent='Next';}updateProduct();}catch{}}
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
