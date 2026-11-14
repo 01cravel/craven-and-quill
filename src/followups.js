@@ -79,7 +79,7 @@ function message(step,quote,code,expiry,details={}){
     code,button:'Finish it with 10% off',
     note:`The code is just for you and works once, until ${when}.`
   };
-  if(quote.consent_text===PAST_CONTACTS){
+  if(step===1&&quote.consent_text===PAST_CONTACTS){
     c.pre='Turn their preview into a personalised hardback.';
     c.kicker='Your personalised book';
     c.paras[0]='You tried a Craven & Quill preview. If you’d like to make the hardback, open the book maker to continue on your original device or start a fresh story.';
@@ -227,7 +227,7 @@ export async function runFollowups(env){
     if(outcome in results.first)results.first[outcome]++;
     if(first.length>1)await new Promise(resolve=>setTimeout(resolve,600));
   }
-  const second=(await db(env,`SELECT f.email ${recipients} WHERE ${eligible} AND f.consent_text<>?4 AND f.first_status='accepted'
+  const second=(await db(env,`SELECT f.email ${recipients} WHERE ${eligible} AND f.first_status='accepted'
     AND f.first_sent_at<=?1 AND f.second_status IS NULL ORDER BY f.first_sent_at LIMIT 50`,cutoffSecond,FOLLOWUP_CONSENT,PREVIEW_NOTICE,PAST_CONTACTS).all()).results||[];
   for(const row of second){const outcome=await send(env,2,row);if(outcome in results.second)results.second[outcome]++;}
   return results;
