@@ -766,3 +766,5 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .review-art-page.real img{filter:none;opacity:1;object-fit:cover}.review-art-page.real:after{display:none}
 .review-art-page.drawing img{opacity:.35}
 @media(prefers-reduced-motion:reduce){.page-art.drawing,.page-art img{animation:none}}
+
+.upload-wrap{margin-top:14px}
