@@ -95,3 +95,20 @@ test('reminder shows the child\'s character when one is saved',async()=>{
   assert.match(sent[0].body.html,/api\/orders\/followup-character\?t=/);
   assert.match(sent[0].body.html,/as we drew them/);
 });
+
+test('unsubscribing from the first preview reminder stops the discount email and survives a new submission',async()=>{
+  const {env,DB,sent,email}=fixture();
+  const preview=crypto.randomUUID();
+  DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,email,created_at) VALUES (?,'succeeded',?,?)").run(preview,email,new Date().toISOString());
+  env.FOLLOWUP_EMAILS_ENABLED='true';
+  assert.equal(await recordPreviewChoice(env,email,preview,false),true);
+  DB.sqlite.exec("UPDATE followup_sequences SET consent_at='2020-01-01'");
+  assert.equal((await runFollowups(env)).first.accepted,1);
+  const link=sent[0].body.html.match(/href="([^"]+)"[^>]*>Unsubscribe<\/a>/);
+  assert.ok(link);
+  assert.equal(await unsubscribeFollowup(env,new URL(link[1]).searchParams.get('token')),true);
+  assert.equal(await recordPreviewChoice(env,email,preview,false),false);
+  DB.sqlite.exec("UPDATE followup_sequences SET first_sent_at='2020-01-01'");
+  assert.equal((await runFollowups(env)).second.accepted,0);
+  assert.equal(sent.length,1);
+});

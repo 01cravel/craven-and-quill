@@ -444,7 +444,7 @@ async function renderStoryArt(){
 }
 
 async function capturePreviewEmail(){
-  const response=await fetch('/api/preview-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#email').value.trim().toLowerCase(),website:$('#website').value,previewId:state.previewId,reminderNotice:'preview-price-v1',noReminders:$('#no-book-reminders').checked,...window.cqMeasurement?.context()}),signal:AbortSignal.timeout(15000)});
+  const response=await fetch('/api/preview-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#email').value.trim().toLowerCase(),website:$('#website').value,previewId:state.previewId,reminderNotice:'preview-price-v2',...window.cqMeasurement?.context()}),signal:AbortSignal.timeout(15000)});
   const result=await response.json().catch(()=>({}));
   if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save your email. Please try again.');
   if(result.reminderActive&&state.characterImages[0]){

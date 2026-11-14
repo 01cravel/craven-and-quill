@@ -52676,7 +52676,7 @@ ${details.image ? `<table role="presentation" cellpadding="0" cellspacing="0" bo
 </td></tr>
 <tr><td class="footer" style="padding:24px 48px 34px;border-top:1px solid #e9dec7;background:#faf7f0;">
 <p style="margin:0 0 8px;color:#655a50;font:13px/1.55 ${SANS};">Craven &amp; Quill. Personalised books, made for one reader at a time.</p>
-<p style="margin:0;color:#8a7f73;font:12px/1.55 ${SANS};">You made a free preview with us, so we\u2019re letting you know it\u2019s saved. <a href="${escapeHtml(unsub)}" style="color:#8a7f73;text-decoration:underline;">Stop these emails</a>.</p>
+<p style="margin:0;color:#8a7f73;font:12px/1.55 ${SANS};">You made a free preview with us, so we\u2019re letting you know it\u2019s saved. </p><p style="margin:12px 0 0;"><a href="${escapeHtml(unsub)}" style="display:inline-block;padding:10px 16px;border:1px solid #8a7f73;border-radius:4px;color:#443c35;text-decoration:none;font:14px Arial,sans-serif;">Unsubscribe</a></p>
 </td></tr></table></td></tr></table></body></html>`;
   const strip = (t2) => t2.replace(/<[^>]+>/g, "");
   const text = [c.heading, ...c.paras.map(strip), c.code ? `Your code: ${c.code}` : "", `${c.button}: ${url}`, c.note, "Questions? Just reply to this email.", `Stop these emails: ${unsub}`, "Craven & Quill"].filter(Boolean).join("\n\n");

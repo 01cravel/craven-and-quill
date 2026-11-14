@@ -303,8 +303,8 @@ test('the preview form enrols only submissions with the current notice and respe
  const submit=async extra=>(await (await campaignApi(new Request(origin+'/api/preview-email',{method:'POST',
    headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({email,previewId:id,...extra})}),env)).json());
  assert.equal((await submit({})).reminderActive,false);
- assert.equal((await submit({reminderNotice:'preview-price-v1',noReminders:false})).reminderActive,true);
+ assert.equal((await submit({reminderNotice:'preview-price-v2'})).reminderActive,true);
  assert.equal((await submit({reminderNotice:'preview-price-v1',noReminders:true})).reminderActive,false);
- assert.equal((await submit({reminderNotice:'preview-price-v1',noReminders:false})).reminderActive,false);
+ assert.equal((await submit({reminderNotice:'preview-price-v2'})).reminderActive,false);
  assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM customer_quotes').get().n,0);
 });

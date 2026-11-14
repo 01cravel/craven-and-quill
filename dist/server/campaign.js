@@ -130,8 +130,8 @@ export async function campaignApi(request,env){
       let reminderActive=false;
       if(UUID.test(input.previewId||'')){
         await env.DB.prepare("UPDATE preview_receipts SET email=?1 WHERE id=?2 AND email IS NULL AND status='succeeded'").bind(email,input.previewId).run();
-        if(input.reminderNotice==='preview-price-v1'&&typeof input.noReminders==='boolean'){
-          reminderActive=await recordPreviewChoice(env,email,input.previewId,input.noReminders);
+        if(input.reminderNotice==='preview-price-v2'||(input.reminderNotice==='preview-price-v1'&&typeof input.noReminders==='boolean')){
+          reminderActive=await recordPreviewChoice(env,email,input.previewId,input.noReminders===true);
         }
       }
       await linkVisit(env,input,'contact',email);
