@@ -11,7 +11,9 @@ async function followupTick(env){
     if(env.FOLLOWUP_EMAILS_ENABLED==='true'){
       const cutoff=new Date(Date.now()-6*3600000).toISOString(),stamp=new Date().toISOString();
       const claimed=await env.DB.prepare("INSERT INTO owner_jobs (name,ran_at) VALUES ('followups',?1) ON CONFLICT(name) DO UPDATE SET ran_at=excluded.ran_at WHERE owner_jobs.ran_at<=?2 RETURNING name").bind(stamp,cutoff).first();
-      if(claimed)ran=await runFollowups(env);
+      // OWNER-APPROVED (Luke, 14 Nov 2026): send the 10% email to all past preview contacts now, in one go. Runs once.
+      const now10=await env.DB.prepare("INSERT INTO owner_jobs (name,ran_at) VALUES ('past_contacts_discount_now_v1',?1) ON CONFLICT(name) DO NOTHING RETURNING name").bind(stamp).first();
+      if(claimed||now10)ran=await runFollowups(env);
     }
     const last=await env.DB.prepare("SELECT ran_at FROM owner_jobs WHERE name='followups'").first();
     return {...await followupStatus(env),lastRunAt:last?.ran_at||null,thisLoad:ran};

@@ -127,7 +127,7 @@ test('owner-approved one-off: past preview contacts get both reminders, opt-outs
   let r=await runFollowups(env);
   assert.deepEqual(sent.map(s=>s.to[0]),['mum@gmail.com']);
   assert.match(sent[0].subject,/book is waiting/);
-  DB.sqlite.prepare('UPDATE followup_sequences SET first_sent_at=? WHERE email=?').run(old,'mum@gmail.com');
+  DB.sqlite.prepare('UPDATE followup_sequences SET first_sent_at=? WHERE email=?').run('2026-11-14T12:36:00.000Z','mum@gmail.com');
   r=await runFollowups(env);
   assert.equal(r.second.accepted,1);
   assert.equal(sent.length,2);
