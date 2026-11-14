@@ -32,7 +32,7 @@ test('email is asked after the character is drawn, and saved before the story pa
  assert.equal(prepare.includes('capturePreviewEmail'),false,'drawing does not wait for an email');
  const from=source.indexOf("$('#start-preview').addEventListener");const save=source.slice(from,source.indexOf("$('#revise-story').addEventListener",from));
  assert.ok(save.indexOf('await capturePreviewEmail()')>0&&save.indexOf('await capturePreviewEmail()')<save.indexOf('showStep(4)'));
- assert.match(source,/const order=\[1,8,9,3,2,5,10,4,6,11,7\]/);
+ assert.match(source,/const order=\[1,9,2,5,10,4,6,11,7\]/);
 });
 
 test('multiple references create one character, not one character per photo',async()=>{

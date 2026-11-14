@@ -768,3 +768,24 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 @media(prefers-reduced-motion:reduce){.page-art.drawing,.page-art img{animation:none}}
 
 .upload-wrap{margin-top:14px}
+
+/* One "About them" screen: age, loves and tone together, compact so it fits a phone. */
+.compact-choices{gap:8px;margin:8px 0 18px}
+.step[data-step="9"] fieldset{margin:14px 0 0}
+.step[data-step="9"] legend,.step[data-step="9"] .brief-label{display:block;font-weight:700;margin:0 0 4px;padding:0}
+.step[data-step="9"] .brief-label{margin-top:6px}
+.compact-choices .choice>span{padding:10px 12px!important}
+.compact-choices .choice small{margin-top:2px;font-size:.78rem}
+.age-grid.compact-choices small{display:none}
+.age-grid.compact-choices{grid-template-columns:repeat(4,1fr)}
+.mood-grid.compact-choices{grid-template-columns:repeat(3,1fr)}
+@media(max-width:480px){.age-grid.compact-choices{grid-template-columns:repeat(2,1fr)}.compact-choices .choice b{font-size:.92rem}}
+/* Browsers can look before typing anything. */
+.see-example{display:inline-block;border:0;background:none;padding:6px 0 10px;min-height:44px;color:var(--ink);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+.see-example:focus-visible{outline:3px solid #746582;outline-offset:2px;border-radius:4px}
+.examples-cta{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--mist,#f7f4ed)}
+.examples-cta[hidden]{display:none}
+.examples-cta p{margin:0;display:flex;flex-direction:column;gap:2px;font-size:.88rem;color:var(--muted)}
+.examples-cta b{color:var(--ink);font-size:1rem}
+.examples-cta .next{flex:none;width:auto;min-height:48px;padding:0 22px}
+.examples-cta .next{gap:8px}

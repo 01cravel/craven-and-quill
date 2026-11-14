@@ -11,7 +11,7 @@ let onFirstScreen=true,firstScreenSeconds=0;
 window.cqMeasurement?.record('timer_on');
 setInterval(()=>{if(!onFirstScreen||document.visibilityState!=='visible')return;firstScreenSeconds++;if([5,15,30,60].includes(firstScreenSeconds))window.cqMeasurement?.record('stay_'+firstScreenSeconds+'s');},1000);
 $('#names').addEventListener('input',()=>window.cqMeasurement?.record('name_typed'),{once:true});
-$('.step[data-step="1"] [data-next="8"]').addEventListener('click',()=>window.cqMeasurement?.record('start_tapped'));
+$('.step[data-step="1"] [data-next="9"]').addEventListener('click',()=>window.cqMeasurement?.record('start_tapped'));
 addEventListener('error',()=>window.cqMeasurement?.record('page_error'));
 addEventListener('unhandledrejection',()=>window.cqMeasurement?.record('page_error'));
 
@@ -103,7 +103,8 @@ function scrollToStepTop(number){
 }
 
 function showStep(number){
-  const order=[1,8,9,3,2,5,10,4,6,11,7];
+  const order=[1,9,2,5,10,4,6,11,7];
+  if(number===8||number===3)number=9;
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
@@ -134,8 +135,8 @@ function showStep(number){
 function configureBrief(){
  const own=state.storyMode==='plot';
  $('#interests-options').hidden=own;$('#own-options').hidden=!own;
- $('#step-9-title').textContent=own?'What should happen?':'What do they love?';
- $('#brief-intro').textContent=own?'Share your plot, even in one sentence. We’ll turn it into a complete story.':'Tap a few. We’ll build their story around them.';
+ $('#step-9-title').textContent=state.names?`A little about ${state.names}.`:'A little about them.';
+ $('#brief-intro').textContent=own?'What should happen? Even one sentence is enough.':'What do they love? Tap a few.';
  $('#brief-help-copy').textContent=own?'Who is the hero? What do they want? What goes wrong? For example: they score the winning goal at Wembley, but their lucky boots have gone missing.':'Say who they are (a child, a grown-up or a pet), one or two things they love, and anything you’d like to happen.';
 }
 function validBrief(){
@@ -491,6 +492,8 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     $('#step-1-error').textContent='';
   }
   if(state.step===8&&!$('input[name="age"]:checked')){$('#step-8-error').textContent='Choose a reading level.';return;}
+  if(state.step===9&&!$('input[name="age"]:checked')){$('#step-9-error').textContent='Choose their age.';$('.age-grid input').focus();return;}
+  if(state.step===9){state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';}
   if(state.step===9){updateLive();const own=state.storyMode==='plot';const field=own?$('#own-idea'):$('#personal-details');if(!field.value.trim()){$('#step-9-error').textContent=own?'Give us a sentence about what should happen.':'Tap one thing they love, or write a line about them.';field.focus();return;}$('#step-9-error').textContent='';buildIdeas();}
   if(state.step===11){
     const invalid=['recipient-name','address-line1','town','postcode'].find(id=>!$('#'+id).value.trim());
@@ -654,7 +657,10 @@ $('#review-prev').addEventListener('click',()=>{reviewPage--;renderReviewPage();
 $('#review-next').addEventListener('click',()=>{reviewPage++;renderReviewPage();});
 {let x0=null;const spread=$('#review-spread');spread.addEventListener('pointerdown',e=>{x0=e.clientX;});spread.addEventListener('pointerup',e=>{if(x0===null)return;const dx=e.clientX-x0;x0=null;if(Math.abs(dx)>40){reviewPage+=dx<0?1:-1;renderReviewPage();}});}
 const examplesDialog=$('#examples-dialog');
-$('#open-examples').addEventListener('click',()=>{const frame=$('#examples-frame');if(frame.src==='about:blank'||!frame.src.includes('test-book'))frame.src='test-book.html?book=amara&sample=1&embed=1';examplesDialog.showModal();track('examples_opened');});
+function openExamples(fromStart){const frame=$('#examples-frame');if(frame.src==='about:blank'||!frame.src.includes('test-book'))frame.src='test-book.html?book=amara&sample=1&embed=1';$('#examples-cta').hidden=!fromStart;if(fromStart){const a5=$('input[name="product"][value="a5"]'),was=a5?.closest('label')?.querySelector('del')?.textContent;if(a5?.dataset.price)$('#examples-price').textContent=`Hardbacks from £${a5.dataset.price}`;$('#examples-note').textContent=`${was?`Was ${was}. `:''}UK delivery included. The preview is free.`;window.cqMeasurement?.record('example_opened');}examplesDialog.showModal();track('examples_opened');}
+$('#open-examples').addEventListener('click',()=>openExamples(false));
+$('#see-example').addEventListener('click',()=>openExamples(true));
+$('#examples-make').addEventListener('click',()=>{examplesDialog.close();$('#names').focus();});
 $('#close-examples').addEventListener('click',()=>examplesDialog.close());
 examplesDialog.addEventListener('click',event=>{if(event.target===examplesDialog)examplesDialog.close();});
 

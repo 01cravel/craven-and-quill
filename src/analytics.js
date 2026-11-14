@@ -223,7 +223,7 @@ export async function buildReport(env,url,req=null){
   const journeys=scope.sort((a,b)=>b.firstAt.localeCompare(a.firstAt)).slice(0,LIST_LIMIT).map(v=>{const last=furthest(v),lead=leadByVisit.get(v.id);return {
     firstAt:v.firstAt,lastAt:v.lastAt,source:v.source,medium:v.medium,campaign:v.campaign,creative:v.creative,country:v.country,device:v.device,
     furthest:last[1],furthestIndex:FUNNEL.indexOf(last),steps:FUNNEL.filter(([s])=>reached(v,s)).map(([s])=>s),
-    errors:Object.keys(ERRORS).filter(k=>v.events.has(k)).map(k=>ERRORS[k]),extras:['story_generated','story_edited','name_typed','start_tapped'].filter(k=>v.events.has(k)),
+    errors:Object.keys(ERRORS).filter(k=>v.events.has(k)).map(k=>ERRORS[k]),extras:['story_generated','story_edited','name_typed','start_tapped','example_opened'].filter(k=>v.events.has(k)),
     firstScreen:v.events.has('timer_on')?(STAYS.find(([k])=>v.events.has(k))||[null,'under 5s'])[1]:null,
     signup:lead?{email:lead.email,product:lead.product}:null,where:place(v.id),made:madeByVisit.get(v.id)||null};});
 

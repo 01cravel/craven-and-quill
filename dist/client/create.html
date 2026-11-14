@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=pages-2">
+  <link rel="stylesheet" href="create.css?v=about-one-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -50,6 +50,7 @@
           <figure class="example-pair" aria-label="Example: a photo of Oliver, and Oliver drawn into his storybook"><span class="example-photo"><img src="assets/example-photo.webp" width="250" height="300" alt="A photo of a boy called Oliver"><i>Their photo</i></span><span class="example-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></span><span class="example-art"><img src="assets/example-character.webp" width="600" height="440" alt="Oliver drawn as a storybook character, carrying a cake beside a fox cub"><i>Their storybook</i></span></figure>
           <h1 id="step-1-title">They star in their own storybook.</h1>
           <p class="intro">Drawn from one photo into a ten-page illustrated hardback.</p>
+          <button type="button" class="see-example" id="see-example" aria-haspopup="dialog">See a finished book and prices</button>
           
           
           <label for="names">Start with their first name</label>
@@ -57,19 +58,11 @@
           <details class="optional-detail gift-message-field"><summary>Add who it’s from and a message <span>Optional</span></summary><label for="sender-name">Who is it from?</label><input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad"><label for="dedication">Your message inside the book</label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea></details>
           <div class="mobile-gift-preview"><div class="gift-page-preview" aria-label="Inside gift page preview"><p>A story just for</p><strong data-gift-name>Someone special</strong><p data-gift-sender hidden></p><p class="gift-message" data-gift-message hidden></p></div></div>
           <div class="error" id="step-1-error" role="alert"></div>
-          <div class="step-actions step-actions-single"><button class="next" type="button" data-next="8">Start their book <span>→</span></button></div>
+          <div class="step-actions step-actions-single"><button class="next" type="button" data-next="9">Start their book <span>→</span></button></div>
           <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>Rated 4.9★</b> with 3,000+ books sold across our book catalogue</span></p>
         </section>
 
-<section class="step" data-step="8" aria-labelledby="step-8-title" hidden><h1 id="step-8-title">What’s their reading level?</h1><p class="intro">We’ll pitch the words to suit them. Tap one to continue.</p>          <fieldset>
-            <legend>Choose the reading level <span>Required</span></legend>
-            <div class="choice-grid four age-grid">
-              <label class="choice"><input type="radio" name="age" value="3-5"><span><b>Age 3–5</b><small>Short, simple sentences</small></span></label>
-              <label class="choice"><input type="radio" name="age" value="6-8"><span><b>Age 6–8</b><small>Clear, lively story</small></span></label>
-              <label class="choice"><input type="radio" name="age" value="9-12"><span><b>Age 9–12</b><small>Richer plot and language</small></span></label>
-              <label class="choice"><input type="radio" name="age" value="teen-adult"><span><b>Teen or adult</b><small>More detail and depth</small></span></label>
-            </div>
-          </fieldset>
+<section class="step" data-step="8" aria-labelledby="step-8-title" hidden><h1 id="step-8-title">What’s their reading level?</h1><p class="intro">We’ll pitch the words to suit them. Tap one to continue.</p>
 
 <div class="error" id="step-8-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" type="button" data-next="9">Continue <span>→</span></button></div></section>
         <section class="step" data-step="2" aria-labelledby="step-2-title" hidden>
@@ -97,11 +90,21 @@
           <details class="optional-detail photo-privacy"><summary>How we use your photos</summary><p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p></details>
 
           <div class="error" id="step-2-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="3">Back</button><button class="next" id="photo-continue" type="button" data-next="5" disabled>Draw my character <span>→</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="9">Back</button><button class="next" id="photo-continue" type="button" data-next="5" disabled>Draw my character <span>→</span></button></div>
           <p class="under-button">Free. No card needed.</p>
         </section>
 
-<section class="step" data-step="9" aria-labelledby="step-9-title" hidden><h1 id="step-9-title">What do they love?</h1><p class="intro" id="brief-intro">Tap a few. We’ll build their story around them.</p>
+<section class="step" data-step="9" aria-labelledby="step-9-title" hidden><h1 id="step-9-title">A little about them.</h1><p class="intro">Two quick taps and we’ll write their story.</p>
+<fieldset>
+            <legend>Their age</legend>
+            <div class="choice-grid four age-grid compact-choices">
+              <label class="choice"><input type="radio" name="age" value="3-5"><span><b>Age 3–5</b><small>Short, simple sentences</small></span></label>
+              <label class="choice"><input type="radio" name="age" value="6-8"><span><b>Age 6–8</b><small>Clear, lively story</small></span></label>
+              <label class="choice"><input type="radio" name="age" value="9-12"><span><b>Age 9–12</b><small>Richer plot and language</small></span></label>
+              <label class="choice"><input type="radio" name="age" value="teen-adult"><span><b>Teen or adult</b><small>More detail and depth</small></span></label>
+            </div>
+          </fieldset>
+<p class="brief-label" id="brief-intro">What do they love? Tap a few.</p>
 <div id="interests-options"><div class="like-chips" id="like-chips" role="group" aria-label="Things they love"></div><label for="personal-details">Or say it in your own words <span>Optional</span></label><textarea id="personal-details" name="personal-details" rows="2" maxlength="800" placeholder="Alfie would love to score the winning goal for Leeds." aria-describedby="personal-details-note"></textarea><p class="privacy-line" id="personal-details-note">Leave out surnames, school names and other private details.</p></div>
           <div id="own-options" hidden>
             <label for="own-idea">What should happen? <span>Required</span></label>
@@ -110,7 +113,16 @@
           </div>
 
 <details class="optional-detail" id="brief-help" hidden><summary>Help me get started</summary><p id="brief-help-copy">Say who they are (a child, a grown-up or a pet), one or two things they love, and anything you’d like to happen.</p></details>
-<div class="error" id="step-9-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="8">Back</button><button class="next" type="button" data-next="3">Choose the tone →</button></div></section>
+<fieldset>
+            <legend>How should it feel?</legend>
+            <div class="choice-grid four mood-grid compact-choices">
+              <label class="choice mood funny"><input type="radio" name="mood" value="funny"><span><b>Funny</b><small>Silly trouble</small></span></label>
+              <label class="choice mood adventure"><input type="radio" name="mood" value="adventure" checked><span><b>Adventure</b><small>A brave quest</small></span></label>
+              <label class="choice mood classic"><input type="radio" name="mood" value="classic"><span><b>Gentle</b><small>Gentle magic</small></span></label>
+
+            </div>
+          </fieldset>
+<div class="error" id="step-9-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" type="button" data-next="2">Next: their photo <span>→</span></button></div></section>
         <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
           <p class="eyebrow">Story direction</p>
           <h1 id="step-3-title">How should the story feel?</h1>
@@ -118,15 +130,7 @@
 
 
 
-                    <fieldset>
-            <legend>Story direction <span>Required</span></legend>
-            <div class="choice-grid four mood-grid">
-              <label class="choice mood funny"><input type="radio" name="mood" value="funny"><span><b>Funny</b><small>Silly trouble</small></span></label>
-              <label class="choice mood adventure"><input type="radio" name="mood" value="adventure"><span><b>Adventure</b><small>A brave quest</small></span></label>
-              <label class="choice mood classic"><input type="radio" name="mood" value="classic"><span><b>Gentle</b><small>Gentle magic</small></span></label>
 
-            </div>
-          </fieldset>
           <div class="error" id="step-3-error" role="alert"></div>
           <div class="step-actions"><button class="back" type="button" data-back="9">Back</button><button class="next" type="button" data-next="2">Continue <span>→</span></button></div>
         </section>
@@ -318,6 +322,7 @@
         <dialog class="examples-dialog" id="examples-dialog" aria-labelledby="examples-title">
           <div class="examples-bar"><h2 id="examples-title">Example books</h2><button type="button" class="examples-close" id="close-examples">Close</button></div>
           <iframe id="examples-frame" title="Example books you can page through" src="about:blank"></iframe>
+          <div class="examples-cta" id="examples-cta" hidden><p><b id="examples-price">Hardbacks from £24.99</b><span id="examples-note">UK delivery included. The preview is free.</span></p><button type="button" class="next" id="examples-make">Make theirs <span>→</span></button></div>
         </dialog>
       <div hidden class="draft-storage-controls"><button type="button" class="shuffle" id="email-draft">Email my private return link</button><p id="draft-email-status" class="privacy-line" role="status"></p><p id="draft-status" class="privacy-line" role="status"></p><div id="resume-draft" hidden><button type="button" class="shuffle" id="resume-button">Continue my saved draft</button></div><button type="button" class="shuffle" id="forget-draft" hidden>Start fresh</button></div>
       </form>
@@ -330,6 +335,6 @@
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=sketch-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=preview-price-reminders-2" defer></script><script src="draft-save.js?v=one-person-1" defer></script>
+  <script src="create.js?v=about-one-1" defer></script><script src="draft-save.js?v=one-person-1" defer></script>
 </body>
 </html>
