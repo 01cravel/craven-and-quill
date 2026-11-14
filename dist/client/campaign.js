@@ -87,7 +87,23 @@
     // Queued does not mean delivered. Never persist a misleading 'sent' acknowledgement.
     window.gtag('event','conversion',{send_to:sendTo,transaction_id:receipt.eventId,value:receipt.value,currency:'GBP',page_location:cleanPage(),page_referrer:''});
   }
+  // Microsoft Clarity: replays of public pages so the owner can see where people get stuck.
+  // Typed text is masked, and photos, characters, stories, emails and addresses are hidden (data-clarity-mask).
+  let clarityStarted=false;
+  async function startClarity(){
+    if(preference!=='ads'||privatePage||clarityStarted||!['cravenandquill.com','www.cravenandquill.com'].includes(location.hostname)||attribution.source==='qa'||/^qa(?:[_.-]|$)/.test(attribution.campaign))return;
+    if(!configPromise)configPromise=fetch('/api/ad-config').then(r=>r.ok?r.json():{}).catch(()=>({}));
+    const id=(await configPromise).clarityId;
+    if(preference!=='ads'||clarityStarted||!/^[a-z0-9]{6,20}$/i.test(id||''))return;
+    clarityStarted=true;
+    window.clarity=window.clarity||function(){(window.clarity.q=window.clarity.q||[]).push(arguments);};
+    const script=document.createElement('script');script.async=true;script.src='https://www.clarity.ms/tag/'+id;document.head.append(script);
+    window.clarity('consent');
+    // Same random visit reference as the owner dashboard, so a journey there can be found in Clarity.
+    window.clarity('set','visit',visitId);window.clarity('set','source',attribution.source);window.clarity('set','ad',attribution.creative);
+  }
   function revokePixel(){
+    if(clarityStarted)window.clarity('consent',false);
     if(pixelStarted)window.fbq('consent','revoke');
     if(googleStarted)window.gtag('consent','update',{ad_storage:'denied',analytics_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
     const names=['_fbp','_fbc',...document.cookie.split(';').map(x=>x.trim().split('=')[0]).filter(x=>x.startsWith('_gcl_'))];
@@ -105,10 +121,10 @@
     for(const key of ['fbclid','gclid','gbraid','wbraid']){const id=query.get(key);if(id&&/^[a-zA-Z0-9_.-]{1,500}$/.test(id))url.searchParams.set(key,id);}
     link.href=url.pathname+url.search;
   });
-  function choose(choice){if(!['no','ads'].includes(choice))return;preference=choice;try{localStorage.setItem('cq-measurement-v3',choice);}catch{}if(choice!=='ads')revokePixel();else{persistClick();void startPixel();void startGoogle();}}
+  function choose(choice){if(!['no','ads'].includes(choice))return;preference=choice;try{localStorage.setItem('cq-measurement-v3',choice);}catch{}if(choice!=='ads')revokePixel();else{persistClick();void startPixel();void startGoogle();void startClarity();}}
   window.cqMeasurement={record,context,savedLead,choose,previewLead:receipt=>googleConversion('lead',receipt)};
   let arrivedFrom='';try{arrivedFrom=document.referrer?new URL(document.referrer).origin:'';}catch{}
   if(!privatePage&&arrivedFrom!==location.origin)count('arrive');
   if(!privatePage){record(location.pathname.includes('create')?'maker_start':'landing_view');record(matchMedia('(max-width:779px)').matches?'device_mobile':'device_desktop');}
-  if(preference==='ads'){persistClick();void startPixel();void startGoogle();}
+  if(preference==='ads'){persistClick();void startPixel();void startGoogle();void startClarity();}
 })();
