@@ -484,7 +484,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   if(state.step===1){
     updateLive();
     if(!state.names){$('#step-1-error').textContent='Add their first name to continue.';$('#names').focus();return;}
-    if(!$('#second-person').hidden&&!state.secondName){$('#step-1-error').textContent='Add the second person’s first name or remove that option.';$('#second-name').focus();return;}
+    if(!$('#second-person').hidden&&!state.secondName){$('#step-1-error').textContent='Add the other person’s first name, or remove them.';$('#second-name').focus();return;}
     $('#step-1-error').textContent='';
   }
   if(state.step===8&&!$('input[name="age"]:checked')){$('#step-8-error').textContent='Choose a reading level.';return;}
@@ -506,7 +506,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(state.mood==='own'&&!state.ownIdea){$('#step-4-error').textContent='Tell us what should happen, even in one sentence.';$('#own-idea').focus();return;}
     $('#step-4-error').textContent='';updateLive();
   }
-  if(state.step===2){updateLive();if(!$('#second-person').hidden&&!state.secondName){$('#step-2-error').textContent='Add the second first name or remove that option.';$('#second-name').focus();return;}}
+  if(state.step===2){updateLive();if(!$('#second-person').hidden&&!state.secondName){$('#step-2-error').textContent='Add the other person’s first name, or remove them.';$('#second-name').focus();return;}}
   if(state.step===2||(state.step===4&&!state.characterImages.length)){
     const photoReady=validPhotoCount()&&state.photoChecks.length===state.photos.length&&state.photoChecks.every(check=>check.pass)&&$('#photo-permission').checked;
     if(state.step===4&&!photoReady)showStep(2);
