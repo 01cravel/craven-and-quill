@@ -751,3 +751,18 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .step[data-step="1"] .start-price{margin:6px 0 16px}
 
 .reminder-optout{display:flex;align-items:center;gap:8px;margin:2px 0 0;font-size:.86rem;color:var(--muted);cursor:pointer}.reminder-optout input{width:18px;height:18px;margin:0;accent-color:#17332c}
+
+/* Free preview pages 1-3 */
+.page-art{margin:0 0 12px;border-radius:8px;overflow:hidden;background:#f3efe4;aspect-ratio:4/3;display:grid;place-items:center;position:relative}
+.page-art img{width:100%;height:100%;object-fit:cover;object-position:center 35%;display:block;animation:page-in .6s ease both}
+.page-art span{font-size:.85rem;color:var(--muted);text-align:center;padding:0 16px}
+.page-art.later{aspect-ratio:auto;padding:10px 12px;border:1.5px dashed #d5c39a;background:transparent}
+.page-art.drawing{background:linear-gradient(100deg,#f3efe4 30%,#fbf8f0 50%,#f3efe4 70%) 0 0/300% 100%;animation:page-shimmer 1.6s linear infinite}
+.page-art .sketching{font:400 1.05rem Story,Georgia,serif;color:#17332c}
+.page-art .sketching i:after{content:"";animation:page-dots 1.2s steps(4) infinite}
+@keyframes page-shimmer{to{background-position:-150% 0}}
+@keyframes page-dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+@keyframes page-in{from{opacity:0;transform:scale(1.02)}}
+.review-art-page.real img{filter:none;opacity:1;object-fit:cover}.review-art-page.real:after{display:none}
+.review-art-page.drawing img{opacity:.35}
+@media(prefers-reduced-motion:reduce){.page-art.drawing,.page-art img{animation:none}}

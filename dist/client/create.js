@@ -1,4 +1,5 @@
-const state={previewId:null,rewritesRemaining:3,step:1,storyMode:'invent',names:'',secondName:'',age:'',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a4',price:29.99};
+const state={pageArt:[],pageArtFor:null,previewId:null,rewritesRemaining:3,step:1,storyMode:'invent',names:'',secondName:'',age:'',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a4',price:29.99};
+const pageJobs=new Set();
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const track=(event,data={})=>{const names={story_maker_open:'maker_start',free_preview_created:'preview_success',free_preview_failed:'preview_error'};const allowed=['maker_start','photo_open','photo_picked','photo_passed','photo_failed','story_generated','story_edited','checkout_start','checkout_error','book_saved'];const value=names[event]||(event==='story_step_view'?'step_'+data.step:event==='photos_checked'?(data.passed?'photo_passed':'photo_failed'):event);if(allowed.includes(value)||/^step_(?:[1-9]|10|11)$/.test(value)||names[event])window.cqMeasurement?.record(value);};
@@ -123,6 +124,7 @@ function showStep(number){
   if(number===4&&state.storyDraft)requestAnimationFrame(()=>turnStoryPage(state.storyPage,'instant'));
   if(number===5&&state.storyDraft)$('#illustration-count').textContent=`${state.storyDraft.spreads.length} story illustrations and a cover`;
   if(number===5&&state.characterImages[0])renderPreviewBook();
+  if([4,6,7].includes(number))void drawPages();
   scrollToStepTop(number);
   onFirstScreen=number===1;
   track('story_step_view',{step:number});
@@ -162,7 +164,7 @@ function updateStoryGate(){
   $('#rewrite-label').textContent=state.rewritesRemaining>0?`Rewrite story · ${state.rewritesRemaining} left`:'No rewrites left · you can still edit';
   $('#generate-story').textContent=storyWriting?'Writing your story…':state.storyDraft?'Update my story':'Write their story';
 }
-function invalidatePreview(){state.characterImages=[];state.previewId=null;$('#choose-book').disabled=true;}
+function invalidatePreview(){state.characterImages=[];state.pageArt=[];state.previewId=null;$('#choose-book').disabled=true;}
 function editDraft(){
   if(!state.storyDraft)return;
   state.storyDraft.title=$('#story-title').value;
@@ -195,10 +197,10 @@ function renderStoryDraft(){
     label.className='story-page-label';
     const field=document.createElement('textarea');field.id=label.htmlFor;field.rows=6;field.readOnly=true;field.maxLength=1500;field.value=page.text;field.addEventListener('input',editDraft);
     const edit=document.createElement('button');edit.type='button';edit.className='edit-page';edit.textContent='Edit text';edit.addEventListener('click',()=>{field.readOnly=!field.readOnly;edit.textContent=field.readOnly?'Edit text':'Done';if(!field.readOnly)field.focus({preventScroll:true});});
-    panel.append(edit,label,field);pages.append(panel);
+    const art=document.createElement('figure');art.className='page-art';art.dataset.page=index;if(index>2){art.classList.add('later');art.innerHTML='<span>Picture drawn after you order</span>';}panel.append(art,edit,label,field);pages.append(panel);
   });
   turnStoryPage(state.storyPage,'instant');
-  updateLive();
+  updateLive();paintPageArt();
 }
 async function writeStory(revision=false){
   if(storyWriting)return;
@@ -226,7 +228,7 @@ async function writeStory(revision=false){
     if(!revision)state.storyPage=0;
     state.storyDraft=result.story;state.storyBasis=capturedBasis;state.storylineNeedsUpdate=false;renderStoryDraft();
     window.dispatchEvent(new Event('cq-draft-change'));$('#story-changes').value='';$('#story-writing-status').textContent='';
-    track('story_generated');if(!revision){$('#story-editor').open=false;if(state.characterImages.length)renderPreviewBook();else if(!state.photos.length){showStep(2);$('#step-2-error').textContent='Add your photo again to create a new preview. Your story is saved.';}else{showStep(5);void preparePreview();}}else{$('#story-editor').open=true;$('.rewrite-options').open=false;}
+    track('story_generated');void drawPages();if(!revision){$('#story-editor').open=false;if(state.characterImages.length)renderPreviewBook();else if(!state.photos.length){showStep(2);$('#step-2-error').textContent='Add your photo again to create a new preview. Your story is saved.';}else{showStep(5);void preparePreview();}}else{$('#story-editor').open=true;$('.rewrite-options').open=false;}
   }catch(cause){error.textContent=cause.name==='TimeoutError'?'The story took too long. Your draft has not changed. Please try again.':cause.message||'We could not write the story. Your draft has not changed.';$('#story-writing-status').textContent='';}
   finally{stopQuill();storyWriting=false;$$('#story-editor input,#story-editor textarea').forEach(field=>field.disabled=false);updateStoryGate();}
 }
@@ -613,6 +615,7 @@ function renderReviewPage(){const pages=state.storyDraft?.spreads||[];const tota
   if(!total){$('#review-text').textContent=previewText(selectedStory());$('#review-pos').hidden=true;$('#review-prev').hidden=$('#review-next').hidden=true;return;}
   reviewPage=Math.max(0,Math.min(total-1,reviewPage));
   $('#review-text').textContent=pages[reviewPage].text;$('#review-folio').textContent=reviewPage+1;
+  {const real=state.pageArtFor===state.previewId&&state.pageArt[reviewPage];const pg=$('.review-art-page');pg.classList.toggle('real',!!real);pg.classList.toggle('drawing',!real&&reviewPage<3&&pageJobs.has(reviewPage));$('#review-art').src=real||state.characterImages[0]||'assets/storybook.webp';$('.art-badge').textContent=reviewPage<3?'Drawing this page…':'Placeholder picture';$('.art-badge').hidden=!!real;}
   $('#review-pos').hidden=false;$('#review-pos').textContent=`Page ${reviewPage+1} of ${total}`;
   $('#review-prev').hidden=$('#review-next').hidden=false;$('#review-prev').disabled=reviewPage===0;$('#review-next').disabled=reviewPage===total-1;}
 $('#review-prev').addEventListener('click',()=>{reviewPage--;renderReviewPage();});
@@ -763,3 +766,33 @@ $('#address-change').addEventListener('click',()=>{setAddressMode('search');$('#
 $('#address-mode').addEventListener('click',()=>{if(addressFinder.mode==='manual'){setAddressMode(addressFilled()?'card':'search');if(addressFinder.mode==='search')$('#address-search').focus();}else useManualAddress();});
 $('#address-add-line').addEventListener('click',()=>{$('#address-line2-wrap').hidden=false;$('#address-add-line').hidden=true;$('#address-line2').focus();});
 $('#postcode').addEventListener('blur',()=>{const v=$('#postcode').value;if(v.trim())$('#postcode').value=tidyPostcode(v);});
+
+// Free preview pages: pages 1 to 3 drawn for real while they read, so they see the actual book before paying.
+function paintPageArt(){
+  const fresh=state.pageArtFor===state.previewId;
+  $$('#story-pages .page-art').forEach(fig=>{const i=Number(fig.dataset.page);if(i>2)return;const src=fresh&&state.pageArt[i];
+    fig.classList.toggle('drawing',!src);
+    if(src){let img=fig.querySelector('img');if(!img){fig.replaceChildren();img=document.createElement('img');img.alt=`Page ${i+1}, illustrated`;fig.append(img);}if(img.src!==src)img.src=src;}
+    else if(!pageJobs.has(i)&&fig.dataset.failed==='1'){fig.innerHTML='<span>This picture is drawn after you order</span>';}
+    else if(!fig.querySelector('.sketching')){fig.innerHTML=`<span class="sketching">Drawing page ${i+1}<i></i></span>`;}});
+  const drawn=fresh?[0,1,2].filter(i=>state.pageArt[i]).length:0;$('#story-choice-intro').textContent=drawn===3?'Pages 1 to 3 are drawn. Swipe to read the whole story.':pageJobs.size?'We’re drawing the first three pages now. Swipe to read while you wait.':'Swipe to read. Tap Edit text to make it yours.';
+  if(state.step===7)renderReviewPage();
+}
+async function drawPages(){
+  if(!state.previewId||!state.characterImages[0]||!draftValid(state.storyDraft))return;
+  if(state.pageArtFor!==state.previewId){state.pageArt=[];state.pageArtFor=state.previewId;}
+  const jobs=[0,1,2].filter(i=>!state.pageArt[i]&&!pageJobs.has(i)).map(async i=>{
+    pageJobs.add(i);paintPageArt();
+    const spread=state.storyDraft.spreads[i],forId=state.previewId;let done=false;
+    try{
+      for(let attempt=0;attempt<2&&!done;attempt++){
+        const r=await fetch('/api/preview-page',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({previewId:forId,page:i,characters:state.characterImages.filter(Boolean),scene:spread.image_scene||'',text:spread.text,title:state.storyDraft.title}),signal:AbortSignal.timeout(170000)});
+        const d=await r.json().catch(()=>({}));
+        if(r.ok&&d.image){if(state.previewId===forId){state.pageArt[i]=d.image;window.dispatchEvent(new Event('cq-draft-change'));track('preview_page_drawn');}done=true;}
+        else if([400,403,409].includes(r.status))break;
+      }
+    }catch{}
+    finally{pageJobs.delete(i);if(!done){const fig=document.querySelector(`#story-pages .page-art[data-page="${i}"]`);if(fig)fig.dataset.failed='1';}paintPageArt();}
+  });
+  await Promise.all(jobs);
+}
