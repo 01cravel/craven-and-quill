@@ -113,7 +113,7 @@ test('unsubscribing from the first preview reminder stops the discount email and
   assert.equal(sent.length,1);
 });
 
-test('owner-approved one-off: past preview contacts get both reminders, opt-outs and owner skipped',async()=>{
+test('owner-approved one-off: past preview contacts get one reminder, opt-outs and owner skipped',async()=>{
   const {enrolPastContacts}=await import('../dist/server/orders.js');
   const DB=testDb(),sent=[];
   const env={DB,FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'k',ORDER_EMAIL_FROM:'books@example.test',
@@ -129,7 +129,11 @@ test('owner-approved one-off: past preview contacts get both reminders, opt-outs
   assert.match(sent[0].subject,/book is waiting/);
   DB.sqlite.prepare('UPDATE followup_sequences SET first_sent_at=? WHERE email=?').run(old,'mum@gmail.com');
   r=await runFollowups(env);
-  assert.equal(r.second.accepted,1);
-  assert.match(sent[1].subject,/10% off/);
+  assert.equal(r.second.accepted,0);
+  assert.equal(sent.length,1);
+  assert.equal((await runFollowups(env)).first.accepted,0);
+  const token=DB.sqlite.prepare('SELECT episode_id FROM followup_sequences').get().episode_id;
+  assert.match(token,/^[0-9a-f-]{36}$/);
+  assert.equal(await unsubscribeFollowup(env,token),true);
   assert.equal((await enrolPastContacts(env)).added,0);
 });

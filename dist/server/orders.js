@@ -52659,6 +52659,11 @@ function message(step, quote, code2, expiry, details = {}) {
     button: "Finish it with 10% off",
     note: `The code is just for you and works once, until ${when}.`
   };
+  if (quote.consent_text === PAST_CONTACTS) {
+    c.pre = "Turn their preview into a personalised hardback.";
+    c.kicker = "Your personalised book";
+    c.paras[0] = "You tried a Craven & Quill preview. If you\u2019d like to make the hardback, open the book maker to continue on your original device or start a fresh story.";
+  }
   const p = (t2) => `<p style="margin:0 0 16px;color:#3c352f;font:16px/1.65 ${SANS};">${t2}</p>`;
   const codeBox = c.code ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:6px 0 24px;background:#f5f0e6;"><tr><td align="center" style="padding:18px 20px;border:1.5px dashed #ad843f;"><p style="margin:0 0 4px;color:#846329;font:700 12px/1.4 ${SANS};">Your code</p><p style="margin:0;color:#211d1a;font:700 26px/1.2 ${SERIF};letter-spacing:2px;">${escapeHtml(c.code)}</p></td></tr></table>` : "";
   const html2 = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(c.subject)} | Craven &amp; Quill</title><style>@media only screen and (max-width:600px){.shell{width:100%!important}.content{padding:32px 24px 34px!important}.footer{padding:24px 24px 32px!important}.heading{font-size:31px!important}.button{display:block!important;text-align:center!important}}</style></head>
@@ -52677,7 +52682,7 @@ ${details.image ? `<table role="presentation" cellpadding="0" cellspacing="0" bo
 </td></tr>
 <tr><td class="footer" style="padding:24px 48px 34px;border-top:1px solid #e9dec7;background:#faf7f0;">
 <p style="margin:0 0 8px;color:#655a50;font:13px/1.55 ${SANS};">Craven &amp; Quill. Personalised books, made for one reader at a time.</p>
-<p style="margin:0;color:#8a7f73;font:12px/1.55 ${SANS};">You made a free preview with us, so we\u2019re letting you know it\u2019s saved. </p><p style="margin:12px 0 0;"><a href="${escapeHtml(unsub)}" style="display:inline-block;padding:10px 16px;border:1px solid #8a7f73;border-radius:4px;color:#443c35;text-decoration:none;font:14px Arial,sans-serif;">Unsubscribe</a></p>
+<p style="margin:0;color:#8a7f73;font:12px/1.55 ${SANS};">You requested a free book preview from Craven &amp; Quill. </p><p style="margin:12px 0 0;"><a href="${escapeHtml(unsub)}" style="display:inline-block;padding:10px 16px;border:1px solid #8a7f73;border-radius:4px;color:#443c35;text-decoration:none;font:14px Arial,sans-serif;">Unsubscribe</a></p>
 </td></tr></table></td></tr></table></body></html>`;
   const strip = (t2) => t2.replace(/<[^>]+>/g, "");
   const text = [c.heading, ...c.paras.map(strip), c.code ? `Your code: ${c.code}` : "", `${c.button}: ${url}`, c.note, "Questions? Just reply to this email.", `Stop these emails: ${unsub}`, "Craven & Quill"].filter(Boolean).join("\n\n");
@@ -52724,23 +52729,18 @@ async function recordPreviewChoice(env2, email, previewId, declined) {
 }
 async function enrolPastContacts(env2) {
   await ensureFollowupTable(env2);
-  const rows = (await env2.DB.prepare(`SELECT c.email,c.updated_at FROM preview_contacts c
-    WHERE c.created_at<'2026-11-14T12:00:00.000Z' AND c.email NOT IN ('cravenluke@gmail.com','lukecraven788@gmail.com')
+  const inserted = await db(env2, `INSERT INTO followup_sequences
+    (email,episode_id,consent_text,consent_at,created_at,updated_at)
+    SELECT c.email,(lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-8'||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6)))),?1,?2,?2,?2 FROM preview_contacts c
+    WHERE c.created_at<'2026-11-14T00:00:00.000Z' AND c.email NOT IN ('cravenluke@gmail.com','lukecraven788@gmail.com')
     AND c.email NOT LIKE '%@example.%' AND c.email NOT LIKE '%.test'
+    AND c.email NOT LIKE '%@breeztechnologies.com' AND c.email NOT LIKE '%@mailinator.com' AND c.email NOT LIKE '%@gamil.com'
     AND NOT EXISTS (SELECT 1 FROM followup_sequences f WHERE f.email=c.email)
+    AND NOT EXISTS (SELECT 1 FROM launch_leads l WHERE l.email=c.email AND l.unsubscribed_at IS NOT NULL)
     AND NOT EXISTS (SELECT 1 FROM customer_quotes q WHERE q.email=c.email AND (q.offer_unsubscribed_at IS NOT NULL OR q.email_status IS NOT NULL))
-    AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=c.email AND o.payment_status='paid') LIMIT 200`).all()).results || [];
-  const stamp = now();
-  for (const r of rows) await db(
-    env2,
-    `INSERT INTO followup_sequences (email,episode_id,consent_text,consent_at,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?5) ON CONFLICT(email) DO NOTHING`,
-    r.email,
-    crypto.randomUUID(),
-    PAST_CONTACTS,
-    r.updated_at || stamp,
-    stamp
-  ).run();
-  return { added: rows.length };
+    AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=c.email AND o.payment_status='paid')
+    ON CONFLICT(email) DO NOTHING RETURNING email`, PAST_CONTACTS, now()).all();
+  return { added: inserted.results.length };
 }
 async function hasCharacter(env2, email) {
   try {
@@ -52817,11 +52817,12 @@ async function runFollowups(env2) {
   if (env2.FOLLOWUP_EMAILS_ENABLED !== "true") return { paused: true };
   if (!env2.DB || !env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { error: "Email or storage is not configured." };
   await ensureFollowupTable(env2);
+  await enrolPastContacts(env2);
   const cutoffFirst = new Date(Date.now() - DAY).toISOString(), cutoffSecond = new Date(Date.now() - 3 * DAY).toISOString();
   const first = (await db(
     env2,
     `SELECT f.email ${recipients} WHERE ${eligible} AND f.first_status IS NULL
-    AND COALESCE(q.confirmed_view_at,f.consent_at)<=?1 AND (f.consent_text=?2 OR f.consent_at<=?1) ORDER BY f.created_at LIMIT 50`,
+    AND (f.consent_text=?4 OR (COALESCE(q.confirmed_view_at,f.consent_at)<=?1 AND (f.consent_text=?2 OR f.consent_at<=?1))) ORDER BY f.created_at LIMIT 5`,
     cutoffFirst,
     FOLLOWUP_CONSENT,
     PREVIEW_NOTICE,
@@ -52831,8 +52832,9 @@ async function runFollowups(env2) {
   for (const row of first) {
     const outcome = await send(env2, 1, row);
     if (outcome in results.first) results.first[outcome]++;
+    if (first.length > 1) await new Promise((resolve) => setTimeout(resolve, 600));
   }
-  const second = (await db(env2, `SELECT f.email ${recipients} WHERE ${eligible} AND f.first_status='accepted'
+  const second = (await db(env2, `SELECT f.email ${recipients} WHERE ${eligible} AND f.consent_text<>?4 AND f.first_status='accepted'
     AND f.first_sent_at<=?1 AND f.second_status IS NULL ORDER BY f.first_sent_at LIMIT 50`, cutoffSecond, FOLLOWUP_CONSENT, PREVIEW_NOTICE, PAST_CONTACTS).all()).results || [];
   for (const row of second) {
     const outcome = await send(env2, 2, row);
