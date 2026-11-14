@@ -2,7 +2,7 @@ import {adConfig,leadConversion,adFeed} from './ad-measurement.js';
 export const CONSENT_VERSION='storybook-validation-2026-09-29';
 export const CONSENT_TEXT='Email me when Craven & Quill storybooks are ready to order. I can unsubscribe at any time.';
 const PRODUCTS={digital:1900,hardback:3500,bundle:4999};
-const EVENTS=new Set(['landing_view','maker_start','photo_open','photo_picked','photo_passed','photo_failed','preview_start','preview_success','preview_error','price_view',...Array.from({length:11},(_,i)=>'step_'+(i+1)),'story_generated','story_edited','checkout_start','checkout_error','book_saved','device_mobile','device_desktop','stay_5s','stay_15s','stay_30s','stay_60s','name_typed','start_tapped','page_error','timer_on']);
+const EVENTS=new Set(['landing_view','maker_start','photo_open','photo_picked','photo_passed','photo_failed','preview_start','preview_success','preview_error','price_visible',...Array.from({length:11},(_,i)=>'step_'+(i+1)),'story_generated','story_edited','checkout_start','checkout_error','book_saved','device_mobile','device_desktop','stay_5s','stay_15s','stay_30s','stay_60s','name_typed','start_tapped','page_error','timer_on']);
 // Cookie-free counts add one arrival marker; device comes from the browser's own request header.
 const COUNT_EVENTS=new Set(['arrive',...[...EVENTS].filter(e=>!e.startsWith('device_'))]);
 const ukToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London'}).format(new Date());
@@ -126,6 +126,9 @@ export async function campaignApi(request,env){
       const now=new Date().toISOString();
       const result=await env.DB.prepare('INSERT INTO preview_contacts (email, source, medium, campaign, creative, country, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7) ON CONFLICT(email) DO UPDATE SET updated_at=excluded.updated_at').bind(email,...attribution(input),country(request),now).run();
       if(result.success===false)throw new Error('Preview email write failed');
+      if(UUID.test(input.previewId||'')){
+        await env.DB.prepare("UPDATE preview_receipts SET email=?1 WHERE id=?2 AND email IS NULL AND status='succeeded'").bind(email,input.previewId).run();
+      }
       await linkVisit(env,input,'contact',email);
       let conversion=null;try{conversion=await leadConversion(env,email,input);}catch{console.error('Advertising lead receipt failed');}
       return reply({ok:true,conversion});

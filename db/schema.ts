@@ -47,7 +47,7 @@ export const orderAudit=sqliteTable('order_audit',{
 // Preview-only email capture never grants offer-email permission.
 export const customerQuotes=sqliteTable('customer_quotes',{
  email:text('email').primaryKey(),size:text('size').notNull(),pricePence:integer('price_pence').notNull(),catalogueVersion:text('catalogue_version').notNull(),
- firstShownAt:text('first_shown_at').notNull(),lastShownAt:text('last_shown_at').notNull(),
+ confirmedViewAt:text('confirmed_view_at'),firstShownAt:text('first_shown_at').notNull(),lastShownAt:text('last_shown_at').notNull(),
  offerConsentAt:text('offer_consent_at'),offerUnsubscribedAt:text('offer_unsubscribed_at'),unsubscribeToken:text('unsubscribe_token').notNull().unique(),
  discountCode:text('discount_code').unique(),discountPence:integer('discount_pence'),codeExpiresAt:text('code_expires_at'),
  emailStatus:text('email_status'),emailSentAt:text('email_sent_at'),emailProviderId:text('email_provider_id'),redeemedOrderId:text('redeemed_order_id'),

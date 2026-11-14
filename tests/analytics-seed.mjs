@@ -1,5 +1,5 @@
 // Invented sample traffic for analytics tests and the local preview. Never real customer data.
-const FLOW=['landing_view','maker_start','step_1','step_2','preview_start','preview_success','step_5','step_4','story_generated','price_view','step_7','checkout_start'];
+const FLOW=['landing_view','maker_start','step_1','step_2','preview_start','preview_success','step_5','step_4','story_generated','price_visible','step_7','checkout_start'];
 const ADS=[['meta','paid_social','cq_d_drop_photo','d_video'],['meta','paid_social','cq_d_drop_photo','d_static'],['direct','none','organic','none'],['instagram','social','organic','bio_link']];
 const COUNTRIES=['GB','GB','GB','GB','GB','IE','US','AE'];
 const TOWNS={GB:[['Leeds','England'],['Manchester','England'],['Glasgow','Scotland'],['Bristol','England'],['Cardiff','Wales']],IE:[['Dublin','Leinster']],US:[['Austin','Texas']],AE:[['Dubai','Dubai']]};
@@ -15,7 +15,7 @@ export function seedAnalytics(DB,{now=Date.now(),days=7,visits=140}={}){
   const order=db.prepare('INSERT INTO customer_orders (id, token_hash, email, size, amount, status, payment_status, payment_mode, revision, state, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,1,?,?,?)');
   const detail=db.prepare('INSERT INTO visit_details (visit_id, ip_prefix, town, region, created_at) VALUES (?,?,?,?,?)'),link=db.prepare('INSERT OR IGNORE INTO visit_links (visit_id, kind, ref, created_at) VALUES (?,?,?,?)');
   const counter=db.prepare("INSERT INTO visit_counts VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT DO UPDATE SET n = n + excluded.n");
-  const STEPS=new Set(['maker_start','step_1','step_2','preview_start','preview_success','price_view','checkout_start']);
+  const STEPS=new Set(['maker_start','step_1','step_2','preview_start','preview_success','price_visible','checkout_start']);
   const tallyCount=(t,event,ad,country,n=1)=>counter.run(new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London'}).format(t),event,ad[0],ad[1],ad[2],ad[3],country,r()<.8?'mobile':'desktop',n);
   const names=['Amara','Jamie','Olly','Ruby','Teddy','Isla','Biscuit','Leo','Poppy','Max'];
   const created=[];

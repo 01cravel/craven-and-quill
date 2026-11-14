@@ -25,8 +25,8 @@ test('separate email validation still rejects missing and malformed addresses',(
 test('email is asked after the character is drawn, and saved before the story page',async()=>{
  const fn=source.slice(source.indexOf('async function capturePreviewEmail(){'),source.indexOf('async function preparePreview(){'));
  let payload;
- const ctx={$:id=>({value:id==='#email'?'Person@Example.com':''}),AbortSignal,window:{cqMeasurement:{context:()=>({source:'meta'})}},fetch:async(url,options)=>{assert.equal(url,'/api/preview-email');payload=JSON.parse(options.body);return{ok:true,json:async()=>({ok:true})};}};
- vm.runInNewContext(fn,ctx);await ctx.capturePreviewEmail();assert.equal(payload.email,'person@example.com');assert.equal(payload.source,'meta');
+ const ctx={state:{previewId:'receipt-id'},$:id=>({value:id==='#email'?'Person@Example.com':''}),AbortSignal,window:{cqMeasurement:{context:()=>({source:'meta'})}},fetch:async(url,options)=>{assert.equal(url,'/api/preview-email');payload=JSON.parse(options.body);return{ok:true,json:async()=>({ok:true})};}};
+ vm.runInNewContext(fn,ctx);await ctx.capturePreviewEmail();assert.equal(payload.email,'person@example.com');assert.equal(payload.source,'meta');assert.equal(payload.previewId,'receipt-id');
  ctx.fetch=async()=>({ok:false,json:async()=>({error:'Save failed'})});await assert.rejects(ctx.capturePreviewEmail(),/Save failed/);
  const prepare=source.slice(source.indexOf('async function preparePreview(){'),source.indexOf('for(let index=0;index<10;'));
  assert.equal(prepare.includes('capturePreviewEmail'),false,'drawing does not wait for an email');

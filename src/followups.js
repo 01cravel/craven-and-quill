@@ -1,6 +1,6 @@
 import {PRODUCTS} from './catalog.js';
 
-export const FOLLOWUP_CONSENT = 'Shown on the email page (soft opt-in, not ticked off): We’ll email you their character. If you don’t finish, we’ll send up to two reminders, the second with 10% off. Unsubscribe any time. [Don’t send me reminders]';
+export const FOLLOWUP_CONSENT = 'Email me up to two follow-up emails about my book if I do not buy. The second may include an offer. I can unsubscribe at any time.';
 const DAY = 86400000;
 const TABLE = `CREATE TABLE IF NOT EXISTS followup_sequences (
   email TEXT PRIMARY KEY, episode_id TEXT NOT NULL, consent_text TEXT NOT NULL, consent_at TEXT,
@@ -14,17 +14,17 @@ const now=()=>new Date().toISOString();
 export async function ensureFollowupTable(env){await env.DB.prepare(TABLE).run();}
 
 export async function recordFollowupConsent(env,email,choice){
-  if(choice==='unchanged')return;
+  if(choice!=='yes'&&choice!=='no')return;
   await ensureFollowupTable(env);
-  if(choice==='no'){
-    await db(env,'UPDATE followup_sequences SET consent_at=NULL,updated_at=?1 WHERE email=?2',now(),email).run();
-    return;
-  }
   const stamp=now();
-  await db(env,`INSERT INTO followup_sequences (email,episode_id,consent_text,consent_at,created_at,updated_at)
-    VALUES (?1,?2,?3,?4,?4,?4)
-    ON CONFLICT(email) DO UPDATE SET consent_text=excluded.consent_text,consent_at=excluded.consent_at,updated_at=excluded.updated_at`,
-    email,crypto.randomUUID(),FOLLOWUP_CONSENT,stamp).run();
+  const preference=choice==='no'
+    ? db(env,'UPDATE followup_sequences SET consent_at=NULL,updated_at=?1 WHERE email=?2',stamp,email)
+    : db(env,`INSERT INTO followup_sequences (email,episode_id,consent_text,consent_at,created_at,updated_at)
+        VALUES (?1,?2,?3,?4,?4,?4)
+        ON CONFLICT(email) DO UPDATE SET consent_text=excluded.consent_text,consent_at=excluded.consent_at,updated_at=excluded.updated_at`,
+        email,crypto.randomUUID(),FOLLOWUP_CONSENT,stamp);
+  await env.DB.batch([preference,db(env,`UPDATE customer_quotes SET offer_consent_at=?1,
+    offer_unsubscribed_at=CASE WHEN ?1 IS NOT NULL THEN NULL ELSE offer_unsubscribed_at END WHERE email=?2`,choice==='yes'?stamp:null,email)]);
 }
 
 export async function unsubscribeFollowup(env,token){
@@ -112,25 +112,9 @@ async function detailsFor(env,email){
   const o=await db(env,'SELECT state FROM customer_orders WHERE email=?1 ORDER BY created_at DESC LIMIT 1',email).first().catch(()=>null);
   try{const s=JSON.parse(o?.state||'{}');return {names:d?.names||s.names||'',title:d?.title||s.story?.title||''};}catch{return d||{};}
 }
-// One-off: everyone who gave their email for a preview before reminders went live gets the same two reminders.
-export async function backfillFollowups(env){
-  await ensureFollowupTable(env);
-  const stamp=now();
-  const rows=(await env.DB.prepare(`SELECT c.email,c.updated_at FROM preview_contacts c LEFT JOIN customer_quotes q ON q.email=c.email
-    WHERE c.email NOT IN ('cravenluke@gmail.com','lukecraven788@gmail.com') AND c.email NOT LIKE '%@example.%' AND c.email NOT LIKE '%.test'
-    AND (q.email IS NULL OR (q.offer_unsubscribed_at IS NULL AND q.email_status IS NULL))`).all()).results||[];
-  let added=0;
-  for(const r of rows){
-    await db(env,`INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,offer_consent_at,unsubscribe_token) VALUES (?1,'a4',?2,'backfill',?3,?3,?4,?5)
-      ON CONFLICT(email) DO UPDATE SET offer_consent_at=COALESCE(customer_quotes.offer_consent_at,excluded.offer_consent_at)`,r.email,PRODUCTS.a4.pricePence,r.updated_at||stamp,stamp,crypto.randomUUID()).run();
-    const exists=await db(env,'SELECT consent_at FROM followup_sequences WHERE email=?1',r.email).first();
-    if(!exists){await recordFollowupConsent(env,r.email,'yes');added++;}
-  }
-  return {added};
-}
 async function canSend(env,email){
   const row=await db(env,`SELECT q.email,q.size,q.unsubscribe_token,q.offer_consent_at,q.offer_unsubscribed_at,q.email_status,f.episode_id,f.consent_at,f.first_status,f.first_sent_at,f.second_status
-    FROM customer_quotes q JOIN followup_sequences f ON f.email=q.email WHERE q.email=?1`,email).first();
+    FROM customer_quotes q JOIN followup_sequences f ON f.email=q.email WHERE q.email=?1 AND q.confirmed_view_at IS NOT NULL AND f.consent_text=?2`,email,FOLLOWUP_CONSENT).first();
   if(!row?.consent_at||!row.offer_consent_at||row.offer_unsubscribed_at)return null;
   const order=await db(env,`SELECT id FROM customer_orders WHERE email=?1 AND payment_status='paid' LIMIT 1`,email).first();
   return order?null:row;
@@ -166,10 +150,10 @@ async function send(env,step,quote){
 
 export async function followupStatus(env){
   await ensureFollowupTable(env);
-  const row=await env.DB.prepare(`SELECT COUNT(*) AS enrolled,SUM(CASE WHEN first_status='accepted' THEN 1 ELSE 0 END) AS first_sent,
+  const row=await env.DB.prepare(`SELECT COUNT(CASE WHEN consent_at IS NOT NULL AND consent_text=?1 THEN 1 END) AS enrolled,SUM(CASE WHEN first_status='accepted' THEN 1 ELSE 0 END) AS first_sent,
     SUM(CASE WHEN second_status='accepted' THEN 1 ELSE 0 END) AS second_sent,
     SUM(CASE WHEN first_status IN ('sending','unknown') OR second_status IN ('sending','unknown') THEN 1 ELSE 0 END) AS needs_review
-    FROM followup_sequences`).first();
+    FROM followup_sequences`).bind(FOLLOWUP_CONSENT).first();
   return {enabled:env.FOLLOWUP_EMAILS_ENABLED==='true',enrolled:row.enrolled||0,firstSent:row.first_sent||0,secondSent:row.second_sent||0,needsReview:row.needs_review||0};
 }
 
@@ -179,17 +163,17 @@ export async function runFollowups(env){
   await ensureFollowupTable(env);
   const cutoffFirst=new Date(Date.now()-DAY).toISOString(),cutoffSecond=new Date(Date.now()-6*DAY).toISOString();
   const first=(await db(env,`SELECT f.email FROM followup_sequences f JOIN customer_quotes q ON q.email=f.email
-    WHERE f.consent_at IS NOT NULL AND f.first_status IS NULL AND q.offer_consent_at IS NOT NULL AND q.offer_unsubscribed_at IS NULL
+    WHERE q.confirmed_view_at IS NOT NULL AND f.consent_text=?2 AND f.consent_at IS NOT NULL AND f.first_status IS NULL AND q.offer_consent_at IS NOT NULL AND q.offer_unsubscribed_at IS NULL
     AND q.email_status IS NULL AND q.last_shown_at<=?1 AND NOT EXISTS
     (SELECT 1 FROM customer_orders o WHERE o.email=f.email AND o.payment_status='paid')
-    ORDER BY q.last_shown_at LIMIT 20`,cutoffFirst).all()).results||[];
+    ORDER BY q.last_shown_at LIMIT 20`,cutoffFirst,FOLLOWUP_CONSENT).all()).results||[];
   const results={first:{accepted:0,unknown:0,suppressed:0},second:{accepted:0,unknown:0,suppressed:0}};
   for(const row of first){const outcome=await send(env,1,row);if(outcome in results.first)results.first[outcome]++;}
   const second=(await db(env,`SELECT f.email FROM followup_sequences f JOIN customer_quotes q ON q.email=f.email
-    WHERE f.consent_at IS NOT NULL AND f.first_status='accepted' AND f.first_sent_at<=?1 AND f.second_status IS NULL
+    WHERE q.confirmed_view_at IS NOT NULL AND f.consent_text=?2 AND f.consent_at IS NOT NULL AND f.first_status='accepted' AND f.first_sent_at<=?1 AND f.second_status IS NULL
     AND q.offer_consent_at IS NOT NULL AND q.offer_unsubscribed_at IS NULL AND q.email_status IS NULL
     AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=f.email AND o.payment_status='paid')
-    ORDER BY f.first_sent_at LIMIT 20`,cutoffSecond).all()).results||[];
+    ORDER BY f.first_sent_at LIMIT 20`,cutoffSecond,FOLLOWUP_CONSENT).all()).results||[];
   for(const row of second){const outcome=await send(env,2,row);if(outcome in results.second)results.second[outcome]++;}
   return results;
 }

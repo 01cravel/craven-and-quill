@@ -1,7 +1,7 @@
 import {adConfig,metaConfig} from './ad-measurement.js';
 import {ownerSession} from './owner-auth.js';
 import {PRODUCTS} from './catalog.js';
-import {runFollowups,followupStatus,backfillFollowups} from './orders.js';
+import {runFollowups,followupStatus} from './orders.js';
 
 // Reminder emails ride on the owner's daily dashboard load: at most one send run every 6 hours, only when the switch is on.
 async function followupTick(env){
@@ -11,9 +11,7 @@ async function followupTick(env){
     if(env.FOLLOWUP_EMAILS_ENABLED==='true'){
       const cutoff=new Date(Date.now()-6*3600000).toISOString(),stamp=new Date().toISOString();
       const claimed=await env.DB.prepare("INSERT INTO owner_jobs (name,ran_at) VALUES ('followups',?1) ON CONFLICT(name) DO UPDATE SET ran_at=excluded.ran_at WHERE owner_jobs.ran_at<=?2 RETURNING name").bind(stamp,cutoff).first();
-      const once=await env.DB.prepare("INSERT INTO owner_jobs (name,ran_at) VALUES ('followup_backfill_v1',?1) ON CONFLICT(name) DO NOTHING RETURNING name").bind(stamp).first();
-      if(once)await backfillFollowups(env);
-      if(claimed||once)ran=await runFollowups(env);
+      if(claimed)ran=await runFollowups(env);
     }
     const last=await env.DB.prepare("SELECT ran_at FROM owner_jobs WHERE name='followups'").first();
     return {...await followupStatus(env),lastRunAt:last?.ran_at||null,thisLoad:ran};
@@ -37,14 +35,14 @@ const DETAIL_DAYS=90;
 export const FUNNEL=[
   ['visit','Arrived on the site'],['maker_start','Opened the book maker'],['step_1','Name page'],['step_8','Reading level page'],['step_9','Story details page'],['step_3','Story tone page'],
   ['step_2','Photo page'],['photo_picked','Added a photo'],['photo_passed','Photo passed the check'],['preview_start','Asked for a free preview'],['preview_success','Got their character'],['step_5','Saw their character'],['step_10','Email page'],
-  ['step_4','Read their story'],['step_6','Book size page'],['price_view','Saw the prices'],['step_11','Delivery page'],['step_7','Reached review and pay'],['book_saved','Saved a book'],['checkout_start','Pressed pay'],['paid','Paid']
+  ['step_4','Read their story'],['step_6','Book size page'],['price_visible','Saw the prices'],['step_11','Delivery page'],['step_7','Reached review and pay'],['book_saved','Saved a book'],['checkout_start','Pressed pay'],['paid','Paid']
 ];
 // Page-open totals per step, kept with no visitor reference at all.
 export const COUNT_STEPS=[
   ['arrive','Arrived'],['maker_start','Opened the book maker'],['step_1','Name page'],['step_8','Reading level page'],['step_9','Story details page'],['step_3','Story tone page'],
   ['step_2','Photo page'],['photo_open','Tapped add photo'],['photo_picked','Picked a photo'],['photo_passed','Photo passed check'],['photo_failed','Photo failed check'],
   ['preview_start','Asked for a preview'],['preview_success','Got their character'],['step_5','Character page'],['step_10','Email page'],
-  ['step_4','Story page'],['step_6','Book size page'],['price_view','Saw the prices'],['step_11','Delivery page'],['step_7','Review and pay'],['book_saved','Saved a book'],['checkout_start','Pressed pay']
+  ['step_4','Story page'],['step_6','Book size page'],['price_visible','Saw the prices'],['step_11','Delivery page'],['step_7','Review and pay'],['book_saved','Saved a book'],['checkout_start','Pressed pay']
 ];
 const ERRORS={preview_error:'Preview failed',checkout_error:'Payment page failed',page_error:'Page error'};
 const STAYS=[['stay_60s','60s+'],['stay_30s','30s+'],['stay_15s','15s+'],['stay_5s','5s+']];
@@ -118,7 +116,7 @@ export async function buildReport(env,url,req=null){
     rows(q('SELECT id, status, created_at, email FROM preview_receipts WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
     rows(q('SELECT email, source, medium, campaign, creative, country, created_at, updated_at FROM preview_contacts WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
     rows(q('SELECT email, product, price_pence, source, medium, campaign, creative, visit_id, country, created_at, unsubscribed_at FROM launch_leads WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
-    rows(q('SELECT email, size, price_pence, first_shown_at, last_shown_at, offer_consent_at, email_status, redeemed_order_id FROM customer_quotes WHERE last_shown_at >= ?1 AND last_shown_at < ?2 ORDER BY last_shown_at DESC',since,until)),
+    rows(q('SELECT email, size, price_pence, first_shown_at, last_shown_at, offer_consent_at, email_status, redeemed_order_id FROM customer_quotes WHERE confirmed_view_at IS NOT NULL AND last_shown_at >= ?1 AND last_shown_at < ?2 ORDER BY last_shown_at DESC',since,until)),
     rows(q('SELECT id, email, size, amount, status, payment_status, payment_mode, state, created_at, updated_at FROM customer_orders WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
     rows(q('SELECT day, creative, pence FROM owner_ad_spend WHERE day >= ?1 AND day <= ?2 ORDER BY day DESC, creative',from,to)),
     rows(q('SELECT day, attempts FROM preview_daily_usage WHERE day >= ?1 AND day <= ?2 ORDER BY day',from,to)),
@@ -178,13 +176,13 @@ export async function buildReport(env,url,req=null){
   for(let h=0;h<24;h++)byHour.set(h,0);
   const furthest=v=>FUNNEL[v.far];
   for(const v of scope){
-    const day=byDay.get(ukDay(v.firstAt));if(day){day.visits++;if(v.events.has('preview_success'))day.previews++;if(v.events.has('price_view'))day.prices++;}
+    const day=byDay.get(ukDay(v.firstAt));if(day){day.visits++;if(v.events.has('preview_success'))day.previews++;if(v.events.has('price_visible'))day.prices++;}
     tally(byHour,ukHour(v.firstAt));tally(source,v.source);tally(campaign,v.campaign);tally(country,v.country);tally(device,v.device);
   }
   // Per-ad table always shows every ad so they can be compared, even while one is filtered.
   const ads=new Map();
   const ad=key=>{if(!ads.has(key))ads.set(key,{creative:key,visits:0,previews:0,prices:0,checkouts:0,sales:0,revenuePence:0,spendPence:0,costPence:0});return ads.get(key);};
-  for(const v of visits.values()){if(filter.source&&v.source!==filter.source)continue;const a=ad(v.creative);a.visits++;if(v.events.has('preview_success'))a.previews++;if(v.events.has('price_view'))a.prices++;if(v.events.has('checkout_start'))a.checkouts++;}
+  for(const v of visits.values()){if(filter.source&&v.source!==filter.source)continue;const a=ad(v.creative);a.visits++;if(v.events.has('preview_success'))a.previews++;if(v.events.has('price_visible'))a.prices++;if(v.events.has('checkout_start'))a.checkouts++;}
   const liveSales=orders.filter(o=>o.paymentStatus==='paid'&&!o.ownerTest);
   for(const o of liveSales)if(o.creative&&(!filter.source||o.source===filter.source)){const a=ad(o.creative);a.sales++;a.revenuePence+=o.amountPence;}
   for(const s of spendRows)if(s.creative!=='all')ad(s.creative).spendPence+=s.pence;
@@ -261,7 +259,7 @@ export async function buildReport(env,url,req=null){
   for(const c of scopedContacts){const p=person(c.email);touch(p,c.created_at);touch(p,c.updated_at);p.activity.add('Preview email');p.source||=c.source;p.creative||=c.creative;p.country||=c.country;}
   for(const l of scopedLeads){const p=person(l.email);touch(p,l.created_at);p.activity.add('Storybook interest list');p.launchConsent=!l.unsubscribed_at;p.source||=l.source;p.creative||=l.creative;p.country||=l.country;}
   for(const o of scopedOrders){const p=person(o.email);touch(p,o.createdAt);touch(p,o.updatedAt);p.books++;p.title=o.title||p.title;p.names=o.names||p.names;p.activity.add(o.paymentStatus==='paid'?'Paid book':'Saved book');stage(p,o.paymentStatus==='paid'?'paid':'book_saved');p.source||=o.source;p.creative||=o.creative;p.country||=o.country;}
-  for(const q of quotes)if(!filtered||peopleByEmail.has(q.email.toLowerCase())){const p=person(q.email);touch(p,q.last_shown_at);p.activity.add('Saw price');p.offerConsent=Boolean(q.offer_consent_at);stage(p,'price_view');}
+  for(const q of quotes)if(!filtered||peopleByEmail.has(q.email.toLowerCase())){const p=person(q.email);touch(p,q.last_shown_at);p.activity.add('Saw price');p.offerConsent=Boolean(q.offer_consent_at);stage(p,'price_visible');}
   for(const r of receipts)if((!filtered||peopleByEmail.has(r.email?.toLowerCase()))&&r.email){const p=person(r.email);touch(p,r.created_at);p.previews++;if(r.status==='succeeded')p.previewMade++;p.activity.add('Preview request');stage(p,r.status==='succeeded'?'preview_success':'preview_start');}
   for(const s of signups)if(!filtered||peopleByEmail.has(s.email.toLowerCase())){const p=person(s.email);touch(p,s.created_at);p.activity.add('Colouring list');}
   for(const r of receipts)if(!r.email&&!visitByRef.has('preview:'+r.id)&&!filtered)anonymous.push({kind:'preview',email:null,firstAt:r.created_at,lastAt:r.created_at,visits:0,furthestIndex:index.get(r.status==='succeeded'?'preview_success':'preview_start'),steps:[],activity:['Preview request'],previews:1,previewMade:r.status==='succeeded'?1:0,source:null,creative:null,country:null,where:null});

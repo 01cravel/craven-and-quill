@@ -112,7 +112,6 @@ function showStep(number){
   if(number===11)updateSendTo(true);
   if(number===6)updateHardback();
   if(number===9)configureBrief();
-  if(number===6){window.cqMeasurement?.record('price_view');void saveQuote().catch(()=>{});}
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);item.classList.toggle('active',n===number);item.classList.toggle('done',n<number);});
   const names={1:'Their name',8:'Reading level',2:'Their photo',9:'About them',3:'Story tone',4:'Your story',10:'Your email',5:'Your character',6:'Book size',11:'Delivery',7:'Review & pay'};
@@ -126,6 +125,7 @@ function showStep(number){
   if(number===5&&state.characterImages[0])renderPreviewBook();
   if([4,6,7].includes(number))void drawPages();
   scrollToStepTop(number);
+  if(number===6)requestAnimationFrame(observeBookPrice);
   onFirstScreen=number===1;
   track('story_step_view',{step:number});
   window.dispatchEvent(new Event('cq-draft-change'));
@@ -444,7 +444,7 @@ async function renderStoryArt(){
 }
 
 async function capturePreviewEmail(){
-  const response=await fetch('/api/preview-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#email').value.trim().toLowerCase(),website:$('#website').value,...window.cqMeasurement?.context()}),signal:AbortSignal.timeout(15000)});
+  const response=await fetch('/api/preview-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#email').value.trim().toLowerCase(),website:$('#website').value,previewId:state.previewId,...window.cqMeasurement?.context()}),signal:AbortSignal.timeout(15000)});
   const result=await response.json().catch(()=>({}));
   if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save your email. Please try again.');
   void window.cqMeasurement?.previewLead?.(result.conversion);
@@ -532,22 +532,62 @@ $$('[data-back]').forEach(button=>button.addEventListener('click',()=>{if(state.
 let orderCatalog=null,orderRequest=null;
 let offerCode=new URLSearchParams(location.search).get('offer')?.trim().toUpperCase()||'';
 if(/^CQ[A-Z0-9]{10}$/.test(offerCode)){$('#offer-code-note').hidden=false;$('#offer-code-note').textContent=`Offer code ${offerCode} will be checked before payment. No discount is applied until the final total updates.`;}
-async function saveQuote(explicitConsent){
- if(!validPreviewEmail()||!state.previewId)return;
- const body={email:$('#email').value.trim().toLowerCase(),previewId:state.previewId,size:$('input[name="product"]:checked').value,names:fullNames()||state.names||'',title:state.storyDraft?.title||''};
- if(typeof explicitConsent==='boolean')body.offerConsent=explicitConsent;
- const r=await fetch('/api/orders/quote-interest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
- if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||'Could not save your offer preference.');
+const reminderBox=$('#offer-email-consent');
+const priceElements=$$('.product .current-price');
+let lastQuoteKey='',confirmedContact='',pendingChoice=false,saveQueue=Promise.resolve();
+function quoteContact(){return {email:$('#email').value.trim().toLowerCase(),previewId:state.previewId};}
+async function postQuote(path,body){
+ const response=await fetch('/api/orders/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ if(!response.ok)throw new Error((await response.json().catch(()=>({}))).error||'Could not save your reminder preference.');
 }
-const reminderChoice=()=>void saveQuote(!$('#no-reminders').checked).catch(()=>{});$('#no-reminders').addEventListener('change',reminderChoice);$('#start-preview').addEventListener('click',reminderChoice);
-$('#offer-email-consent').addEventListener('change',async event=>{try{await saveQuote(event.target.checked);$('#step-6-error').textContent='';}catch(e){event.target.checked=!event.target.checked;$('#step-6-error').textContent=e.message;}});
+function observeBookPrice(){
+ if(state.step!==6||document.visibilityState!=='visible'||!state.previewId||!validPreviewEmail())return;
+ const contact=quoteContact(),contactKey=JSON.stringify(contact);
+ if(confirmedContact!==contactKey){reminderBox.disabled=true;reminderBox.checked=false;}
+ // Check the price text itself, even on a narrow screen where the options sit below the cover.
+ const visible=priceElements.filter(el=>{
+   const r=el.getBoundingClientRect();
+   if(!r.width||!r.height||r.top<0||r.bottom>innerHeight||r.left<0||r.right>innerWidth)return false;
+   return el.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2));
+ });
+ const price=visible.find(el=>el.closest('label').querySelector('input').checked)||visible[0];
+ if(!price)return;
+ const size=price.closest('label').querySelector('input').value;
+ const pricePence=Math.round(Number(price.textContent.replace('£',''))*100);
+ const key=JSON.stringify([contactKey,size,pricePence]);
+ if(lastQuoteKey===key)return;
+ lastQuoteKey=key;
+ window.cqMeasurement?.record('price_visible');
+ const body={...contact,size,pricePence,names:fullNames()||state.names||'',title:state.storyDraft?.title||''};
+ saveQueue=saveQueue.then(async()=>{
+   await postQuote('quote-view',body);
+   if(JSON.stringify(quoteContact())===contactKey){confirmedContact=contactKey;reminderBox.disabled=pendingChoice;}
+ }).catch(()=>{if(lastQuoteKey===key)lastQuoteKey='';});
+}
+if('IntersectionObserver' in window){
+ const observer=new IntersectionObserver(observeBookPrice,{threshold:[0,1]});
+ priceElements.forEach(el=>observer.observe(el));
+}else{
+ window.addEventListener('scroll',observeBookPrice,{passive:true,capture:true});
+ window.addEventListener('resize',observeBookPrice);
+}
+document.addEventListener('visibilitychange',observeBookPrice);
+window.addEventListener('online',observeBookPrice);
+reminderBox.addEventListener('change',async()=>{
+ const contact=quoteContact(),optIn=reminderBox.checked;
+ if(confirmedContact!==JSON.stringify(contact))return;
+ pendingChoice=true;reminderBox.disabled=true;
+ try{await postQuote('reminder-choice',{...contact,optIn});$('#step-6-error').textContent='';}
+ catch(error){reminderBox.checked=!optIn;$('#step-6-error').textContent=error.message;}
+ finally{pendingChoice=false;reminderBox.disabled=confirmedContact!==JSON.stringify(quoteContact());}
+});
 async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}if(orderCatalog.checkoutEnabled){$('#order-availability').textContent='Secure payment, then we create the rest of your illustrations. You and our team approve the finished proof before printing.';$('#join-launch').textContent='Next';}updateProduct();}catch{}}
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
   $('#order-label').textContent=state.product==='a4'?'A4 hardback + digital PDF':'A5 hardback + digital PDF';
   $('#order-price').textContent=`£${state.price.toFixed(2)}`;
 }
-$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{$('#purchase-intent').checked=false;orderRequest=null;updateProduct();void saveQuote().catch(()=>{});}));
+$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{$('#purchase-intent').checked=false;orderRequest=null;updateProduct();observeBookPrice();}));
 $('#join-launch').addEventListener('click',async()=>{
  const error=$('#step-7-error'),button=$('#join-launch');if(button.disabled)return;
  const typedCode=$('#offer-code').value.replace(/\s/g,'').toUpperCase();if(typedCode){if(!/^CQ[A-Z0-9]{10}$/.test(typedCode)){error.textContent='Check the discount code. It starts with CQ and has 12 characters.';$('#offer-code').focus();return;}offerCode=typedCode;}

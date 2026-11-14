@@ -7,6 +7,7 @@ function fixture(){
   const DB=testDb(),sent=[],email='reader@example.test',token=crypto.randomUUID();
   DB.sqlite.prepare(`INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,offer_consent_at,unsubscribe_token)
     VALUES (?,?,?,?,?,?,?,?)`).run(email,'a5',3999,'test','2026-10-20T00:00:00.000Z','2026-10-20T00:00:00.000Z','2026-10-20T00:00:00.000Z',token);
+  DB.sqlite.exec("UPDATE customer_quotes SET confirmed_view_at=last_shown_at");
   const env={DB,RESEND_API_KEY:'test-key',ORDER_EMAIL_FROM:'books@example.test',
     async fetch(url,options){sent.push({url,options,body:JSON.parse(options.body)});return Response.json({id:'email-'+sent.length});}};
   return {env,DB,sent,email,token};
@@ -47,4 +48,18 @@ test('unsubscribe and paid orders suppress follow-ups',async()=>{
   await runFollowups(env);
   assert.equal(sent.length,0);
   assert.equal((await followupStatus(env)).firstSent,0);
+});
+
+test('neither reminder can use assumed permission or an unverified price',async()=>{
+ for(const problem of ['legacy consent','legacy quote']){
+  const {env,DB,sent,email}=fixture();
+  env.FOLLOWUP_EMAILS_ENABLED='true';
+  await recordFollowupConsent(env,email,'yes');
+  if(problem==='legacy consent')DB.sqlite.exec("UPDATE followup_sequences SET consent_text='soft opt-in'");
+  else DB.sqlite.exec('UPDATE customer_quotes SET confirmed_view_at=NULL');
+  await runFollowups(env);
+  DB.sqlite.exec("UPDATE followup_sequences SET first_status='accepted', first_sent_at='2020-01-01'");
+  await runFollowups(env);
+  assert.equal(sent.length,0,problem);
+ }
 });

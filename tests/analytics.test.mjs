@@ -40,7 +40,7 @@ test('analytics is owner-only, including through the site worker',async()=>{
 
 test('funnel counts each visit once per step, shows losses and links measured paid orders',async()=>{
   const env=environment();
-  const buyer=visit(env,['maker_start','step_1','step_2','preview_start','preview_success','step_5','step_4','price_view','step_7','checkout_start','device_mobile']);
+  const buyer=visit(env,['maker_start','step_1','step_2','preview_start','preview_success','step_5','step_4','price_visible','step_7','checkout_start','device_mobile']);
   visit(env,['maker_start','step_1','step_2','preview_start','preview_error','device_mobile']);
   visit(env,['landing_view','device_desktop'],{creative:'none',source:'direct'});
   order(env,{visitId:buyer});
@@ -114,13 +114,13 @@ test('previews, emails, quotes and failures appear in what people made',async()=
 
 test('one people view joins every email record, and keeps unlinked visits visible',async()=>{
   const env=environment(),now=new Date().toISOString(),email='reader@example.test';
-  const linked=visit(env,['maker_start','step_2','step_1','step_10','preview_start','preview_success','step_8','step_9','step_3','step_4','step_6','price_view','step_11','step_7']);
+  const linked=visit(env,['maker_start','step_2','step_1','step_10','preview_start','preview_success','step_8','step_9','step_3','step_4','step_6','price_visible','step_11','step_7']);
   visit(env,['maker_start','step_2']);
   env.DB.sqlite.prepare('INSERT INTO visit_links VALUES (?,?,?,?)').run(linked,'contact',email,now);
   env.DB.sqlite.prepare('INSERT INTO preview_contacts VALUES (?,?,?,?,?,?,?,?)').run(email,'meta','paid_social','cq_d','d_static','GB',now,now);
   env.DB.sqlite.prepare('INSERT INTO preview_receipts VALUES (?,?,?,?)').run(crypto.randomUUID(),'succeeded',now,email);
   env.DB.sqlite.prepare('INSERT INTO preview_receipts VALUES (?,?,?,?)').run(crypto.randomUUID(),'failed',now,null);
-  env.DB.sqlite.prepare('INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,unsubscribe_token) VALUES (?,?,?,?,?,?,?)').run(email,'a5',3999,'v1',now,now,crypto.randomUUID());
+  env.DB.sqlite.prepare('INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,confirmed_view_at,unsubscribe_token) VALUES (?,?,?,?,?,?,?,?)').run(email,'a5',3999,'v1',now,now,now,crypto.randomUUID());
   order(env,{visitId:linked,email,paid:false});
   env.DB.sqlite.prepare('INSERT INTO launch_leads (email,product,price_pence,consent_version,consent_text,consent_at,source,medium,campaign,creative,visit_id,preview_id,country,unsubscribe_token,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run('launch@example.test','hardback',3500,'v1','consent',now,'meta','paid_social','cq_d','d_static',null,'p','GB',crypto.randomUUID(),now);
   env.DB.sqlite.exec('CREATE TABLE signups (email TEXT PRIMARY KEY, interest TEXT NOT NULL, page TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)');
@@ -244,7 +244,7 @@ test('report shows everyone counted without cookies, per ad, filtered and by day
 
 test('profit uses owner costs, counts every preview, and shows ad room and the stop line',async()=>{
   const env=environment();
-  const v=visit(env,['landing_view','maker_start','preview_start','preview_success','price_view','checkout_start']);
+  const v=visit(env,['landing_view','maker_start','preview_start','preview_success','price_visible','checkout_start']);
   order(env,{visitId:v,amount:5999});
   env.DB.sqlite.prepare("UPDATE customer_orders SET size='a4', state=json_set(state,'$.paidAt',?)").run(new Date(Date.now()-3*86400000).toISOString());
   env.DB.sqlite.prepare('INSERT INTO preview_daily_usage (day, attempts) VALUES (?, 4)').run(day);
@@ -277,4 +277,22 @@ test('default view shows UK shoppers only; crawlers and visits from abroad are c
   assert.deepEqual(uk.traffic.country.map(x=>x.key),['GB']);
   const all=await(await get(env,'?audience=all')).json();
   assert.equal(all.headline.visits,4);assert.deepEqual(all.audience,{mode:'all',hidden:{crawlers:0,abroad:0}});
+});
+
+test('a preview email links its own drawing without creating a quote or enrolling on dashboard load',async()=>{
+ const env=environment(),id=crypto.randomUUID(),email='reader@somewhere.invalid';
+ env.FOLLOWUP_EMAILS_ENABLED='true';env.RESEND_API_KEY='test';env.ORDER_EMAIL_FROM='test@cq.test';
+ const stamp=new Date().toISOString();
+ env.DB.sqlite.prepare("INSERT INTO preview_receipts (id,status,created_at) VALUES (?,'succeeded',?)").run(id,stamp);
+ const capture=address=>campaignApi(new Request(origin+'/api/preview-email',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({email:address,previewId:id})}),env);
+ assert.equal((await capture(email)).status,200);
+ assert.equal((await capture('different@somewhere.invalid')).status,200);
+ assert.equal(env.DB.sqlite.prepare('SELECT email FROM preview_receipts').get().email,email);
+ visit(env,['price_view','step_6']);
+ assert.equal((await get(env)).status,200);
+ assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM customer_quotes').get().n,0);
+ assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM followup_sequences').get().n,0);
+ env.DB.sqlite.prepare("INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,unsubscribe_token) VALUES (?,'a4',2999,'legacy',?,?,?)").run(email,stamp,stamp,crypto.randomUUID());
+ const report=await (await get(env)).json();
+ assert.equal(report.quotes.length,0);
 });

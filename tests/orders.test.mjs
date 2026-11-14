@@ -206,11 +206,21 @@ test('quoted non-buyers require their own preview and explicit offer consent',as
  const env=environment(),preview=crypto.randomUUID(),email='quote@example.test';
  env.DB.sqlite.prepare("INSERT INTO preview_contacts(email,source,medium,campaign,creative,country,created_at,updated_at) VALUES (?,'direct','none','none','none','GB',?,?)").run(email,new Date().toISOString(),new Date().toISOString());
  env.DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,created_at,email) VALUES (?,'succeeded',?,?)").run(preview,new Date().toISOString(),email);
- assert.equal((await request(env,'/quote-interest',{email:'other@example.test',previewId:preview,size:'a5',offerConsent:true},{auth:false})).status,400);
- assert.equal((await request(env,'/quote-interest',{email,previewId:preview,size:'a5'},{auth:false})).status,200);
+ const view={email,previewId:preview,size:'a5',pricePence:2499};
+ const choice={email,previewId:preview,optIn:true};
+ assert.ok((await request(env,'/quote-interest',{...view,offerConsent:true},{auth:false})).status>=400);
+ assert.equal((await request(env,'/reminder-choice',choice,{auth:false})).status,409);
+ assert.equal((await request(env,'/quote-view',{...view,email:'other@example.test'},{auth:false})).status,400);
+ assert.equal((await request(env,'/quote-view',{...view,pricePence:3999},{auth:false})).status,400);
+ assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM customer_quotes').get().n,0);
+ assert.equal((await request(env,'/quote-view',{...view,offerConsent:true},{auth:false})).status,200);
  let d=await (await request(env,'/admin-quotes',null,{admin:true})).json();
- assert.equal(d.totals.quotedNotBought,1);assert.equal(d.totals.offerEligible,0);
- assert.equal((await request(env,'/quote-interest',{email,previewId:preview,size:'a5',offerConsent:true},{auth:false})).status,200);
+ assert.equal(d.totals.quotedNotBought,1);assert.equal(d.quotes[0].offer_consent_at,null);
+ assert.equal((await request(env,'/reminder-choice',choice,{auth:false})).status,200);
+ assert.equal(env.DB.sqlite.prepare('SELECT last_shown_at FROM customer_quotes').get().last_shown_at,d.quotes[0].last_shown_at);
+ assert.equal((await request(env,'/reminder-choice',{...choice,optIn:false},{auth:false})).status,200);
+ assert.equal(env.DB.sqlite.prepare('SELECT consent_at FROM followup_sequences').get().consent_at,null);
+ assert.equal((await request(env,'/reminder-choice',choice,{auth:false})).status,200);
  env.DB.sqlite.prepare('UPDATE customer_quotes SET last_shown_at=? WHERE email=?').run(new Date(Date.now()-90000000).toISOString(),email);
  d=await (await request(env,'/admin-quotes',null,{admin:true})).json();
  assert.equal(d.totals.offerEligible,0);assert.equal(d.quotes[0].eligible,false);assert.equal(d.quotes[0].has_sequence_consent,1);
@@ -225,7 +235,8 @@ test('one offer email creates a single-use discount, never starts payment or pri
  const env=environment(),{id}=await create(env),email='qa-order@example.test',preview=crypto.randomUUID();
  env.DB.sqlite.prepare("INSERT INTO preview_contacts(email,source,medium,campaign,creative,country,created_at,updated_at) VALUES (?,'direct','none','none','none','GB',?,?)").run(email,new Date().toISOString(),new Date().toISOString());
  env.DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,created_at,email) VALUES (?,'succeeded',?,?)").run(preview,new Date().toISOString(),email);
- await request(env,'/quote-interest',{email,previewId:preview,size:'a5',offerConsent:true},{auth:false});
+ await request(env,'/quote-view',{email,previewId:preview,size:'a5',pricePence:3999},{auth:false});
+ await request(env,'/reminder-choice',{email,previewId:preview,optIn:true},{auth:false});
  // Existing one-off opt-ins predate the new two-email consent record.
  env.DB.sqlite.prepare('DELETE FROM followup_sequences WHERE email=?').run(email);
  env.DB.sqlite.prepare('UPDATE customer_quotes SET last_shown_at=? WHERE email=?').run(new Date(Date.now()-90000000).toISOString(),email);

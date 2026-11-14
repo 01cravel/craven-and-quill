@@ -61,8 +61,8 @@ function headline(d){
   if(f)$('#headline').firstChild.querySelector('small').textContent='from this ad or source';
 }
 
-const SHORT_FUNNEL={visit:'Arrived',maker_start:'Opened maker',step_2:'Photo page',photo_picked:'Added photo',photo_passed:'Photo OK',step_1:'Name',step_10:'Email page',preview_start:'Asked preview',preview_success:'Got character',step_5:'Saw character',step_8:'Reading level',step_9:'Story details',step_3:'Story tone',step_4:'Read story',step_6:'Book size',price_view:'Saw prices',step_11:'Delivery',step_7:'Review & pay',book_saved:'Saved book',checkout_start:'Pressed pay',paid:'Paid'};
-const PHASES=[['Arrive',['visit','maker_start']],['Photo',['step_2','photo_picked','photo_passed']],['Preview',['step_1','step_10','preview_start','preview_success','step_5']],['Story',['step_8','step_9','step_3','step_4']],['Buy',['step_6','price_view','step_11','step_7','book_saved','checkout_start','paid']]];
+const SHORT_FUNNEL={visit:'Arrived',maker_start:'Opened maker',step_2:'Photo page',photo_picked:'Added photo',photo_passed:'Photo OK',step_1:'Name',step_10:'Email page',preview_start:'Asked preview',preview_success:'Got character',step_5:'Saw character',step_8:'Reading level',step_9:'Story details',step_3:'Story tone',step_4:'Read story',step_6:'Book size',price_visible:'Saw prices',step_11:'Delivery',step_7:'Review & pay',book_saved:'Saved book',checkout_start:'Pressed pay',paid:'Paid'};
+const PHASES=[['Arrive',['visit','maker_start']],['Photo',['step_2','photo_picked','photo_passed']],['Preview',['step_1','step_10','preview_start','preview_success','step_5']],['Story',['step_8','step_9','step_3','step_4']],['Buy',['step_6','price_visible','step_11','step_7','book_saved','checkout_start','paid']]];
 const NS='http://www.w3.org/2000/svg';
 function N(tag,attrs={},text){const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(text!==undefined)e.textContent=text;return e;}
 function chips(d){
@@ -144,7 +144,7 @@ function ads(d){
   }
 }
 
-const SHORT={arrive:'Arrived',maker_start:'Opened maker',step_2:'Photo page',photo_open:'Tapped add',photo_picked:'Picked photo',photo_passed:'Photo OK',photo_failed:'Photo failed',step_1:'Name',step_10:'Email page',preview_start:'Asked for preview',preview_success:'Got character',step_5:'Character',step_8:'Reading level',step_9:'Story details',step_3:'Story tone',step_4:'Story',step_6:'Book size',price_view:'Saw prices',step_11:'Delivery',step_7:'Review & pay',book_saved:'Saved book',checkout_start:'Pressed pay'};
+const SHORT={arrive:'Arrived',maker_start:'Opened maker',step_2:'Photo page',photo_open:'Tapped add',photo_picked:'Picked photo',photo_passed:'Photo OK',photo_failed:'Photo failed',step_1:'Name',step_10:'Email page',preview_start:'Asked for preview',preview_success:'Got character',step_5:'Character',step_8:'Reading level',step_9:'Story details',step_3:'Story tone',step_4:'Story',step_6:'Book size',price_visible:'Saw prices',step_11:'Delivery',step_7:'Review & pay',book_saved:'Saved book',checkout_start:'Pressed pay'};
 function everyone(d){
   const e=d.everyone,head=$('#everyone-head'),body=$('#everyone');body.replaceChildren();head.replaceChildren();$('#everyone-note').textContent='';
   if(!e)return;
@@ -322,7 +322,7 @@ function scorecard(d){
   const el=(t,c,txt)=>{const n=document.createElement(t);if(c)n.className=c;if(txt!==undefined)n.textContent=txt;return n;};
   const f=Object.fromEntries((d.funnel||[]).map(s=>[s.step,s.visits]));const v=k=>f[k]||0;
   const from=d.range?.from,to=d.range?.to,days=from&&to?Math.max(1,Math.round((Date.parse(to)-Date.parse(from))/86400000)+1):1;
-  const arrived=v('visit'),opened=v('maker_start')||v('step_1'),pastName=v('step_8'),photo=v('photo_picked'),character=v('preview_success'),prices=v('price_view'),pressed=v('checkout_start'),sales=d.headline?.sales??v('paid');
+  const arrived=v('visit'),opened=v('maker_start')||v('step_1'),pastName=v('step_8'),photo=v('photo_picked'),character=v('preview_success'),prices=v('price_visible'),pressed=v('checkout_start'),sales=d.headline?.sales??v('paid');
   const stop=d.economics?.stop||{},limit=stop.limitPence||0,spent=stop.spentSinceSalePence||0,spend=d.headline?.spendPence||0;
   const rate=(a,b)=>b?a/b:null,p=x=>x===null?'—':Math.round(x*100)+'%';
   const verdict=(now,aim,base,lower)=>{if(now===null||base<5)return['Too few yet',''];const r=lower?aim/Math.max(now,1e-9):now/aim;return r>=1?['On track','ok']:r>=.7?['Close','warn']:['Behind','bad'];};

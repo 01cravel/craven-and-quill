@@ -4,9 +4,9 @@ import {ownerSession} from './owner-auth.js';
 import {sendOrderEmail} from './order-email.js';
 import {PRODUCTS,OWNER_TEST,BOOK,CATALOG_VERSION,catalogue,recipient,safeText,sha,requireThat,OrderError,checkoutReady} from './catalog.js';
 import {printBook,validatePdf,makeSpine} from './print-book.js';
-import {recordFollowupConsent,unsubscribeFollowup,ensureFollowupTable,runFollowups,followupStatus,saveFollowupDetails,backfillFollowups} from './followups.js';
+import {recordFollowupConsent,unsubscribeFollowup,ensureFollowupTable,runFollowups,followupStatus,saveFollowupDetails} from './followups.js';
 import {validStory} from '../dist/server/story.js';
-export {recordFollowupConsent,unsubscribeFollowup,runFollowups,followupStatus,backfillFollowups};
+export {recordFollowupConsent,unsubscribeFollowup,runFollowups,followupStatus};
 const now=()=>new Date().toISOString(),uid=()=>crypto.randomUUID();
 const reply=(body,status=200,extra={})=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',...extra}});
 const q=(env,sql,...v)=>env.DB.prepare(sql).bind(...v);
@@ -104,15 +104,23 @@ export async function ordersApi(req,env){const url=new URL(req.url),path=url.pat
  if(path==='/api/orders/ziina-webhook'&&req.method==='POST')return reply(await ziinaWebhook(req,env));
  if(path==='/api/orders/payment-webhook'&&req.method==='POST')return reply(await verifyPayment(req,env));
  if(!['GET','HEAD'].includes(req.method)){requireThat(req.headers.get('origin')===url.origin,'Reload this page before saving.',403);requireThat(req.headers.get('sec-fetch-site')!=='cross-site','Cross-site request refused.',403);}
- if(path==='/api/orders/quote-interest'&&req.method==='POST'){
-  const b=await input(req);const email=String(b.email||'').trim().toLowerCase();requireThat(/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)&&email.length<=254&&PRODUCTS[b.size]&&/^[a-f0-9-]{36}$/.test(b.previewId||''),'Complete your preview before choosing a book.');
+ if(['/api/orders/quote-view','/api/orders/reminder-choice'].includes(path)&&req.method==='POST'){
+  const b=await input(req);const email=String(b.email||'').trim().toLowerCase();requireThat(/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)&&email.length<=254&&/^[a-f0-9-]{36}$/.test(b.previewId||''),'Complete your preview before choosing a book.');
   const preview=await q(env,"SELECT id,email FROM preview_receipts WHERE id=?1 AND status='succeeded'",b.previewId).first();const contact=await q(env,'SELECT email FROM preview_contacts WHERE email=?1',email).first();requireThat(preview?.email===email&&contact,'Complete your preview before choosing a book.');
-  const consent=b.offerConsent===true?'yes':b.offerConsent===false?'no':'unchanged',stamp=now();
-  await q(env,`INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,offer_consent_at,unsubscribe_token) VALUES (?1,?2,?3,?4,?5,?5,?6,?7)
-    ON CONFLICT(email) DO UPDATE SET size=excluded.size,price_pence=excluded.price_pence,catalogue_version=excluded.catalogue_version,last_shown_at=excluded.last_shown_at,
-    offer_consent_at=CASE WHEN ?8='yes' THEN ?5 WHEN ?8='no' THEN NULL ELSE customer_quotes.offer_consent_at END,
-    offer_unsubscribed_at=CASE WHEN ?8='yes' THEN NULL ELSE customer_quotes.offer_unsubscribed_at END`,email,b.size,PRODUCTS[b.size].pricePence,CATALOG_VERSION,stamp,consent==='yes'?stamp:null,uid(),consent).run();
-  await recordFollowupConsent(env,email,consent);
+  const stamp=now();
+  if(path==='/api/orders/reminder-choice'){
+   requireThat(typeof b.optIn==='boolean','Choose whether to receive reminders.');
+   const quote=await q(env,'SELECT confirmed_view_at FROM customer_quotes WHERE email=?1',email).first();
+   requireThat(quote?.confirmed_view_at,'View a book price before choosing reminders.',409);
+   await recordFollowupConsent(env,email,b.optIn?'yes':'no');
+   return reply({ok:true});
+  }
+  requireThat(Object.hasOwn(PRODUCTS,b.size)&&b.pricePence===PRODUCTS[b.size].pricePence,'Refresh to see the current book price.');
+  await q(env,`INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,confirmed_view_at,unsubscribe_token)
+    VALUES (?1,?2,?3,?4,?5,?5,?5,?6)
+    ON CONFLICT(email) DO UPDATE SET size=excluded.size,price_pence=excluded.price_pence,catalogue_version=excluded.catalogue_version,
+    first_shown_at=CASE WHEN customer_quotes.confirmed_view_at IS NULL THEN excluded.first_shown_at ELSE customer_quotes.first_shown_at END,
+    confirmed_view_at=excluded.confirmed_view_at,last_shown_at=excluded.last_shown_at`,email,b.size,b.pricePence,CATALOG_VERSION,stamp,uid()).run();
   try{await saveFollowupDetails(env,email,b.names,b.title);}catch{console.error('Reminder details not saved');}
   return reply({ok:true});
  }
@@ -120,23 +128,23 @@ export async function ordersApi(req,env){const url=new URL(req.url),path=url.pat
  if(path==='/api/orders/admin-quotes'&&req.method==='GET'){
   requireThat(await admin(req,env),'Owner access required.',401);await ensureFollowupTable(env);const cutoff=new Date(Date.now()-86400000).toISOString();
   const [quoted,saved,eligible,rows]=await Promise.all([
-   q(env,"SELECT COUNT(*) n FROM customer_quotes q WHERE NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=q.email AND o.payment_status='paid')").first(),
+   q(env,"SELECT COUNT(*) n FROM customer_quotes q WHERE q.confirmed_view_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=q.email AND o.payment_status='paid')").first(),
    q(env,"SELECT COUNT(DISTINCT email) n FROM customer_orders WHERE payment_status='unpaid'").first(),
-   q(env,`SELECT COUNT(*) n FROM customer_quotes q WHERE q.offer_consent_at IS NOT NULL AND q.offer_unsubscribed_at IS NULL AND q.email_status IS NULL AND q.last_shown_at<?1 AND NOT EXISTS (SELECT 1 FROM followup_sequences f WHERE f.email=q.email AND f.consent_at IS NOT NULL) AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=q.email AND (o.payment_status='paid' OR o.status IN ('awaiting_payment','checkout_pending')))`,cutoff).first(),
+   q(env,`SELECT COUNT(*) n FROM customer_quotes q WHERE q.confirmed_view_at IS NOT NULL AND q.offer_consent_at IS NOT NULL AND q.offer_unsubscribed_at IS NULL AND q.email_status IS NULL AND q.last_shown_at<?1 AND NOT EXISTS (SELECT 1 FROM followup_sequences f WHERE f.email=q.email AND f.consent_at IS NOT NULL) AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=q.email AND (o.payment_status='paid' OR o.status IN ('awaiting_payment','checkout_pending')))`,cutoff).first(),
    q(env,`SELECT q.email,q.size,q.price_pence,q.last_shown_at,q.offer_consent_at,q.offer_unsubscribed_at,q.email_status,q.email_sent_at,q.discount_code,
     EXISTS(SELECT 1 FROM followup_sequences f WHERE f.email=q.email AND f.consent_at IS NOT NULL) has_sequence_consent,
     (SELECT status FROM customer_orders o WHERE o.email=q.email ORDER BY created_at DESC LIMIT 1) last_order_status,
     (SELECT id FROM customer_orders o WHERE o.email=q.email AND o.payment_status='unpaid' AND o.session_id IS NULL ORDER BY created_at DESC LIMIT 1) saved_order_id,
     EXISTS(SELECT 1 FROM customer_orders o WHERE o.email=q.email AND o.payment_status='paid') has_paid,
     EXISTS(SELECT 1 FROM customer_orders o WHERE o.email=q.email AND o.status IN ('awaiting_payment','checkout_pending')) active_checkout
-    FROM customer_quotes q ORDER BY q.last_shown_at DESC LIMIT 200`).all()
+    FROM customer_quotes q WHERE q.confirmed_view_at IS NOT NULL ORDER BY q.last_shown_at DESC LIMIT 200`).all()
   ]);
   return reply({totals:{quotedNotBought:quoted?.n||0,savedUnpaid:saved?.n||0,offerEligible:eligible?.n||0},quotes:(rows.results||[]).map(x=>({...x,eligible:!!x.offer_consent_at&&!x.offer_unsubscribed_at&&!x.email_status&&!x.has_sequence_consent&&!x.has_paid&&!x.active_checkout&&x.last_shown_at<cutoff}))});
  }
  if(path==='/api/orders/admin-send-offer'&&req.method==='POST'){
   requireThat(await admin(req,env),'Owner access required.',403);await ensureFollowupTable(env);const b=await input(req),email=String(b.email||'').trim().toLowerCase(),discount=Number(b.discountPence);requireThat(b.confirm===true&&Number.isSafeInteger(discount)&&discount>=100&&discount<=500,'Choose a discount between £1 and £5.');
   const sequence=await q(env,'SELECT email FROM followup_sequences WHERE email=?1 AND consent_at IS NOT NULL',email).first();requireThat(!sequence,'This person is in the two-email sequence.',409);
-  const quote=await q(env,'SELECT * FROM customer_quotes WHERE email=?1',email).first();requireThat(quote?.offer_consent_at&&!quote.offer_unsubscribed_at&&!quote.email_status&&Date.now()-Date.parse(quote.last_shown_at)>=86400000,'This person is not eligible for an offer email.',409);
+  const quote=await q(env,'SELECT * FROM customer_quotes WHERE email=?1',email).first();requireThat(quote?.confirmed_view_at&&quote.offer_consent_at&&!quote.offer_unsubscribed_at&&!quote.email_status&&Date.now()-Date.parse(quote.last_shown_at)>=86400000,'This person is not eligible for an offer email.',409);
   const paid=await q(env,"SELECT id FROM customer_orders WHERE email=?1 AND payment_status='paid' LIMIT 1",email).first(),active=await q(env,"SELECT id FROM customer_orders WHERE email=?1 AND status IN ('awaiting_payment','checkout_pending') LIMIT 1",email).first();requireThat(!paid&&!active,'A payment or checkout needs review before any offer.',409);
   requireThat(PRODUCTS[quote.size].pricePence-discount>=PRODUCTS[quote.size].estimatedSupplierPence+1800,'This discount leaves too little room for fulfilment.',409);
   requireThat(env.RESEND_API_KEY&&env.ORDER_EMAIL_FROM,'Order email is not connected.',503);

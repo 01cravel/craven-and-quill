@@ -71,6 +71,13 @@
       "when": 1793930761080,
       "tag": "0009_mature_tigra",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1794652127625,
+      "tag": "0010_confirmed_quote_view",
+      "breakpoints": true
     }
   ]
 }

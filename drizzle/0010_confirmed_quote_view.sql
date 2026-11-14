@@ -1,0 +1,1 @@
+ALTER TABLE `customer_quotes` ADD `confirmed_view_at` text;
