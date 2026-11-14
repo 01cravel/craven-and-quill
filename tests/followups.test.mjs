@@ -112,3 +112,24 @@ test('unsubscribing from the first preview reminder stops the discount email and
   assert.equal((await runFollowups(env)).second.accepted,0);
   assert.equal(sent.length,1);
 });
+
+test('owner-approved one-off: past preview contacts get both reminders, opt-outs and owner skipped',async()=>{
+  const {enrolPastContacts}=await import('../dist/server/orders.js');
+  const DB=testDb(),sent=[];
+  const env={DB,FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'k',ORDER_EMAIL_FROM:'books@example.test',
+    async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'e'+sent.length});}};
+  const old='2026-10-01T00:00:00.000Z';
+  const cols=DB.sqlite.prepare("PRAGMA table_info(preview_contacts)").all().map(c=>c.name);
+  const add=email=>{const row={email,created_at:old,updated_at:old,source:'direct',medium:'none',campaign:'none',creative:'none',country:'GB'};const keys=cols.filter(k=>k in row);DB.sqlite.prepare(`INSERT INTO preview_contacts (${keys}) VALUES (${keys.map(()=>'?')})`).run(...keys.map(k=>row[k]));};
+  ['mum@gmail.com','cravenluke@gmail.com','gone@gmail.com'].forEach(add);
+  DB.sqlite.prepare(`INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,offer_unsubscribed_at,unsubscribe_token) VALUES (?,?,?,?,?,?,?,?)`).run('gone@gmail.com','a5',3999,'t',old,old,old,crypto.randomUUID());
+  assert.equal((await enrolPastContacts(env)).added,1);
+  let r=await runFollowups(env);
+  assert.deepEqual(sent.map(s=>s.to[0]),['mum@gmail.com']);
+  assert.match(sent[0].subject,/book is waiting/);
+  DB.sqlite.prepare('UPDATE followup_sequences SET first_sent_at=? WHERE email=?').run(old,'mum@gmail.com');
+  r=await runFollowups(env);
+  assert.equal(r.second.accepted,1);
+  assert.match(sent[1].subject,/10% off/);
+  assert.equal((await enrolPastContacts(env)).added,0);
+});
