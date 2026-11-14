@@ -534,7 +534,7 @@ let offerCode=new URLSearchParams(location.search).get('offer')?.trim().toUpperC
 if(/^CQ[A-Z0-9]{10}$/.test(offerCode)){$('#offer-code-note').hidden=false;$('#offer-code-note').textContent=`Offer code ${offerCode} will be checked before payment. No discount is applied until the final total updates.`;}
 async function saveQuote(explicitConsent){
  if(!validPreviewEmail()||!state.previewId)return;
- const body={email:$('#email').value.trim().toLowerCase(),previewId:state.previewId,size:$('input[name="product"]:checked').value};
+ const body={email:$('#email').value.trim().toLowerCase(),previewId:state.previewId,size:$('input[name="product"]:checked').value,names:fullNames()||state.names||'',title:state.storyDraft?.title||''};
  if(typeof explicitConsent==='boolean')body.offerConsent=explicitConsent;
  const r=await fetch('/api/orders/quote-interest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
  if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||'Could not save your offer preference.');

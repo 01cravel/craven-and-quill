@@ -1,4 +1,3 @@
-import {template1 as firstHtml,template2 as firstText,template3 as secondHtml,template4 as secondText} from './followup-templates.generated.js';
 import {PRODUCTS} from './catalog.js';
 
 export const FOLLOWUP_CONSENT = 'Shown on the email page (soft opt-in, not ticked off): We’ll email you their character. If you don’t finish, we’ll send up to two reminders, the second with 10% off. Unsubscribe any time. [Don’t send me reminders]';
@@ -45,17 +44,89 @@ function render(template,bindings,html=false){
   if(html)result=result.replaceAll('src="craven-quill-gold-logo.png"','src="https://cravenandquill.com/assets/craven-quill-gold-logo.png"');
   return result;
 }
-function message(step,quote,code,expiry){
+const LOGO='https://cravenandquill.com/assets/craven-quill-gold-logo.png',SANS='Arial,Helvetica,sans-serif',SERIF="Georgia,'Times New Roman',serif";
+const poss=n=>n+(/s$/i.test(n)?'’':'’s');
+function message(step,quote,code,expiry,details={}){
   const unsub=`https://cravenandquill.com/offer-unsubscribe.html?token=${encodeURIComponent(quote.unsubscribe_token)}`;
-  const bindings={continue_url:`https://cravenandquill.com/create.html${code?`?offer=${encodeURIComponent(code)}`:''}`,unsubscribe_url:unsub};
-  if(step===2){
-    const date=new Date(expiry);
-    bindings.discount_code=code;
-    bindings.expiry_date=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/London'}).format(date);
-    bindings.expiry_time=new Intl.DateTimeFormat('en-GB',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Europe/London'}).format(date);
+  const url=`https://cravenandquill.com/create.html${code?`?offer=${encodeURIComponent(code)}`:''}`;
+  const name=String(details.names||'').trim().slice(0,60),title=String(details.title||'').trim().slice(0,120);
+  const N=name||'their',Np=name?poss(name):'their',who=name||'them';
+  let when='';
+  if(step===2){const d=new Date(expiry);when=new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/London'}).format(d);}
+  const book=title?`<i style="font-family:${SERIF};">${escapeHtml(title)}</i>`:'their story';
+  const c=step===1?{
+    subject:name?`${Np} book is waiting`:'Their book is waiting',
+    pre:'We kept everything safe. It’s one step from being real.',
+    kicker:'Saved for you',heading:name?`${Np} book is waiting.`:'Their book is waiting.',
+    paras:[`We drew ${escapeHtml(who)}, wrote ${book}, and saved every page just as you left it.`,
+      `Picture the moment ${escapeHtml(who)} opens a real hardback and sees ${name?escapeHtml(name)+'’s':'their'} own face looking back from the page, the hero of the whole story. That’s the kind of gift a child keeps long after the toys are gone.`,
+      `It’s one step from being real. We print it, post it to your door, and send you the finished proof to check first.`],
+    button:name?`Finish ${Np} book`:'Finish their book',
+    note:'Hardbacks from £24.99 with UK delivery. Order by 1 December for Christmas.'
+  }:{
+    subject:name?`10% off ${Np} book, just for you`:'10% off their book, just for you',
+    pre:`Your own code, until ${when}.`,
+    kicker:'A little nudge',heading:name?`Don’t let ${Np} story end here.`:'Don’t let their story end here.',
+    paras:[`${name?escapeHtml(name)+'’s':'Their'} character is still drawn and ${book} is still saved, waiting for its last page.`,
+      `Childhood moves fast. A book where ${escapeHtml(who)} is the hero is something they’ll pull off the shelf for years, and one day show their own children.`,
+      `So here’s 10% off to help you finish it.`],
+    code,button:'Finish it with 10% off',
+    note:`The code is just for you and works once, until ${when}.`
+  };
+  const p=t=>`<p style="margin:0 0 16px;color:#3c352f;font:16px/1.65 ${SANS};">${t}</p>`;
+  const codeBox=c.code?`<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:6px 0 24px;background:#f5f0e6;"><tr><td align="center" style="padding:18px 20px;border:1.5px dashed #ad843f;"><p style="margin:0 0 4px;color:#846329;font:700 12px/1.4 ${SANS};">Your code</p><p style="margin:0;color:#211d1a;font:700 26px/1.2 ${SERIF};letter-spacing:2px;">${escapeHtml(c.code)}</p></td></tr></table>`:'';
+  const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(c.subject)} | Craven &amp; Quill</title><style>@media only screen and (max-width:600px){.shell{width:100%!important}.content{padding:32px 24px 34px!important}.footer{padding:24px 24px 32px!important}.heading{font-size:31px!important}.button{display:block!important;text-align:center!important}}</style></head>
+<body style="margin:0;padding:0;background:#efeae0;color:#211d1a;-webkit-text-size-adjust:100%;">
+<div style="display:none;font-size:1px;color:#efeae0;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escapeHtml(c.pre)}</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#efeae0;"><tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" class="shell" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;max-width:560px;background:#fffdfa;">
+<tr><td align="center" style="padding:30px 24px 22px;border-bottom:1px solid #e9dec7;"><img src="${LOGO}" width="150" alt="Craven &amp; Quill" style="display:block;width:150px;height:auto;border:0;color:#211d1a;font:21px ${SERIF};"></td></tr>
+<tr><td class="content" style="padding:40px 48px 44px;">
+<p style="margin:0 0 14px;color:#846329;font:700 13px/1.5 ${SANS};">${escapeHtml(c.kicker)}</p>
+<h1 class="heading" style="margin:0 0 20px;color:#211d1a;font:normal 36px/1.12 ${SERIF};letter-spacing:-.5px;">${escapeHtml(c.heading)}</h1>
+${c.paras.map(p).join('')}${codeBox}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:8px 0 22px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${escapeHtml(url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${SANS};">${escapeHtml(c.button)}</a></td></tr></table>
+<p style="margin:0 0 6px;color:#655a50;font:14px/1.6 ${SANS};">${escapeHtml(c.note)}</p>
+<p style="margin:0;color:#655a50;font:14px/1.6 ${SANS};">Questions? Just reply to this email.</p>
+</td></tr>
+<tr><td class="footer" style="padding:24px 48px 34px;border-top:1px solid #e9dec7;background:#faf7f0;">
+<p style="margin:0 0 8px;color:#655a50;font:13px/1.55 ${SANS};">Craven &amp; Quill. Personalised books, made for one reader at a time.</p>
+<p style="margin:0;color:#8a7f73;font:12px/1.55 ${SANS};">You made a free preview with us, so we’re letting you know it’s saved. <a href="${escapeHtml(unsub)}" style="color:#8a7f73;text-decoration:underline;">Stop these emails</a>.</p>
+</td></tr></table></td></tr></table></body></html>`;
+  const strip=t=>t.replace(/<[^>]+>/g,'');
+  const text=[c.heading,...c.paras.map(strip),c.code?`Your code: ${c.code}`:'',`${c.button}: ${url}`,c.note,'Questions? Just reply to this email.',`Stop these emails: ${unsub}`,'Craven & Quill'].filter(Boolean).join('\n\n');
+  return {subject:c.subject,html,text};
+}
+// Child's name and book title, so every reminder is about their book.
+const DETAILS='CREATE TABLE IF NOT EXISTS followup_details (email TEXT PRIMARY KEY, names TEXT, title TEXT, updated_at TEXT NOT NULL)';
+export async function saveFollowupDetails(env,email,names,title){
+  const n=String(names||'').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,60),t=String(title||'').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,120);
+  if(!n&&!t)return;
+  await env.DB.prepare(DETAILS).run();
+  await db(env,'INSERT INTO followup_details (email,names,title,updated_at) VALUES (?1,?2,?3,?4) ON CONFLICT(email) DO UPDATE SET names=COALESCE(NULLIF(excluded.names,\'\'),followup_details.names),title=COALESCE(NULLIF(excluded.title,\'\'),followup_details.title),updated_at=excluded.updated_at',email,n,t,now()).run();
+}
+async function detailsFor(env,email){
+  await env.DB.prepare(DETAILS).run();
+  const d=await db(env,'SELECT names,title FROM followup_details WHERE email=?1',email).first();
+  if(d?.names)return d;
+  const o=await db(env,'SELECT state FROM customer_orders WHERE email=?1 ORDER BY created_at DESC LIMIT 1',email).first().catch(()=>null);
+  try{const s=JSON.parse(o?.state||'{}');return {names:d?.names||s.names||'',title:d?.title||s.story?.title||''};}catch{return d||{};}
+}
+// One-off: everyone who gave their email for a preview before reminders went live gets the same two reminders.
+export async function backfillFollowups(env){
+  await ensureFollowupTable(env);
+  const stamp=now();
+  const rows=(await env.DB.prepare(`SELECT c.email,c.updated_at FROM preview_contacts c LEFT JOIN customer_quotes q ON q.email=c.email
+    WHERE c.email NOT IN ('cravenluke@gmail.com','lukecraven788@gmail.com') AND c.email NOT LIKE '%@example.%' AND c.email NOT LIKE '%.test'
+    AND (q.email IS NULL OR (q.offer_unsubscribed_at IS NULL AND q.email_status IS NULL))`).all()).results||[];
+  let added=0;
+  for(const r of rows){
+    await db(env,`INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,offer_consent_at,unsubscribe_token) VALUES (?1,'a4',?2,'backfill',?3,?3,?4,?5)
+      ON CONFLICT(email) DO UPDATE SET offer_consent_at=COALESCE(customer_quotes.offer_consent_at,excluded.offer_consent_at)`,r.email,PRODUCTS.a4.pricePence,r.updated_at||stamp,stamp,crypto.randomUUID()).run();
+    const exists=await db(env,'SELECT consent_at FROM followup_sequences WHERE email=?1',r.email).first();
+    if(!exists){await recordFollowupConsent(env,r.email,'yes');added++;}
   }
-  const source=step===1?{html:firstHtml,text:firstText,subject:'Their story is still yours to make'}:{html:secondHtml,text:secondText,subject:'A little extra for their story: 10% off'};
-  return {subject:source.subject,html:render(source.html,bindings,true),text:render(source.text.split('\n\n').slice(1).join('\n\n'),bindings)};
+  return {added};
 }
 async function canSend(env,email){
   const row=await db(env,`SELECT q.email,q.size,q.unsubscribe_token,q.offer_consent_at,q.offer_unsubscribed_at,q.email_status,f.episode_id,f.consent_at,f.first_status,f.first_sent_at,f.second_status
@@ -80,7 +151,7 @@ async function send(env,step,quote){
       WHERE email=?4 AND email_status IS NULL AND offer_consent_at IS NOT NULL AND offer_unsubscribed_at IS NULL RETURNING email`,code,discount,expiry,quote.email).first();
     if(!reserved){await db(env,"UPDATE followup_sequences SET second_status='suppressed',updated_at=?1 WHERE email=?2",now(),quote.email).run();return 'suppressed';}
   }
-  const mail=message(step,fresh,code,expiry);
+  const mail=message(step,fresh,code,expiry,await detailsFor(env,quote.email));
   const oneClick=`https://cravenandquill.com/api/orders/offer-one-click?token=${encodeURIComponent(fresh.unsubscribe_token)}`;
   let accepted=false,providerId=null;
   try{
@@ -122,3 +193,5 @@ export async function runFollowups(env){
   for(const row of second){const outcome=await send(env,2,row);if(outcome in results.second)results.second[outcome]++;}
   return results;
 }
+
+export {message as followupMessage};

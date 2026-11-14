@@ -46149,7 +46149,7 @@ var Glyph = (_class$3 = /* @__PURE__ */ (function() {
         return String.fromCharCode(post2.map[this.id]);
     }
   };
-  _proto.render = function render2(ctx, size) {
+  _proto.render = function render(ctx, size) {
     ctx.save();
     var scale2 = 1 / this._font.head.unitsPerEm * size;
     ctx.scale(scale2, scale2);
@@ -47089,7 +47089,7 @@ var SBIXGlyph = /* @__PURE__ */ (function(_TTFGlyph) {
       buflen: end - start
     });
   };
-  _proto.render = function render2(ctx, size) {
+  _proto.render = function render(ctx, size) {
     var img = this.getImageForSize(size);
     if (img != null) {
       var scale2 = size / this._font.unitsPerEm;
@@ -47171,7 +47171,7 @@ var COLRGlyph = /* @__PURE__ */ (function(_Glyph) {
     }
     return bbox;
   };
-  _proto.render = function render2(ctx, size) {
+  _proto.render = function render(ctx, size) {
     for (var _iterator2 = _createForOfIteratorHelperLoose$n(this.layers), _step2; !(_step2 = _iterator2()).done; ) {
       var _step$value = _step2.value, glyph2 = _step$value.glyph, color = _step$value.color;
       ctx.fillColor([color.red, color.green, color.blue], color.alpha / 255 * 100);
@@ -52573,110 +52573,6 @@ async function makeSpine(widthMm, heightMm) {
   return pdf.save();
 }
 
-// src/followup-templates.generated.js
-var template1 = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <title>Their story is still yours to make. | Craven &amp; Quill</title>
-  <style>
-    @media only screen and (max-width: 600px) {
-      .email-shell { width: 100% !important; }
-      .content { padding: 34px 25px 37px !important; }
-      .header { padding: 28px 20px 21px !important; }
-      .footer { padding: 25px 25px 35px !important; }
-      .heading { font-size: 32px !important; line-height: 1.12 !important; }
-      .button { display: block !important; text-align: center !important; }
-    }
-  </style>
-</head>
-<body style="margin:0;padding:0;background:#efeae0;color:#211d1a;-webkit-text-size-adjust:100%;">
-  <div style="display:none;font-size:1px;color:#efeae0;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">See their illustrated character and first page free. The decision to buy comes later.</div>
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#efeae0;">
-    <tr><td align="center" style="padding:26px 12px;">
-      <table role="presentation" class="email-shell" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;max-width:560px;background:#fffdfa;">
-        <tr><td class="header" align="center" style="padding:34px 24px 26px;border-bottom:1px solid #e9dec7;">
-          <img src="craven-quill-gold-logo.png" width="180" height="120" alt="Craven &amp; Quill" style="display:block;width:180px;height:auto;max-width:100%;border:0;outline:none;text-decoration:none;color:#211d1a;font-family:Georgia,serif;font-size:21px;">
-        </td></tr>
-        <tr><td class="content" style="padding:43px 49px 47px;">
-          <p style="margin:0 0 15px;color:#846329;font:700 11px/1.5 Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;">A story worth coming back to</p>
-          <h1 class="heading" style="margin:0 0 23px;color:#211d1a;font:normal 39px/1.1 Georgia,'Times New Roman',serif;letter-spacing:-1px;">Their story is still yours to make.</h1>
-          <p style="margin:0 0 18px;color:#3c352f;font:16px/1.65 Arial,sans-serif;">You had a look at making someone the hero of their own illustrated book. If the timing is right, you can pick up the idea whenever you like.</p>
-          <p style="margin:0 0 26px;color:#3c352f;font:16px/1.65 Arial,sans-serif;">Start with one photo and see their illustrated character and opening story page free. You choose whether to make the full book after that.</p>
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 27px;background:#f5f0e6;">
-            <tr><td style="padding:17px 20px;border-left:3px solid #ad843f;color:#4b4033;font:15px/1.55 Arial,sans-serif;">Every hardback includes a digital PDF and UK standard delivery. You check the finished proof before anything goes to print.</td></tr>
-          </table>
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td bgcolor="#25201b" style="border-radius:3px;">
-            <a class="button" href="{{continue_url}}" style="display:inline-block;padding:16px 25px;color:#ffffff;text-decoration:none;font:700 15px/1.2 Arial,sans-serif;letter-spacing:.2px;">Make their book</a>
-          </td></tr></table>
-          <p style="margin:25px 0 0;color:#655a50;font:14px/1.6 Arial,sans-serif;">There is no rush. We would love to help when you are ready.</p>
-          <p style="margin:10px 0 0;color:#655a50;font:14px/1.6 Arial,sans-serif;">Questions? Reply to this email.</p>
-        </td></tr>
-        <tr><td class="footer" style="padding:27px 49px 39px;border-top:1px solid #e9dec7;background:#faf7f0;">
-          <p style="margin:0 0 11px;color:#655a50;font:13px/1.55 Arial,sans-serif;">Craven &amp; Quill \xB7 Personalised books, made for one reader at a time.</p>
-          <p style="margin:0;color:#655a50;font:13px/1.55 Arial,sans-serif;">You asked to hear from us about your book. <a href="{{unsubscribe_url}}" style="color:#655a50;text-decoration:underline;">Stop these emails</a>.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>
-`;
-var template2 = "Subject: Their story is still yours to make\nPreheader: See their illustrated character and first page free. The decision to buy comes later.\n\nYou had a look at making someone the hero of their own illustrated book. If the timing is right, you can pick up the idea whenever you like.\n\nStart with one photo and see their illustrated character and opening story page free. You choose whether to make the full book after that.\n\nEvery hardback includes a digital PDF and UK standard delivery. You check the finished proof before anything goes to print.\n\nMake their book: {{continue_url}}\n\nThere is no rush. We would love to help when you are ready. Questions? Reply to this email.\n\nCraven & Quill \xB7 Personalised books, made for one reader at a time.\nYou asked to hear from us about your book. Stop these emails: {{unsubscribe_url}}\n";
-var template3 = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <title>A little extra for their story. | Craven &amp; Quill</title>
-  <style>
-    @media only screen and (max-width: 600px) {
-      .email-shell { width: 100% !important; }
-      .content { padding: 34px 25px 37px !important; }
-      .header { padding: 28px 20px 21px !important; }
-      .footer { padding: 25px 25px 35px !important; }
-      .heading { font-size: 32px !important; line-height: 1.12 !important; }
-      .button { display: block !important; text-align: center !important; }
-    }
-  </style>
-</head>
-<body style="margin:0;padding:0;background:#efeae0;color:#211d1a;-webkit-text-size-adjust:100%;">
-  <div style="display:none;font-size:1px;color:#efeae0;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Take an extra 10% off one Craven &amp; Quill book with your personal code.</div>
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#efeae0;">
-    <tr><td align="center" style="padding:26px 12px;">
-      <table role="presentation" class="email-shell" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;max-width:560px;background:#fffdfa;">
-        <tr><td class="header" align="center" style="padding:34px 24px 26px;border-bottom:1px solid #e9dec7;">
-          <img src="craven-quill-gold-logo.png" width="180" height="120" alt="Craven &amp; Quill" style="display:block;width:180px;height:auto;max-width:100%;border:0;outline:none;text-decoration:none;color:#211d1a;font-family:Georgia,serif;font-size:21px;">
-        </td></tr>
-        <tr><td class="content" style="padding:43px 49px 47px;">
-          <p style="margin:0 0 15px;color:#846329;font:700 11px/1.5 Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;">A little thank-you</p>
-          <h1 class="heading" style="margin:0 0 23px;color:#211d1a;font:normal 39px/1.1 Georgia,'Times New Roman',serif;letter-spacing:-1px;">A little extra for their story.</h1>
-          <p style="margin:0 0 18px;color:#3c352f;font:16px/1.65 Arial,sans-serif;">If you are still thinking about their book, here is an extra 10% off the current book price.</p>
-          <p style="margin:0 0 26px;color:#3c352f;font:16px/1.65 Arial,sans-serif;">Use code {{discount_code}} at checkout. It is for your email address, works on one book, and expires on {{expiry_date}} at {{expiry_time}} UK time.</p>
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 27px;background:#f5f0e6;">
-            <tr><td style="padding:17px 20px;border-left:3px solid #ad843f;color:#4b4033;font:15px/1.55 Arial,sans-serif;">A free character and first-page preview comes before payment. Your hardback also includes a digital PDF and UK standard delivery.</td></tr>
-          </table>
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td bgcolor="#25201b" style="border-radius:3px;">
-            <a class="button" href="{{continue_url}}" style="display:inline-block;padding:16px 25px;color:#ffffff;text-decoration:none;font:700 15px/1.2 Arial,sans-serif;letter-spacing:.2px;">Make their book with 10% off</a>
-          </td></tr></table>
-          <p style="margin:25px 0 0;color:#655a50;font:14px/1.6 Arial,sans-serif;">We hope it helps you make a story that feels unmistakably theirs.</p>
-          <p style="margin:10px 0 0;color:#655a50;font:14px/1.6 Arial,sans-serif;">Questions? Reply to this email.</p>
-        </td></tr>
-        <tr><td class="footer" style="padding:27px 49px 39px;border-top:1px solid #e9dec7;background:#faf7f0;">
-          <p style="margin:0 0 11px;color:#655a50;font:13px/1.55 Arial,sans-serif;">Craven &amp; Quill \xB7 Personalised books, made for one reader at a time.</p>
-          <p style="margin:0;color:#655a50;font:13px/1.55 Arial,sans-serif;">You asked to hear from us about your book. <a href="{{unsubscribe_url}}" style="color:#655a50;text-decoration:underline;">Stop these emails</a>.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>
-`;
-var template4 = "Subject: A little extra for their story: 10% off\nPreheader: Take an extra 10% off one Craven & Quill book with your personal code.\n\nIf you are still thinking about their book, here is an extra 10% off the current book price.\n\nUse code {{discount_code}} at checkout. It is for your email address, works on one book, and expires on {{expiry_date}} at {{expiry_time}} UK time.\n\nA free character and first-page preview comes before payment. Your hardback also includes a digital PDF and UK standard delivery.\n\nMake their book with 10% off: {{continue_url}}\n\nWe hope it helps you make a story that feels unmistakably theirs. Questions? Reply to this email.\n\nCraven & Quill \xB7 Personalised books, made for one reader at a time.\nYou asked to hear from us about your book. Stop these emails: {{unsubscribe_url}}\n";
-
 // src/followups.js
 var FOLLOWUP_CONSENT = "Shown on the email page (soft opt-in, not ticked off): We\u2019ll email you their character. If you don\u2019t finish, we\u2019ll send up to two reminders, the second with 10% off. Unsubscribe any time. [Don\u2019t send me reminders]";
 var DAY = 864e5;
@@ -52720,23 +52616,107 @@ async function unsubscribeFollowup(env2, token) {
   return true;
 }
 var escapeHtml = (value) => String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-function render(template, bindings, html2 = false) {
-  let result = template;
-  for (const [key2, value] of Object.entries(bindings)) result = result.replaceAll(`{{${key2}}}`, html2 ? escapeHtml(value) : String(value));
-  if (html2) result = result.replaceAll('src="craven-quill-gold-logo.png"', 'src="https://cravenandquill.com/assets/craven-quill-gold-logo.png"');
-  return result;
-}
-function message(step, quote, code2, expiry) {
+var LOGO2 = "https://cravenandquill.com/assets/craven-quill-gold-logo.png";
+var SANS = "Arial,Helvetica,sans-serif";
+var SERIF = "Georgia,'Times New Roman',serif";
+var poss = (n) => n + (/s$/i.test(n) ? "\u2019" : "\u2019s");
+function message(step, quote, code2, expiry, details = {}) {
   const unsub = `https://cravenandquill.com/offer-unsubscribe.html?token=${encodeURIComponent(quote.unsubscribe_token)}`;
-  const bindings = { continue_url: `https://cravenandquill.com/create.html${code2 ? `?offer=${encodeURIComponent(code2)}` : ""}`, unsubscribe_url: unsub };
+  const url = `https://cravenandquill.com/create.html${code2 ? `?offer=${encodeURIComponent(code2)}` : ""}`;
+  const name5 = String(details.names || "").trim().slice(0, 60), title2 = String(details.title || "").trim().slice(0, 120);
+  const N = name5 || "their", Np = name5 ? poss(name5) : "their", who = name5 || "them";
+  let when = "";
   if (step === 2) {
-    const date = new Date(expiry);
-    bindings.discount_code = code2;
-    bindings.expiry_date = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/London" }).format(date);
-    bindings.expiry_time = new Intl.DateTimeFormat("en-GB", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Europe/London" }).format(date);
+    const d = new Date(expiry);
+    when = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/London" }).format(d);
   }
-  const source = step === 1 ? { html: template1, text: template2, subject: "Their story is still yours to make" } : { html: template3, text: template4, subject: "A little extra for their story: 10% off" };
-  return { subject: source.subject, html: render(source.html, bindings, true), text: render(source.text.split("\n\n").slice(1).join("\n\n"), bindings) };
+  const book = title2 ? `<i style="font-family:${SERIF};">${escapeHtml(title2)}</i>` : "their story";
+  const c = step === 1 ? {
+    subject: name5 ? `${Np} book is waiting` : "Their book is waiting",
+    pre: "We kept everything safe. It\u2019s one step from being real.",
+    kicker: "Saved for you",
+    heading: name5 ? `${Np} book is waiting.` : "Their book is waiting.",
+    paras: [
+      `We drew ${escapeHtml(who)}, wrote ${book}, and saved every page just as you left it.`,
+      `Picture the moment ${escapeHtml(who)} opens a real hardback and sees ${name5 ? escapeHtml(name5) + "\u2019s" : "their"} own face looking back from the page, the hero of the whole story. That\u2019s the kind of gift a child keeps long after the toys are gone.`,
+      `It\u2019s one step from being real. We print it, post it to your door, and send you the finished proof to check first.`
+    ],
+    button: name5 ? `Finish ${Np} book` : "Finish their book",
+    note: "Hardbacks from \xA324.99 with UK delivery. Order by 1 December for Christmas."
+  } : {
+    subject: name5 ? `10% off ${Np} book, just for you` : "10% off their book, just for you",
+    pre: `Your own code, until ${when}.`,
+    kicker: "A little nudge",
+    heading: name5 ? `Don\u2019t let ${Np} story end here.` : "Don\u2019t let their story end here.",
+    paras: [
+      `${name5 ? escapeHtml(name5) + "\u2019s" : "Their"} character is still drawn and ${book} is still saved, waiting for its last page.`,
+      `Childhood moves fast. A book where ${escapeHtml(who)} is the hero is something they\u2019ll pull off the shelf for years, and one day show their own children.`,
+      `So here\u2019s 10% off to help you finish it.`
+    ],
+    code: code2,
+    button: "Finish it with 10% off",
+    note: `The code is just for you and works once, until ${when}.`
+  };
+  const p = (t2) => `<p style="margin:0 0 16px;color:#3c352f;font:16px/1.65 ${SANS};">${t2}</p>`;
+  const codeBox = c.code ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:6px 0 24px;background:#f5f0e6;"><tr><td align="center" style="padding:18px 20px;border:1.5px dashed #ad843f;"><p style="margin:0 0 4px;color:#846329;font:700 12px/1.4 ${SANS};">Your code</p><p style="margin:0;color:#211d1a;font:700 26px/1.2 ${SERIF};letter-spacing:2px;">${escapeHtml(c.code)}</p></td></tr></table>` : "";
+  const html2 = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(c.subject)} | Craven &amp; Quill</title><style>@media only screen and (max-width:600px){.shell{width:100%!important}.content{padding:32px 24px 34px!important}.footer{padding:24px 24px 32px!important}.heading{font-size:31px!important}.button{display:block!important;text-align:center!important}}</style></head>
+<body style="margin:0;padding:0;background:#efeae0;color:#211d1a;-webkit-text-size-adjust:100%;">
+<div style="display:none;font-size:1px;color:#efeae0;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escapeHtml(c.pre)}</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#efeae0;"><tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" class="shell" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;max-width:560px;background:#fffdfa;">
+<tr><td align="center" style="padding:30px 24px 22px;border-bottom:1px solid #e9dec7;"><img src="${LOGO2}" width="150" alt="Craven &amp; Quill" style="display:block;width:150px;height:auto;border:0;color:#211d1a;font:21px ${SERIF};"></td></tr>
+<tr><td class="content" style="padding:40px 48px 44px;">
+<p style="margin:0 0 14px;color:#846329;font:700 13px/1.5 ${SANS};">${escapeHtml(c.kicker)}</p>
+<h1 class="heading" style="margin:0 0 20px;color:#211d1a;font:normal 36px/1.12 ${SERIF};letter-spacing:-.5px;">${escapeHtml(c.heading)}</h1>
+${c.paras.map(p).join("")}${codeBox}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:8px 0 22px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${escapeHtml(url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${SANS};">${escapeHtml(c.button)}</a></td></tr></table>
+<p style="margin:0 0 6px;color:#655a50;font:14px/1.6 ${SANS};">${escapeHtml(c.note)}</p>
+<p style="margin:0;color:#655a50;font:14px/1.6 ${SANS};">Questions? Just reply to this email.</p>
+</td></tr>
+<tr><td class="footer" style="padding:24px 48px 34px;border-top:1px solid #e9dec7;background:#faf7f0;">
+<p style="margin:0 0 8px;color:#655a50;font:13px/1.55 ${SANS};">Craven &amp; Quill. Personalised books, made for one reader at a time.</p>
+<p style="margin:0;color:#8a7f73;font:12px/1.55 ${SANS};">You made a free preview with us, so we\u2019re letting you know it\u2019s saved. <a href="${escapeHtml(unsub)}" style="color:#8a7f73;text-decoration:underline;">Stop these emails</a>.</p>
+</td></tr></table></td></tr></table></body></html>`;
+  const strip = (t2) => t2.replace(/<[^>]+>/g, "");
+  const text = [c.heading, ...c.paras.map(strip), c.code ? `Your code: ${c.code}` : "", `${c.button}: ${url}`, c.note, "Questions? Just reply to this email.", `Stop these emails: ${unsub}`, "Craven & Quill"].filter(Boolean).join("\n\n");
+  return { subject: c.subject, html: html2, text };
+}
+var DETAILS = "CREATE TABLE IF NOT EXISTS followup_details (email TEXT PRIMARY KEY, names TEXT, title TEXT, updated_at TEXT NOT NULL)";
+async function saveFollowupDetails(env2, email, names, title2) {
+  const n = String(names || "").replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, 60), t2 = String(title2 || "").replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, 120);
+  if (!n && !t2) return;
+  await env2.DB.prepare(DETAILS).run();
+  await db(env2, "INSERT INTO followup_details (email,names,title,updated_at) VALUES (?1,?2,?3,?4) ON CONFLICT(email) DO UPDATE SET names=COALESCE(NULLIF(excluded.names,''),followup_details.names),title=COALESCE(NULLIF(excluded.title,''),followup_details.title),updated_at=excluded.updated_at", email, n, t2, now()).run();
+}
+async function detailsFor(env2, email) {
+  await env2.DB.prepare(DETAILS).run();
+  const d = await db(env2, "SELECT names,title FROM followup_details WHERE email=?1", email).first();
+  if (d?.names) return d;
+  const o = await db(env2, "SELECT state FROM customer_orders WHERE email=?1 ORDER BY created_at DESC LIMIT 1", email).first().catch(() => null);
+  try {
+    const s = JSON.parse(o?.state || "{}");
+    return { names: d?.names || s.names || "", title: d?.title || s.story?.title || "" };
+  } catch {
+    return d || {};
+  }
+}
+async function backfillFollowups(env2) {
+  await ensureFollowupTable(env2);
+  const stamp = now();
+  const rows = (await env2.DB.prepare(`SELECT c.email,c.updated_at FROM preview_contacts c LEFT JOIN customer_quotes q ON q.email=c.email
+    WHERE c.email NOT IN ('cravenluke@gmail.com','lukecraven788@gmail.com') AND c.email NOT LIKE '%@example.%' AND c.email NOT LIKE '%.test'
+    AND (q.email IS NULL OR (q.offer_unsubscribed_at IS NULL AND q.email_status IS NULL))`).all()).results || [];
+  let added = 0;
+  for (const r of rows) {
+    await db(env2, `INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,offer_consent_at,unsubscribe_token) VALUES (?1,'a4',?2,'backfill',?3,?3,?4,?5)
+      ON CONFLICT(email) DO UPDATE SET offer_consent_at=COALESCE(customer_quotes.offer_consent_at,excluded.offer_consent_at)`, r.email, PRODUCTS.a4.pricePence, r.updated_at || stamp, stamp, crypto.randomUUID()).run();
+    const exists = await db(env2, "SELECT consent_at FROM followup_sequences WHERE email=?1", r.email).first();
+    if (!exists) {
+      await recordFollowupConsent(env2, r.email, "yes");
+      added++;
+    }
+  }
+  return { added };
 }
 async function canSend(env2, email) {
   const row = await db(env2, `SELECT q.email,q.size,q.unsubscribe_token,q.offer_consent_at,q.offer_unsubscribed_at,q.email_status,f.episode_id,f.consent_at,f.first_status,f.first_sent_at,f.second_status
@@ -52770,7 +52750,7 @@ async function send(env2, step, quote) {
       return "suppressed";
     }
   }
-  const mail = message(step, fresh, code2, expiry);
+  const mail = message(step, fresh, code2, expiry, await detailsFor(env2, quote.email));
   const oneClick = `https://cravenandquill.com/api/orders/offer-one-click?token=${encodeURIComponent(fresh.unsubscribe_token)}`;
   let accepted = false, providerId = null;
   try {
@@ -53251,12 +53231,12 @@ async function createProof(env2, o, actor, origin) {
     requireThat(r.ok, "Book design asset unavailable.", 503);
     return r.arrayBuffer();
   }));
-  const render2 = await printBook({ ...o.data, size: o.size }, (key3) => assetRead(env2, o, key3), font, logo);
-  const key2 = await assetPut(env2, o, render2.bytes, "application/pdf", "print-proof");
+  const render = await printBook({ ...o.data, size: o.size }, (key3) => assetRead(env2, o, key3), font, logo);
+  const key2 = await assetPut(env2, o, render.bytes, "application/pdf", "print-proof");
   const nextProofVersion = Math.max(o.data.proofSequence || 0, o.data.proof?.version || 0) + 1;
   if (o.data.proof) archiveContent(o, "proof_rebuilt", actor);
   o.data.proofSequence = nextProofVersion;
-  o.data.proof = { key: key2, hash: await sha(render2.bytes), version: o.data.proofSequence, preflight: render2.preflight, createdAt: now2() };
+  o.data.proof = { key: key2, hash: await sha(render.bytes), version: o.data.proofSequence, preflight: render.preflight, createdAt: now2() };
   o.data.customerApproved = null;
   o.data.adminApproved = null;
   await audit(env2, o.id, "proof_built", actor, { version: o.data.proofSequence, hash: o.data.proof.hash });
@@ -53337,6 +53317,11 @@ async function ordersApi(req, env2) {
     offer_consent_at=CASE WHEN ?8='yes' THEN ?5 WHEN ?8='no' THEN NULL ELSE customer_quotes.offer_consent_at END,
     offer_unsubscribed_at=CASE WHEN ?8='yes' THEN NULL ELSE customer_quotes.offer_unsubscribed_at END`, email, b2.size, PRODUCTS[b2.size].pricePence, CATALOG_VERSION, stamp, consent === "yes" ? stamp : null, uid(), consent).run();
       await recordFollowupConsent(env2, email, consent);
+      try {
+        await saveFollowupDetails(env2, email, b2.names, b2.title);
+      } catch {
+        console.error("Reminder details not saved");
+      }
       return reply({ ok: true });
     }
     if (path === "/api/orders/offer-unsubscribe" && req.method === "POST") {
@@ -53870,6 +53855,7 @@ You can stop offer emails here: ${unsubscribe}`;
   }
 }
 export {
+  backfillFollowups,
   claimBookSoldAlerts,
   followupStatus,
   matchZiina,

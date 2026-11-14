@@ -21,14 +21,14 @@ test('new consent sends one reminder and then a single 10% email after three day
   let result=await runFollowups(env);
   assert.equal(result.first.accepted,1);
   assert.equal(sent.length,1);
-  assert.match(sent[0].body.html,/Their story is still yours to make/);
+  assert.match(sent[0].body.html,/book is waiting/);
   assert.match(sent[0].body.html,/https:\/\/cravenandquill.com\/assets\/craven-quill-gold-logo.png/);
   assert.ok(sent[0].body.text.includes('Stop these emails'));
   DB.sqlite.prepare('UPDATE followup_sequences SET first_sent_at=? WHERE email=?').run('2026-10-20T00:00:00.000Z',email);
   result=await runFollowups(env);
   assert.equal(result.second.accepted,1);
   assert.equal(sent.length,2);
-  assert.match(sent[1].body.html,/extra 10% off/);
+  assert.match(sent[1].body.html,/10% off/);
   assert.equal(DB.sqlite.prepare('SELECT discount_pence FROM customer_quotes WHERE email=?').get(email).discount_pence,250);
   await runFollowups(env);
   assert.equal(sent.length,2);

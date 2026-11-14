@@ -4,9 +4,9 @@ import {ownerSession} from './owner-auth.js';
 import {sendOrderEmail} from './order-email.js';
 import {PRODUCTS,OWNER_TEST,BOOK,CATALOG_VERSION,catalogue,recipient,safeText,sha,requireThat,OrderError,checkoutReady} from './catalog.js';
 import {printBook,validatePdf,makeSpine} from './print-book.js';
-import {recordFollowupConsent,unsubscribeFollowup,ensureFollowupTable,runFollowups,followupStatus} from './followups.js';
+import {recordFollowupConsent,unsubscribeFollowup,ensureFollowupTable,runFollowups,followupStatus,saveFollowupDetails,backfillFollowups} from './followups.js';
 import {validStory} from '../dist/server/story.js';
-export {recordFollowupConsent,unsubscribeFollowup,runFollowups,followupStatus};
+export {recordFollowupConsent,unsubscribeFollowup,runFollowups,followupStatus,backfillFollowups};
 const now=()=>new Date().toISOString(),uid=()=>crypto.randomUUID();
 const reply=(body,status=200,extra={})=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',...extra}});
 const q=(env,sql,...v)=>env.DB.prepare(sql).bind(...v);
@@ -113,6 +113,7 @@ export async function ordersApi(req,env){const url=new URL(req.url),path=url.pat
     offer_consent_at=CASE WHEN ?8='yes' THEN ?5 WHEN ?8='no' THEN NULL ELSE customer_quotes.offer_consent_at END,
     offer_unsubscribed_at=CASE WHEN ?8='yes' THEN NULL ELSE customer_quotes.offer_unsubscribed_at END`,email,b.size,PRODUCTS[b.size].pricePence,CATALOG_VERSION,stamp,consent==='yes'?stamp:null,uid(),consent).run();
   await recordFollowupConsent(env,email,consent);
+  try{await saveFollowupDetails(env,email,b.names,b.title);}catch{console.error('Reminder details not saved');}
   return reply({ok:true});
  }
  if(path==='/api/orders/offer-unsubscribe'&&req.method==='POST'){const b=await input(req);requireThat(/^[a-f0-9-]{36}$/.test(b.token||''),'Invalid unsubscribe link.');await unsubscribeFollowup(env,b.token);return reply({ok:true});}
