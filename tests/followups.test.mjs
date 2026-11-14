@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {testDb} from './sqlite-d1.mjs';
-import {recordFollowupConsent,runFollowups,unsubscribeFollowup,followupStatus} from '../dist/server/orders.js';
+import {recordFollowupConsent,runFollowups,unsubscribeFollowup,followupStatus,enrollEveryone} from '../dist/server/orders.js';
 
 function fixture(){
   const DB=testDb(),sent=[],email='reader@example.test',token=crypto.randomUUID();
@@ -62,4 +62,24 @@ test('neither reminder can use assumed permission or an unverified price',async(
   await runFollowups(env);
   assert.equal(sent.length,0,problem);
  }
+});
+
+test('everyone who left a preview email gets the reminders, except opt-outs, owner and buyers',async()=>{
+  const DB=testDb(),sent=[];
+  const env={DB,FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'k',ORDER_EMAIL_FROM:'books@example.test',
+    async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'e'+sent.length});}};
+  const old='2026-10-01T00:00:00.000Z';
+  const cols=DB.sqlite.prepare("PRAGMA table_info(preview_contacts)").all().map(c=>c.name);
+  const add=email=>{const row={email,created_at:old,updated_at:old,source:'direct',medium:'none',campaign:'none',creative:'none',country:'GB'};const keys=cols.filter(k=>k in row);DB.sqlite.prepare(`INSERT INTO preview_contacts (${keys}) VALUES (${keys.map(()=>'?')})`).run(...keys.map(k=>row[k]));};
+  ['mum@gmail.com','cravenluke@gmail.com','gone@gmail.com','fresh@gmail.com'].forEach(add);
+  DB.sqlite.prepare('UPDATE preview_contacts SET updated_at=? WHERE email=?').run(new Date().toISOString(),'fresh@gmail.com');
+  await enrollEveryone(env);
+  DB.sqlite.prepare('UPDATE customer_quotes SET offer_unsubscribed_at=?,offer_consent_at=NULL WHERE email=?').run(old,'gone@gmail.com');
+  DB.sqlite.prepare('UPDATE followup_sequences SET consent_at=NULL WHERE email=?').run('gone@gmail.com');
+  const r=await runFollowups(env);
+  assert.equal(r.first.accepted,1);
+  assert.deepEqual(sent.map(s=>s.to[0]),['mum@gmail.com']);
+  assert.match(sent[0].subject,/book is waiting/);
+  await enrollEveryone(env);await runFollowups(env);
+  assert.equal(sent.length,1);
 });

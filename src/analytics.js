@@ -1,7 +1,7 @@
 import {adConfig,metaConfig} from './ad-measurement.js';
 import {ownerSession} from './owner-auth.js';
 import {PRODUCTS} from './catalog.js';
-import {runFollowups,followupStatus} from './orders.js';
+import {runFollowups,followupStatus,enrollEveryone} from './orders.js';
 
 // Reminder emails ride on the owner's daily dashboard load: at most one send run every 6 hours, only when the switch is on.
 async function followupTick(env){
@@ -11,7 +11,8 @@ async function followupTick(env){
     if(env.FOLLOWUP_EMAILS_ENABLED==='true'){
       const cutoff=new Date(Date.now()-6*3600000).toISOString(),stamp=new Date().toISOString();
       const claimed=await env.DB.prepare("INSERT INTO owner_jobs (name,ran_at) VALUES ('followups',?1) ON CONFLICT(name) DO UPDATE SET ran_at=excluded.ran_at WHERE owner_jobs.ran_at<=?2 RETURNING name").bind(stamp,cutoff).first();
-      if(claimed)ran=await runFollowups(env);
+      const once=await env.DB.prepare("INSERT INTO owner_jobs (name,ran_at) VALUES ('followup_everyone_v1',?1) ON CONFLICT(name) DO NOTHING RETURNING name").bind(stamp).first();
+      if(claimed||once){const enrolled=await enrollEveryone(env);ran={enrolled,...await runFollowups(env)};}
     }
     const last=await env.DB.prepare("SELECT ran_at FROM owner_jobs WHERE name='followups'").first();
     return {...await followupStatus(env),lastRunAt:last?.ran_at||null,thisLoad:ran};
