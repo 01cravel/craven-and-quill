@@ -464,7 +464,7 @@ async function preparePreview(){
     await renderStoryArt();
     await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
     drawingProgress.stop(true);
-    $('#making-state').hidden=true;$('#result-state').hidden=false;$('#choose-book').disabled=false;updateCover();renderPreviewBook();window.dispatchEvent(new Event('cq-draft-change'));track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});
+    $('#making-state').hidden=true;$('#result-state').hidden=false;$('#choose-book').disabled=false;updateCover();renderPreviewBook();window.dispatchEvent(new Event('cq-draft-change'));track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});if(state.characterImages[0]&&state.previewId)void fetch('/api/orders/followup-character',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...quoteContact(),image:state.characterImages[0],names:fullNames()||state.names||''})}).catch(()=>{});
   }catch(error){
     drawingProgress.stop(false);
     $('#generation-error-copy').textContent=error.message||'The character could not be drawn. Please try again.';$('#generation-error').hidden=false;

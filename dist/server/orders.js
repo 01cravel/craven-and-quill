@@ -52667,7 +52667,7 @@ function message(step, quote, code2, expiry, details = {}) {
 <tr><td class="content" style="padding:40px 48px 44px;">
 <p style="margin:0 0 14px;color:#846329;font:700 13px/1.5 ${SANS};">${escapeHtml(c.kicker)}</p>
 <h1 class="heading" style="margin:0 0 20px;color:#211d1a;font:normal 36px/1.12 ${SERIF};letter-spacing:-.5px;">${escapeHtml(c.heading)}</h1>
-${c.paras.map(p).join("")}${codeBox}
+${details.image ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:4px 0 24px;"><tr><td align="center" style="padding:14px;background:#f5f0e6;"><img src="${escapeHtml(details.image)}" width="260" alt="${escapeHtml(name5 ? name5 + "\u2019s character" : "Your character")}" style="display:block;width:260px;max-width:100%;height:auto;border:0;border-radius:4px;"><p style="margin:10px 0 0;color:#846329;font:italic 14px/1.4 ${SERIF};">${escapeHtml(name5 ? `${name5}, as we drew them` : "Your character, as we drew them")}</p></td></tr></table>` : ""}${c.paras.map(p).join("")}${codeBox}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:8px 0 22px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${escapeHtml(url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${SANS};">${escapeHtml(c.button)}</a></td></tr></table>
 <p style="margin:0 0 6px;color:#655a50;font:14px/1.6 ${SANS};">${escapeHtml(c.note)}</p>
 <p style="margin:0;color:#655a50;font:14px/1.6 ${SANS};">Questions? Just reply to this email.</p>
@@ -52716,6 +52716,15 @@ async function enrollEveryone(env2) {
   }
   return { added: rows.length };
 }
+async function hasCharacter(env2, email) {
+  try {
+    if (await env2.BOOK_ASSETS.head("followup/" + await sha(email))) return true;
+    const o = await db(env2, "SELECT state FROM customer_orders WHERE email=?1 ORDER BY created_at DESC LIMIT 1", email).first();
+    return !!JSON.parse(o?.state || "{}").characters?.[0];
+  } catch {
+    return false;
+  }
+}
 async function canSend(env2, email) {
   const row = await db(env2, `SELECT q.email,q.size,q.unsubscribe_token,q.offer_consent_at,q.offer_unsubscribed_at,q.email_status,f.episode_id,f.consent_at,f.first_status,f.first_sent_at,f.second_status
     FROM customer_quotes q JOIN followup_sequences f ON f.email=q.email WHERE q.email=?1 AND ((q.confirmed_view_at IS NOT NULL AND f.consent_text=?2) OR f.consent_text=?3)`, email, FOLLOWUP_CONSENT, EVERYONE_BASIS).first();
@@ -52748,7 +52757,9 @@ async function send(env2, step, quote) {
       return "suppressed";
     }
   }
-  const mail = message(step, fresh, code2, expiry, await detailsFor(env2, quote.email));
+  const details = await detailsFor(env2, quote.email);
+  if (env2.BOOK_ASSETS && await hasCharacter(env2, quote.email)) details.image = `https://cravenandquill.com/api/orders/followup-character?t=${encodeURIComponent(fresh.unsubscribe_token)}`;
+  const mail = message(step, fresh, code2, expiry, details);
   const oneClick = `https://cravenandquill.com/api/orders/offer-one-click?token=${encodeURIComponent(fresh.unsubscribe_token)}`;
   let accepted = false, providerId = null;
   try {
@@ -52951,6 +52962,19 @@ async function assetPut(env2, o, bytes, type, kind) {
   const key2 = uid();
   await env2.BOOK_ASSETS.put(`orders/${o.id}/${key2}`, bytes, { httpMetadata: { contentType: type }, customMetadata: { kind } });
   return key2;
+}
+async function characterImage(env2, email) {
+  const a = await env2.BOOK_ASSETS.get("followup/" + await sha(email));
+  if (a) return { bytes: await a.arrayBuffer(), type: a.httpMetadata?.contentType || "image/jpeg" };
+  const o = await q(env2, "SELECT id,state FROM customer_orders WHERE email=?1 ORDER BY created_at DESC LIMIT 1", email).first();
+  let key2;
+  try {
+    key2 = JSON.parse(o?.state || "{}").characters?.[0];
+  } catch {
+  }
+  if (!o || !/^[a-f0-9-]{36}$/.test(key2 || "")) return null;
+  const b = await env2.BOOK_ASSETS.get(`orders/${o.id}/${key2}`);
+  return b ? { bytes: await b.arrayBuffer(), type: b.httpMetadata?.contentType || "image/jpeg" } : null;
 }
 async function assetRead(env2, o, key2) {
   requireThat(/^[a-f0-9-]{36}$/.test(key2 || ""), "Invalid file.", 404);
@@ -53301,6 +53325,27 @@ async function ordersApi(req, env2) {
     if (!["GET", "HEAD"].includes(req.method)) {
       requireThat(req.headers.get("origin") === url.origin, "Reload this page before saving.", 403);
       requireThat(req.headers.get("sec-fetch-site") !== "cross-site", "Cross-site request refused.", 403);
+    }
+    if (path === "/api/orders/followup-character" && req.method === "POST") {
+      const b2 = await input(req, 6e6), email = String(b2.email || "").trim().toLowerCase(), m2 = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(typeof b2.image === "string" && b2.image.length < 55e5 ? b2.image : "");
+      requireThat(m2 && /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email) && /^[a-f0-9-]{36}$/.test(b2.previewId || ""), "Complete your preview first.");
+      const preview = await q(env2, "SELECT email FROM preview_receipts WHERE id=?1 AND status='succeeded'", b2.previewId).first();
+      requireThat(preview?.email === email, "Complete your preview first.");
+      await env2.BOOK_ASSETS.put("followup/" + await sha(email), Uint8Array.from(atob(m2[2]), (c) => c.charCodeAt(0)), { httpMetadata: { contentType: m2[1] }, customMetadata: { kind: "followup-character", previewId: b2.previewId, savedAt: now2() } });
+      try {
+        await saveFollowupDetails(env2, email, b2.names, "");
+      } catch {
+      }
+      return reply({ ok: true });
+    }
+    if (path === "/api/orders/followup-character" && req.method === "GET") {
+      const token = url.searchParams.get("t") || "";
+      requireThat(/^[a-f0-9-]{36}$/.test(token), "Not found.", 404);
+      const row = await q(env2, "SELECT email FROM customer_quotes WHERE unsubscribe_token=?1", token).first();
+      requireThat(row, "Not found.", 404);
+      const img = await characterImage(env2, row.email);
+      requireThat(img, "Not found.", 404);
+      return new Response(img.bytes, { headers: { "Content-Type": img.type, "Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" } });
     }
     if (["/api/orders/quote-view", "/api/orders/reminder-choice"].includes(path) && req.method === "POST") {
       const b2 = await input(req);
@@ -53861,6 +53906,7 @@ You can stop offer emails here: ${unsubscribe}`;
   }
 }
 export {
+  characterImage,
   claimBookSoldAlerts,
   enrollEveryone,
   followupStatus,

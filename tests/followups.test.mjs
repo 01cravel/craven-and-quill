@@ -83,3 +83,13 @@ test('everyone who left a preview email gets the reminders, except opt-outs, own
   await enrollEveryone(env);await runFollowups(env);
   assert.equal(sent.length,1);
 });
+
+test('reminder shows the child\'s character when one is saved',async()=>{
+  const {env,sent,email}=fixture();
+  const store=new Map();env.BOOK_ASSETS={async head(k){return store.has(k)?{}:null;},async get(k){return store.get(k)||null;},async put(k,v){store.set(k,v);}};
+  const {sha}=await import('../src/catalog.js');store.set('followup/'+await sha(email),new Uint8Array([255,216]));
+  await recordFollowupConsent(env,email,'yes');env.FOLLOWUP_EMAILS_ENABLED='true';
+  await runFollowups(env);
+  assert.match(sent[0].body.html,/api\/orders\/followup-character\?t=/);
+  assert.match(sent[0].body.html,/as we drew them/);
+});

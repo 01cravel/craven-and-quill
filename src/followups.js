@@ -1,4 +1,4 @@
-import {PRODUCTS} from './catalog.js';
+import {PRODUCTS,sha} from './catalog.js';
 
 export const FOLLOWUP_CONSENT = 'Email me up to two follow-up emails about my book if I do not buy. The second may include an offer. I can unsubscribe at any time.';
 // Owner decision (14 Nov 2026): everyone who gives an email for a preview gets the two reminders unless they untick or unsubscribe.
@@ -86,7 +86,7 @@ function message(step,quote,code,expiry,details={}){
 <tr><td class="content" style="padding:40px 48px 44px;">
 <p style="margin:0 0 14px;color:#846329;font:700 13px/1.5 ${SANS};">${escapeHtml(c.kicker)}</p>
 <h1 class="heading" style="margin:0 0 20px;color:#211d1a;font:normal 36px/1.12 ${SERIF};letter-spacing:-.5px;">${escapeHtml(c.heading)}</h1>
-${c.paras.map(p).join('')}${codeBox}
+${details.image?`<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:4px 0 24px;"><tr><td align="center" style="padding:14px;background:#f5f0e6;"><img src="${escapeHtml(details.image)}" width="260" alt="${escapeHtml(name?name+'’s character':'Your character')}" style="display:block;width:260px;max-width:100%;height:auto;border:0;border-radius:4px;"><p style="margin:10px 0 0;color:#846329;font:italic 14px/1.4 ${SERIF};">${escapeHtml(name?`${name}, as we drew them`:'Your character, as we drew them')}</p></td></tr></table>`:''}${c.paras.map(p).join('')}${codeBox}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:8px 0 22px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${escapeHtml(url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${SANS};">${escapeHtml(c.button)}</a></td></tr></table>
 <p style="margin:0 0 6px;color:#655a50;font:14px/1.6 ${SANS};">${escapeHtml(c.note)}</p>
 <p style="margin:0;color:#655a50;font:14px/1.6 ${SANS};">Questions? Just reply to this email.</p>
@@ -133,6 +133,13 @@ export async function enrollEveryone(env){
   }
   return {added:rows.length};
 }
+async function hasCharacter(env,email){
+  try{
+    if(await env.BOOK_ASSETS.head('followup/'+await sha(email)))return true;
+    const o=await db(env,'SELECT state FROM customer_orders WHERE email=?1 ORDER BY created_at DESC LIMIT 1',email).first();
+    return !!JSON.parse(o?.state||'{}').characters?.[0];
+  }catch{return false;}
+}
 async function canSend(env,email){
   const row=await db(env,`SELECT q.email,q.size,q.unsubscribe_token,q.offer_consent_at,q.offer_unsubscribed_at,q.email_status,f.episode_id,f.consent_at,f.first_status,f.first_sent_at,f.second_status
     FROM customer_quotes q JOIN followup_sequences f ON f.email=q.email WHERE q.email=?1 AND ((q.confirmed_view_at IS NOT NULL AND f.consent_text=?2) OR f.consent_text=?3)`,email,FOLLOWUP_CONSENT,EVERYONE_BASIS).first();
@@ -156,7 +163,9 @@ async function send(env,step,quote){
       WHERE email=?4 AND email_status IS NULL AND offer_consent_at IS NOT NULL AND offer_unsubscribed_at IS NULL RETURNING email`,code,discount,expiry,quote.email).first();
     if(!reserved){await db(env,"UPDATE followup_sequences SET second_status='suppressed',updated_at=?1 WHERE email=?2",now(),quote.email).run();return 'suppressed';}
   }
-  const mail=message(step,fresh,code,expiry,await detailsFor(env,quote.email));
+  const details=await detailsFor(env,quote.email);
+  if(env.BOOK_ASSETS&&await hasCharacter(env,quote.email))details.image=`https://cravenandquill.com/api/orders/followup-character?t=${encodeURIComponent(fresh.unsubscribe_token)}`;
+  const mail=message(step,fresh,code,expiry,details);
   const oneClick=`https://cravenandquill.com/api/orders/offer-one-click?token=${encodeURIComponent(fresh.unsubscribe_token)}`;
   let accepted=false,providerId=null;
   try{
