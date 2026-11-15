@@ -34,6 +34,14 @@ export async function noteVisit(env,request,visitId){
   try{await env.DB.prepare('INSERT INTO visit_details (visit_id, ip_prefix, town, region, created_at) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(visit_id) DO NOTHING').bind(visitId,shortIp(request.headers.get('CF-Connecting-IP')),...Object.values(visitPlace(request)),new Date().toISOString()).run();}
   catch{console.error('Visit detail not saved');}
 }
+// Returning visitors: which visits came from the same device (30-day random reference, no personal detail).
+let personTableReady=false;
+export async function notePerson(env,visitId,personId){
+  try{
+    if(!personTableReady){await env.DB.prepare('CREATE TABLE IF NOT EXISTS visit_people (visit_id TEXT PRIMARY KEY, person_id TEXT NOT NULL, created_at TEXT NOT NULL)').run();await env.DB.prepare('CREATE INDEX IF NOT EXISTS visit_people_person ON visit_people (person_id, created_at)').run();personTableReady=true;}
+    await env.DB.prepare('INSERT INTO visit_people (visit_id, person_id, created_at) VALUES (?1, ?2, ?3) ON CONFLICT(visit_id) DO NOTHING').bind(visitId,personId,new Date().toISOString()).run();
+  }catch{console.error('Returning visit not saved');}
+}
 export async function linkVisit(env,measurement,kind,ref){
   if(!UUID.test(measurement?.visitId||'')||!ref)return;
   try{await env.DB.prepare('INSERT INTO visit_links (visit_id, kind, ref, created_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT DO NOTHING').bind(measurement.visitId,kind,ref,new Date().toISOString()).run();}
@@ -113,6 +121,7 @@ export async function campaignApi(request,env){
       const result=await env.DB.prepare('INSERT INTO campaign_events (id, visit_id, event, source, medium, campaign, creative, country, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) ON CONFLICT(id) DO NOTHING').bind(`${input.visitId}:${input.event}`,input.visitId,input.event,...attribution(input),country(request),new Date().toISOString()).run();
       if(result.success===false)throw new Error('Event write failed');
       await noteVisit(env,request,input.visitId);
+      if(UUID.test(input.personId||''))await notePerson(env,input.visitId,input.personId.toLowerCase());
       return reply({ok:true});
     }
     if(path==='/api/unsubscribe'){

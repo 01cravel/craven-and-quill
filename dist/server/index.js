@@ -1,7 +1,7 @@
 import {campaignApi,beginPreview,finishPreview,linkVisit} from './campaign.js';
 import {ordersApi,runFollowups,followupStatus,runArtworkJobs,claimBookSoldAlerts,runMetaPurchaseJobs} from './orders.js';
 import {ownerAuth} from './owner-auth.js';
-import {analyticsApi} from './analytics.js';
+import {analyticsApi,reminderTick} from './analytics.js';
 import {storyApi} from './story.js';
 import {addressApi} from './address.js';
 const RATE_WINDOW_MS=60*60*1000;
@@ -167,7 +167,15 @@ async function followupMcp(request,env){
   return json({jsonrpc:'2.0',id,error:{code:-32601,message:'Unknown method.'}});
 }
 
-export default {async fetch(request,env){
+// Reminder emails run on shopper traffic, so they no longer wait for the owner to open the dashboard.
+// The send itself is claimed at most once every 6 hours; this only limits how often each server checks.
+let lastReminderCheck=0;
+function kickReminders(env,ctx){
+  if(Date.now()-lastReminderCheck<10*60*1000)return;lastReminderCheck=Date.now();
+  const run=reminderTick(env).catch(()=>{});
+  if(ctx&&typeof ctx.waitUntil==='function')ctx.waitUntil(run);
+}
+export default {async fetch(request,env,ctx){
   const url=new URL(request.url);
   if(url.pathname==='/mcp')return followupMcp(request,env);
   const ownerResponse=await ownerAuth(request,env);if(ownerResponse)return ownerResponse;
@@ -176,7 +184,7 @@ export default {async fetch(request,env){
   const storyResponse=await storyApi(request,env);if(storyResponse)return storyResponse;
   const addressResponse=await addressApi(request,env);if(addressResponse)return addressResponse;
   if(url.pathname==='/api/preview-email'&&request.method==='POST'&&rateLimited(request,signupBuckets,SIGNUP_RATE_LIMIT))return json({error:'Too many attempts. Please try again later.'},429);
-  const campaignResponse=await campaignApi(request,env);if(campaignResponse)return campaignResponse;
+  const campaignResponse=await campaignApi(request,env);if(campaignResponse){if(url.pathname==='/api/campaign-event')kickReminders(env,ctx);return campaignResponse;}
   if(url.pathname==='/api/generate-character')return generateCharacter(request,env);
   if(url.pathname==='/api/preview-page')return previewPage(request,env);
   if(url.pathname==='/api/subscribe')return subscribe(request,env);

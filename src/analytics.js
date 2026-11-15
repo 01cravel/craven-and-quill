@@ -3,7 +3,9 @@ import {ownerSession} from './owner-auth.js';
 import {PRODUCTS} from './catalog.js';
 import {runFollowups,followupStatus} from './orders.js';
 
-// Reminder emails ride on the owner's daily dashboard load: at most one send run every 6 hours, only when the switch is on.
+// Reminder emails: at most one send run every 6 hours, only when the switch is on. Triggered by shopper
+// traffic (see index.js) and by the owner's dashboard load.
+export async function reminderTick(env){return followupTick(env);}
 async function followupTick(env){
   try{
     await env.DB.prepare('CREATE TABLE IF NOT EXISTS owner_jobs (name TEXT PRIMARY KEY, ran_at TEXT NOT NULL)').run();
@@ -109,11 +111,12 @@ export async function buildReport(env,url,req=null){
   const filtered=Boolean(filter.source||filter.creative);
   const matches=a=>Boolean(a)&&(!filter.source||a.source===filter.source)&&(!filter.creative||a.creative===filter.creative);
   await env.DB.prepare(SPEND_TABLE).run();await env.DB.prepare(SIGNUPS_TABLE).run();await env.DB.prepare(COSTS_TABLE).run();
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS visit_people (visit_id TEXT PRIMARY KEY, person_id TEXT NOT NULL, created_at TEXT NOT NULL)').run();
   const q=(sql,...v)=>env.DB.prepare(sql).bind(...v);
   const expired=new Date(Date.now()-DETAIL_DAYS*86400000).toISOString();
   try{await q('DELETE FROM visit_details WHERE created_at < ?1',expired).run();await q('DELETE FROM visit_links WHERE created_at < ?1',expired).run();}catch{}
   const inRange='SELECT DISTINCT visit_id FROM campaign_events WHERE created_at >= ?1 AND created_at < ?2';
-  const [events,receipts,contacts,leads,quotes,orderRows,spendRows,usage,signups,options,detailRows,linkRows,countRows,costRows,lastSale,spendSinceSale]=await Promise.all([
+  const [events,receipts,contacts,leads,quotes,orderRows,spendRows,usage,signups,options,detailRows,linkRows,personRows,countRows,costRows,lastSale,spendSinceSale]=await Promise.all([
     rows(q('SELECT visit_id, event, source, medium, campaign, creative, country, created_at FROM campaign_events WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at LIMIT 200000',since,until)),
     rows(q('SELECT id, status, created_at, email FROM preview_receipts WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
     rows(q('SELECT email, source, medium, campaign, creative, country, created_at, updated_at FROM preview_contacts WHERE created_at >= ?1 AND created_at < ?2 ORDER BY created_at DESC',since,until)),
@@ -126,6 +129,7 @@ export async function buildReport(env,url,req=null){
     rows(q("SELECT DISTINCT source, creative FROM campaign_events WHERE created_at >= ?1 UNION SELECT DISTINCT 'meta', creative FROM owner_ad_spend",new Date(Date.now()-180*86400000).toISOString())),
     optional(q(`SELECT visit_id, ip_prefix, town, region FROM visit_details WHERE visit_id IN (${inRange})`,since,until)),
     optional(q(`SELECT l.visit_id, l.kind, l.ref, l.created_at, r.status FROM visit_links l LEFT JOIN preview_receipts r ON l.kind='preview' AND r.id=l.ref WHERE l.visit_id IN (${inRange}) ORDER BY l.created_at`,since,until)),
+    optional(q(`SELECT p.visit_id, p.person_id, (SELECT COUNT(*) FROM visit_people x WHERE x.person_id=p.person_id AND x.created_at < p.created_at) AS before, (SELECT COUNT(*) FROM visit_people x WHERE x.person_id=p.person_id) AS total FROM visit_people p WHERE p.visit_id IN (${inRange})`,since,until)),
     optional(q('SELECT day, event, source, creative, country, device, SUM(n) AS n FROM visit_counts WHERE day >= ?1 AND day <= ?2 GROUP BY day, event, source, creative, country, device',from,to)),
     rows(q('SELECT key, value FROM owner_cost_model')),
     q("SELECT MAX(COALESCE(json_extract(state,'$.paidAt'),updated_at)) AS at FROM customer_orders WHERE payment_status='paid' AND payment_mode='live' AND email<>?1",OWNER_EMAIL).first(),
@@ -190,6 +194,15 @@ export async function buildReport(env,url,req=null){
   for(const s of spendRows)if(s.creative!=='all')ad(s.creative).spendPence+=s.pence;
   for(const v of scope)tally(creative,v.creative);
 
+  // Returning visitors: visits from a device that had visited before (tracked from 15 November 2026).
+  const personByVisit=new Map(personRows.map(r=>[r.visit_id,r]));
+  const tracked=scope.filter(v=>personByVisit.has(v.id)),back=tracked.filter(v=>personByVisit.get(v.id).before>0);
+  const visitsPerPerson=new Map();for(const v of tracked){const p=personByVisit.get(v.id);visitsPerPerson.set(p.person_id,Math.max(visitsPerPerson.get(p.person_id)||0,p.total));}
+  const devices=[...visitsPerPerson.values()],backBy=new Map();for(const v of back)tally(backBy,v.campaign);
+  const returning={tracked:tracked.length,people:devices.length,cameBack:back.length,twoPlus:devices.filter(n=>n>=2).length,threePlus:devices.filter(n=>n>=3).length,fivePlus:devices.filter(n=>n>=5).length,
+    firstTime:{visits:tracked.length-back.length,previews:tracked.filter(v=>!back.includes(v)&&v.events.has('preview_success')).length,prices:tracked.filter(v=>!back.includes(v)&&v.events.has('price_visible')).length,paid:tracked.filter(v=>!back.includes(v)&&v.events.has('paid')).length},
+    back:{visits:back.length,previews:back.filter(v=>v.events.has('preview_success')).length,prices:back.filter(v=>v.events.has('price_visible')).length,paid:back.filter(v=>v.events.has('paid')).length},
+    byCampaign:sorted(backBy)};
   const scopedOrders=filtered?orders.filter(o=>matches(o)):orders;
   const sales=scopedOrders.filter(o=>o.paymentStatus==='paid'&&!o.ownerTest);
   const spendPence=spendRows.filter(s=>filter.creative?s.creative===filter.creative:!filter.source||filter.source==='meta').reduce((n,s)=>n+s.pence,0);
@@ -273,7 +286,7 @@ export async function buildReport(env,url,req=null){
     // What location detail the host attaches to requests, checked on the owner's own request.
     hostLocation:req?{locationObject:Boolean(req.cf),town:Boolean(req.cf?.city),townHeader:Boolean(req.headers.get('cf-ipcity')),region:Boolean(req.cf?.region||req.cf?.regionCode),regionHeader:Boolean(req.headers.get('cf-region')||req.headers.get('cf-region-code'))}:null,
     options:{sources:[...new Set(options.map(o=>o.source))].sort(),creatives:[...new Set(options.map(o=>o.creative))].filter(c=>c!=='all').sort()},
-    headline,economics,funnel,errorVisits,
+    headline,economics,funnel,errorVisits,returning,
     traffic:{byDay:[...byDay.values()],byHour:[...byHour].map(([hour,visits])=>({hour,visits})),source:sorted(source),campaign:sorted(campaign),creative:sorted(creative),country:sorted(country),device:sorted(device)},
     ads:[...ads.values()].sort((a,b)=>b.visits-a.visits||a.creative.localeCompare(b.creative)),
     people,peopleTotal:people.length,knownEmailTotal:peopleByEmail.size,anonymousTotal:anonymous.length,

@@ -19,7 +19,10 @@
   if((hasNewClick||['g_birthday','g_christmas','g_grandchild','g_adult'].includes(attribution.creative))&&attribution.source==='direct'){attribution={...attribution,source:'google',medium:'cpc',campaign:['g_birthday','g_christmas','g_grandchild','g_adult'].includes(attribution.creative)?'cq_gifts':'google_untagged'};}
   function persistClick(){if(preference!=='ads')return;try{if(hasAnyClick||query.has('utm_source'))localStorage.setItem('cq-ad-click-v1',JSON.stringify({click:adClick,attribution,expires:Date.now()+30*86400000}));}catch{}}
   let pixelId=null,pixelStarted=false,configPromise=null;const sent=new Set(),counted=new Set(),leadSent=new Set();
-  function context(){return{...attribution,measurementConsent:true,visitId,...(preference==='ads'?{advertisingConsent:true,advertisingConsentVersion:AD_VERSION,...adClick}:{})};}
+  // Returning visitors: one random reference kept on this device for 30 days (not with measurement turned off),
+  // so a parent who comes back from a reminder ad or email is counted as coming back, not as a stranger.
+  let personId=null;if(preference==='ads'){try{const p=JSON.parse(localStorage.getItem('cq-person-v1')||'null');if(p&&UUID.test(p.id||'')&&p.expires>Date.now())personId=p.id;else personId=crypto.randomUUID();localStorage.setItem('cq-person-v1',JSON.stringify({id:personId,expires:Date.now()+30*86400000}));}catch{personId=null;}}
+  function context(){return{...attribution,measurementConsent:true,visitId,...(personId?{personId}:{}),...(preference==='ads'?{advertisingConsent:true,advertisingConsentVersion:AD_VERSION,...adClick}:{})};}
   // Daily totals per step, with no visitor reference at all: a second, simpler count to check the journeys against.
   function count(event){
     if(counted.has(event)||event.startsWith('device_'))return;counted.add(event);
@@ -121,7 +124,7 @@
     for(const key of ['fbclid','gclid','gbraid','wbraid']){const id=query.get(key);if(id&&/^[a-zA-Z0-9_.-]{1,500}$/.test(id))url.searchParams.set(key,id);}
     link.href=url.pathname+url.search;
   });
-  function choose(choice){if(!['no','ads'].includes(choice))return;preference=choice;try{localStorage.setItem('cq-measurement-v3',choice);}catch{}if(choice!=='ads')revokePixel();else{persistClick();void startPixel();void startGoogle();void startClarity();}}
+  function choose(choice){if(!['no','ads'].includes(choice))return;preference=choice;try{localStorage.setItem('cq-measurement-v3',choice);}catch{}if(choice!=='ads'){revokePixel();personId=null;try{localStorage.removeItem('cq-person-v1');}catch{}}else{persistClick();void startPixel();void startGoogle();void startClarity();}}
   window.cqMeasurement={record,context,savedLead,choose,previewLead:receipt=>googleConversion('lead',receipt)};
   let arrivedFrom='';try{arrivedFrom=document.referrer?new URL(document.referrer).origin:'';}catch{}
   if(!privatePage&&arrivedFrom!==location.origin)count('arrive');

@@ -54,7 +54,7 @@ const LOGO='https://cravenandquill.com/assets/craven-quill-gold-logo.png',SANS='
 const poss=n=>n+(/s$/i.test(n)?'’':'’s');
 function message(step,quote,code,expiry,details={}){
   const unsub=`https://cravenandquill.com/offer-unsubscribe.html?token=${encodeURIComponent(quote.unsubscribe_token)}`;
-  const url=`https://cravenandquill.com/create.html${code?`?offer=${encodeURIComponent(code)}`:''}`;
+  const url=`https://cravenandquill.com/create.html?${code?`offer=${encodeURIComponent(code)}&`:''}utm_source=email&utm_medium=email&utm_campaign=reminder&utm_content=reminder_${step}`;
   const name=String(details.names||'').trim().slice(0,60),title=String(details.title||'').trim().slice(0,120);
   const N=name||'their',Np=name?poss(name):'their',who=name||'them';
   let when='';

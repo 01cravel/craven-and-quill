@@ -11,6 +11,10 @@ DB.sqlite.exec('CREATE TABLE IF NOT EXISTS owner_login_sessions (token_hash TEXT
 DB.sqlite.prepare('INSERT INTO owner_login_sessions VALUES (?,?)').run(createHash('sha256').update(ownerToken).digest('hex'),'2999-01-01T00:00:00.000Z');
 const objects={async put(k,b,o){store.set(k,{bytes:new Uint8Array(b),type:o.httpMetadata.contentType});},async get(k){const x=store.get(k);return x&&{httpMetadata:{contentType:x.type},arrayBuffer:async()=>x.bytes.buffer.slice(x.bytes.byteOffset,x.bytes.byteOffset+x.bytes.byteLength)};}};
 const {orders}=seedAnalytics(DB,{days:Number(process.env.CQ_QA_DAYS||14),visits:Number(process.env.CQ_QA_VISITS||260)});
+// Invented returning visitors: roughly one device in four comes back, a few several times.
+DB.sqlite.exec('CREATE TABLE IF NOT EXISTS visit_people (visit_id TEXT PRIMARY KEY, person_id TEXT NOT NULL, created_at TEXT NOT NULL)');
+{const vs=DB.sqlite.prepare('SELECT visit_id, MIN(created_at) AS at FROM campaign_events GROUP BY visit_id ORDER BY at').all();let person=null,left=0;
+for(const [i,v] of vs.entries()){if(left<=0){person=crypto.randomUUID();left=i%4===0?1+(i%5):1;}DB.sqlite.prepare('INSERT INTO visit_people VALUES (?,?,?)').run(v.visit_id,person,v.at);left--;}}
 // Public sample portraits stand in for saved characters.
 const portraits=['amara-book-portrait/page-01.jpg'];
 for(const o of orders){const key=crypto.randomUUID();await objects.put(`orders/${o.id}/${key}`,await readFile(root+'/assets/'+portraits[0]),{httpMetadata:{contentType:'image/jpeg'}});const row=DB.sqlite.prepare('SELECT state FROM customer_orders WHERE id=?').get(o.id),state=JSON.parse(row.state);state.characters=[key];state.art={cover:null,scenes:[]};DB.sqlite.prepare('UPDATE customer_orders SET state=? WHERE id=?').run(JSON.stringify(state),o.id);}

@@ -1,6 +1,6 @@
 const OWNER_EMAIL='cravenluke@gmail.com';
 const LINK_LIFETIME_MS=15*60*1000;
-const SESSION_LIFETIME_MS=12*60*60*1000;
+const SESSION_LIFETIME_MS=30*24*60*60*1000;
 const COOKIE='__Host-cq_owner';
 const TABLES=[
   'CREATE TABLE IF NOT EXISTS owner_login_links (token_hash TEXT PRIMARY KEY, expires_at TEXT NOT NULL, used_at TEXT)',

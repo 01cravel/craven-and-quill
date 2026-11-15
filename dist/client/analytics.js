@@ -42,7 +42,7 @@ function fillOptions(d){
   }
 }
 
-function render(d){const t=d.advertisingTracking;$('#ad-tracking-status').textContent=t?`Google tag: ${t.googleTagConfigured?'configured':'missing'}. Preview-email reporting: ${t.leadConfigured?'configured':'missing'}. Purchase goal: ${t.purchaseConfigured?'configured':'missing'}. Protected server feeds: ${t.serverFeedPrepared?'prepared, Google connection requires verification':'not prepared'}. Meta pixel: ${t.metaPixelConfigured?'configured':'missing'}. Meta purchase reporting from the server: ${t.metaPurchaseConfigured?'configured':'missing, add the Conversions API token'}.`:'Tracking configuration unavailable.';try{scorecard(d);}catch(e){console.error('Scorecard failed',e);}everyone(d);headline(d);profit(d);funnel(d);ads(d);days(d);hours(d);breakdowns(d);tabs(d);spend(d);$('#notes').replaceChildren(...d.notes.map(n=>E('li',n)));}
+function render(d){const t=d.advertisingTracking;$('#ad-tracking-status').textContent=t?`Google tag: ${t.googleTagConfigured?'configured':'missing'}. Preview-email reporting: ${t.leadConfigured?'configured':'missing'}. Purchase goal: ${t.purchaseConfigured?'configured':'missing'}. Protected server feeds: ${t.serverFeedPrepared?'prepared, Google connection requires verification':'not prepared'}. Meta pixel: ${t.metaPixelConfigured?'configured':'missing'}. Meta purchase reporting from the server: ${t.metaPurchaseConfigured?'configured':'missing, add the Conversions API token'}.`:'Tracking configuration unavailable.';try{scorecard(d);}catch(e){console.error('Scorecard failed',e);}everyone(d);headline(d);profit(d);funnel(d);ads(d);days(d);hours(d);cameBack(d);breakdowns(d);tabs(d);spend(d);$('#notes').replaceChildren(...d.notes.map(n=>E('li',n)));}
 
 function headline(d){
   const h=d.headline,f=d.filter.creative||d.filter.source;
@@ -178,6 +178,13 @@ function columns(root,items,{label,value,part,tip,axis}){
 function days(d){
   const list=d.traffic.byDay,mid=list[Math.floor(list.length/2)];
   columns($('#by-day'),list,{label:x=>shortDay(x.day),value:x=>x.visits,part:x=>x.previews,tip:x=>`${shortDay(x.day)}: ${x.visits} visits, ${x.previews} got a preview, ${x.prices} saw a price`,axis:list.length>2?[shortDay(list[0].day),shortDay(mid.day),shortDay(list.at(-1).day)]:list.map(x=>shortDay(x.day))});
+}
+function cameBack(d){
+  const r=d.returning;if(!r){$('#back-summary').textContent='Not available.';return;}
+  $('#back-summary').textContent=r.tracked?`${num(r.people)} phones or computers made ${num(r.tracked)} visits. ${num(r.twoPlus)} came 2 or more times, ${num(r.threePlus)} came 3 or more, ${num(r.fivePlus)} came 5 or more. Counted from 15 November 2026, on the same device within 30 days.`:'No returning-visitor data yet. Counted from 15 November 2026, on the same device within 30 days.';
+  const body=$('#back-table');body.replaceChildren();
+  for(const [label,x] of [['First visit',r.firstTime],['Came back',r.back]]){const tr=E('tr');[label,num(x.visits),`${num(x.previews)} (${pct(x.previews,x.visits)})`,`${num(x.prices)} (${pct(x.prices,x.visits)})`,`${num(x.paid)} (${pct(x.paid,x.visits)})`].forEach((c,i)=>tr.append(E('td',c,i?'num':'')));body.append(tr);}
+  bars($('#back-by'),r.byCampaign);
 }
 function hours(d){
   const h=n=>String(n).padStart(2,'0')+':00';

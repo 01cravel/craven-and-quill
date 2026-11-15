@@ -4449,7 +4449,7 @@ async function livePaymentTest(req, env2, { admin: admin2, ziina: ziina2, matchZ
 // src/owner-auth.js
 var OWNER_EMAIL = "cravenluke@gmail.com";
 var LINK_LIFETIME_MS = 15 * 60 * 1e3;
-var SESSION_LIFETIME_MS = 12 * 60 * 60 * 1e3;
+var SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1e3;
 var TABLES = [
   "CREATE TABLE IF NOT EXISTS owner_login_links (token_hash TEXT PRIMARY KEY, expires_at TEXT NOT NULL, used_at TEXT)",
   "CREATE TABLE IF NOT EXISTS owner_login_sessions (token_hash TEXT PRIMARY KEY, expires_at TEXT NOT NULL)",
@@ -52624,7 +52624,7 @@ var SERIF = "Georgia,'Times New Roman',serif";
 var poss = (n) => n + (/s$/i.test(n) ? "\u2019" : "\u2019s");
 function message(step, quote, code2, expiry, details = {}) {
   const unsub = `https://cravenandquill.com/offer-unsubscribe.html?token=${encodeURIComponent(quote.unsubscribe_token)}`;
-  const url = `https://cravenandquill.com/create.html${code2 ? `?offer=${encodeURIComponent(code2)}` : ""}`;
+  const url = `https://cravenandquill.com/create.html?${code2 ? `offer=${encodeURIComponent(code2)}&` : ""}utm_source=email&utm_medium=email&utm_campaign=reminder&utm_content=reminder_${step}`;
   const name5 = String(details.names || "").trim().slice(0, 60), title2 = String(details.title || "").trim().slice(0, 120);
   const N = name5 || "their", Np = name5 ? poss(name5) : "their", who = name5 || "them";
   let when = "";

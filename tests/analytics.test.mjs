@@ -308,3 +308,28 @@ test('the preview form enrols only submissions with the current notice and respe
  assert.equal((await submit({reminderNotice:'preview-price-v2'})).reminderActive,false);
  assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM customer_quotes').get().n,0);
 });
+
+test('returning visitors: a device reference links visits, and the report counts who came back',async()=>{
+  const env=environment(),personId=crypto.randomUUID(),visitId=crypto.randomUUID();
+  assert.equal((await campaignApi(post('campaign-event',{event:'maker_start',visitId,personId,measurementConsent:true}),env)).status,200);
+  assert.equal((await campaignApi(post('campaign-event',{event:'step_1',visitId,personId:'bad',measurementConsent:true}),env)).status,200);
+  assert.deepEqual(env.DB.sqlite.prepare('SELECT visit_id, person_id FROM visit_people').all().map(x=>({...x})),[{visit_id:visitId,person_id:personId}]);
+  env.DB.sqlite.exec('DELETE FROM visit_people');
+  const t=n=>new Date(Date.now()-n*3600000).toISOString(),link=(v,p,at)=>env.DB.sqlite.prepare('INSERT INTO visit_people VALUES (?,?,?)').run(v,p,at);
+  const a=crypto.randomUUID(),b=crypto.randomUUID();
+  link(visit(env,['landing_view'],{at:t(5)}),a,t(5));
+  link(visit(env,['landing_view','preview_success'],{at:t(3),source:'meta',creative:'retarget_b'}),a,t(3));
+  link(visit(env,['landing_view','price_visible'],{at:t(1)}),a,t(1));
+  link(visit(env,['landing_view'],{at:t(2)}),b,t(2));
+  visit(env,['landing_view'],{at:t(2)});
+  const r=(await(await get(env)).json()).returning;
+  assert.equal(r.tracked,4);assert.equal(r.people,2);assert.equal(r.cameBack,2);assert.equal(r.twoPlus,1);assert.equal(r.threePlus,1);
+  assert.equal(r.back.previews,1);assert.equal(r.back.prices,1);assert.equal(r.firstTime.visits,2);
+});
+
+test('shopper traffic triggers the reminder run, no dashboard needed',async()=>{
+  const env={...environment(),FOLLOWUP_EMAILS_ENABLED:'true'},waits=[];
+  const r=await worker.fetch(post('campaign-event',{event:'maker_start',visitId:crypto.randomUUID(),measurementConsent:true}),env,{waitUntil:p=>waits.push(p)});
+  assert.equal(r.status,200);assert.equal(waits.length,1);await Promise.all(waits);
+  assert.ok(env.DB.sqlite.prepare("SELECT ran_at FROM owner_jobs WHERE name='followups'").get());
+});
