@@ -53274,7 +53274,7 @@ async function drawPage2(env2, o, index) {
   f.append("output_format", "jpeg");
   const r = await (env2.fetch || fetch)("https://api.openai.com/v1/images/edits", { method: "POST", headers: { Authorization: `Bearer ${env2.OPENAI_API_KEY}` }, body: f, signal: AbortSignal.timeout(12e4) });
   const d = await r.json();
-  requireThat(r.ok && d.data?.[0]?.b64_json, "This illustration did not finish. Previously saved artwork is safe.", 502);
+  requireThat(r.ok && d.data?.[0]?.b64_json, "This illustration did not finish (drawing service " + r.status + (d?.error?.code || d?.error?.type ? ", " + String(d.error.code || d.error.type).replace(/[^a-z0-9_]/gi, "").slice(0, 60) : "") + "). Previously saved artwork is safe.", 502);
   return { bytes: Uint8Array.from(atob(d.data[0].b64_json), (x) => x.charCodeAt(0)), usage: d.usage || null };
 }
 async function createIllustration(env2, o, index, actor, replace = false) {
