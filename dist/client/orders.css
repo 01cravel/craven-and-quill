@@ -24,3 +24,5 @@
 @keyframes seal-in{from{transform:scale(.6) rotate(-12deg)}}
 @media(prefers-reduced-motion:reduce){.seal{animation:none}}
 @media(max-width:700px){.is-paid .wrap{margin-top:18px}.is-paid header{padding:14px 18px}.is-paid header a{font-size:21px}}
+
+.story-reader article.peek img{display:block;width:100%;max-width:420px;margin:10px auto 16px;border-radius:6px;box-shadow:0 6px 18px rgba(23,62,52,.18)}

@@ -52946,7 +52946,7 @@ async function authorise(req, env2, o) {
 }
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, ...isAdmin ? { email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.art.cover || null, scenes: d.art.scenes.map((x) => x || null) } : null, ...isAdmin ? { email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
 }
 var editable = (o) => o.payment_status === "paid" && ["awaiting_review", "building", "proof_ready", "awaiting_approval"].includes(o.status);
 function archiveContent(o, kind, actor) {
@@ -53617,7 +53617,7 @@ You can stop offer emails here: ${unsubscribe}`;
     }
     if (action === "file" && req.method === "GET") {
       const key2 = url.searchParams.get("proof") === o.data.proof?.hash ? o.data.proof?.key : url.searchParams.get("file");
-      const permitted = [o.data.proof?.key, ...isAdmin ? [...o.data.characters, ...o.data.art.scenes, o.data.art.cover, o.data.spine?.key] : []];
+      const permitted = [o.data.proof?.key, ...o.data.prebuilt && o.payment_status === "unpaid" ? [o.data.art.cover, ...o.data.art.scenes] : [], ...isAdmin ? [...o.data.characters, ...o.data.art.scenes, o.data.art.cover, o.data.spine?.key] : []];
       requireThat(permitted.filter(Boolean).includes(key2), "File not found.", 404);
       const a = await assetRead(env2, o, key2);
       return new Response(a.bytes, { headers: { "Content-Type": a.type, "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff", "Content-Disposition": a.type === "application/pdf" ? 'inline; filename="craven-quill-proof.pdf"' : "inline" } });
@@ -53729,6 +53729,35 @@ You can stop offer emails here: ${unsubscribe}`;
     }
     requireThat(isAdmin, "Only the site owner can approve or manage printing.", 403);
     const actor = "cravenluke@gmail.com";
+    if (action === "reopen-checkout") {
+      requireThat(b.confirm === true, "Confirm reopening this checkout.");
+      requireThat(o.payment_status === "unpaid" && o.status === "checkout_pending" && !o.session_id, "Only a failed checkout with no Ziina payment can be reopened. Check Ziina for anything else.", 409);
+      const failed = o.data.payment;
+      o.data.failedPayments = [...o.data.failedPayments || [], { ...failed, reopenedAt: now2() }];
+      o.data.payment = null;
+      o.data.holdReason = null;
+      await audit(env2, id, "checkout_reopened", actor, { failed });
+      return reply(publicOrder(await save(env2, o, o.data, "saved"), true));
+    }
+    if (action === "prebuild") {
+      requireThat(b.confirm === true, "Confirm this paid drawing request.");
+      requireThat(o.payment_status === "unpaid" && o.status === "saved" && !o.session_id, "Reopen the checkout first. Only a saved, unpaid book can be drawn early.", 409);
+      const index = b.page === "cover" ? "cover" : Number(b.page);
+      requireThat(index === "cover" || Number.isInteger(index) && index >= 0 && index < 10, "Choose a valid illustration.");
+      requireThat((o.data.artAttempts || 0) < (o.data.artBudget || 22), "This book reached its illustration request limit.", 429);
+      const slot = index === "cover" ? o.data.art.cover : o.data.art.scenes[index];
+      requireThat(!slot || b.replace === true, "Artwork exists. Explicitly choose replacement.", 409);
+      const drawing = await drawPage2(env2, o, index), key2 = await assetPut(env2, o, drawing.bytes, "image/jpeg", "art");
+      const fresh = await get(env2, id);
+      requireThat(fresh.payment_status === "unpaid" && fresh.status === "saved", "This book changed while drawing. Reload.", 409);
+      if (index === "cover") fresh.data.art.cover = key2;
+      else fresh.data.art.scenes[index] = key2;
+      fresh.data.artAttempts = (fresh.data.artAttempts || 0) + 1;
+      fresh.data.artUsage = [...fresh.data.artUsage || [], { at: now2(), page: index, usage: drawing.usage, prebuild: true }];
+      fresh.data.prebuilt = true;
+      await audit(env2, id, "image_prebuilt", actor, { page: index });
+      return reply(publicOrder(await save(env2, fresh, fresh.data), true));
+    }
     if (action === "retry-auto-generation") {
       requireThat(o.payment_status === "paid" && o.payment_mode === "live" && o.data.autoGeneration?.status === "paused" && b.confirm === true, "Review the paused paid order before resuming.", 409);
       requireThat(["awaiting_review", "building"].includes(o.status), "This order cannot resume automatic artwork.", 409);

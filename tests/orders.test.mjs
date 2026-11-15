@@ -339,3 +339,21 @@ test('10% preview reminder code works at the current price without a quote',asyn
 test('a Ziina refusal is saved on the order and emailed to the owner',async()=>{const env=environment(),{id,order}=await create(env);ziinaConnected(env);const mails=[];env.fetch=async(url,init)=>{if(url.includes('api.resend.com')){mails.push(JSON.parse(init.body));return Response.json({id:'m'});}return Response.json({code:'UNAUTHORIZED'},{status:401});};assert.equal((await request(env,'/'+id+'/checkout',{revision:order.revision})).status,502);const o=await state(env,id),d=JSON.parse(o.state);assert.equal(o.status,'checkout_pending');assert.match(d.payment.error,/HTTP 401, UNAUTHORIZED/);assert.match(d.holdReason,/HTTP 401/);const alert=mails.find(m=>/Payment page failed/.test(m.subject));assert.ok(alert);assert.match(alert.text,/HTTP 401, UNAUTHORIZED/);});
 
 test('Ziina checkout description stays short enough for Ziina',async()=>{const env=environment(),{id,order}=await create(env);ziinaConnected(env);let sent;env.fetch=async(url,init)=>{if(url.includes('/payment_intent')&&init?.body){sent=JSON.parse(init.body);return Response.json({...intent(env,order.amount),redirect_url:'https://pay.ziina.com/x'});}return Response.json(intent(env,order.amount));};await request(env,'/'+id+'/checkout',{revision:order.revision});assert.ok(sent);assert.ok(sent.message.length<=28,sent.message);assert.match(sent.message,new RegExp(id.slice(0,8)));});
+
+test('owner can reopen a failed checkout, draw the whole book early, and the customer sees it before paying',async()=>{
+ const env=environment(),{id,order}=await create(env);ziinaConnected(env);env.OPENAI_API_KEY='sk-test';
+ env.fetch=async(url)=>url.includes('api.resend.com')?Response.json({id:'m'}):Response.json({code:'MESSAGE_LENGTH_INVALID'},{status:400});
+ assert.equal((await request(env,'/'+id+'/checkout',{revision:order.revision})).status,502);
+ let o=await state(env,id);assert.equal(o.status,'checkout_pending');
+ assert.equal((await request(env,'/'+id+'/prebuild',{revision:o.revision,page:'cover',confirm:true},{admin:true})).status,409);
+ assert.equal((await request(env,'/'+id+'/reopen-checkout',{revision:o.revision,confirm:true})).status,403);
+ let r=await request(env,'/'+id+'/reopen-checkout',{revision:o.revision,confirm:true},{admin:true});assert.equal(r.status,200);
+ o=await state(env,id);assert.equal(o.status,'saved');assert.equal(o.data.payment,null);assert.equal(o.data.failedPayments.length,1);
+ env.fetch=async()=>Response.json({data:[{b64_json:jpeg.toString('base64')}],usage:{total_tokens:1}});
+ for(const page of ['cover',0]){o=await state(env,id);r=await request(env,'/'+id+'/prebuild',{revision:o.revision,page,confirm:true},{admin:true});assert.equal(r.status,200);}
+ o=await state(env,id);assert.equal(o.status,'saved');assert.ok(o.data.art.cover&&o.data.art.scenes[0]);assert.equal(o.data.prebuilt,true);
+ const pub=await (await request(env,'/'+id)).json();assert.equal(pub.peek.cover,o.data.art.cover);assert.equal(pub.peek.scenes[0],o.data.art.scenes[0]);
+ assert.equal((await request(env,'/'+id+'/file?file='+o.data.art.scenes[0])).status,200);
+ env.fetch=async(url,init)=>url.includes('/payment_intent')&&init?.body?Response.json({...intent(env,o.amount),redirect_url:'https://pay.ziina.com/x'}):Response.json(intent(env,o.amount));
+ r=await request(env,'/'+id+'/checkout',{revision:o.revision});assert.equal(r.status,200);assert.match((await r.json()).url,/pay\.ziina\.com/);
+});
