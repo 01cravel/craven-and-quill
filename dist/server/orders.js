@@ -52946,7 +52946,7 @@ async function authorise(req, env2, o) {
 }
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.art.cover || null, scenes: d.art.scenes.map((x) => x || null) } : null, ...isAdmin ? { email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
 }
 var editable = (o) => o.payment_status === "paid" && ["awaiting_review", "building", "proof_ready", "awaiting_approval"].includes(o.status);
 function archiveContent(o, kind, actor) {
@@ -53628,10 +53628,11 @@ You can stop offer emails here: ${unsubscribe}`;
     }
     if (action === "file" && req.method === "GET") {
       const key2 = url.searchParams.get("proof") === o.data.proof?.hash ? o.data.proof?.key : url.searchParams.get("file");
-      const permitted = [o.data.proof?.key, ...o.data.prebuilt && o.payment_status === "unpaid" ? [o.data.art.cover, ...o.data.art.scenes] : [], ...isAdmin ? [...o.data.characters, ...o.data.art.scenes, o.data.art.cover, o.data.spine?.key] : []];
+      const permitted = [o.data.proof?.key, ...o.data.prebuilt && o.payment_status === "unpaid" ? [o.data.peekWeb?.cover || o.data.art.cover, ...o.data.art.scenes.map((x, i4) => o.data.peekWeb?.scenes?.[i4] || x)] : [], ...isAdmin ? [...o.data.characters, ...o.data.art.scenes, o.data.art.cover, o.data.spine?.key] : []];
       requireThat(permitted.filter(Boolean).includes(key2), "File not found.", 404);
       const a = await assetRead(env2, o, key2);
-      return new Response(a.bytes, { headers: { "Content-Type": a.type, "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff", "Content-Disposition": a.type === "application/pdf" ? 'inline; filename="craven-quill-proof.pdf"' : "inline" } });
+      const peekKey = o.data.prebuilt && a.type === "image/jpeg" && [o.data.art.cover, ...o.data.art.scenes, o.data.peekWeb?.cover, ...o.data.peekWeb?.scenes || []].includes(key2);
+      return new Response(a.bytes, { headers: { "Content-Type": a.type, "Cache-Control": peekKey ? "private, max-age=604800, immutable" : "private, no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff", "Content-Disposition": a.type === "application/pdf" ? 'inline; filename="craven-quill-proof.pdf"' : "inline" } });
     }
     if (action === "upload-proof" && req.method === "POST") {
       requireThat(isAdmin, "Owner access required.", 403);
@@ -53763,7 +53764,7 @@ You can stop offer emails here: ${unsubscribe}`;
         for (let i4 = 0; i4 < u.length; i4 += 32768) s += String.fromCharCode(...u.subarray(i4, i4 + 32768));
         return btoa(s);
       };
-      const attachments = [{ filename: "cover.jpg", content: await b64(o.data.art.cover), content_id: "cover" }, { filename: "page-1.jpg", content: await b64(o.data.art.scenes[0]), content_id: "page1" }];
+      const attachments = [{ filename: "cover.jpg", content: await b64(o.data.peekWeb?.cover || o.data.art.cover), content_id: "cover" }, { filename: "page-1.jpg", content: await b64(o.data.peekWeb?.scenes?.[0] || o.data.art.scenes[0]), content_id: "page1" }];
       const lines = [`Hello,`, `Earlier today you made "${title2}" and pressed pay, but our payment page didn't open. That was a fault on our side and it's now fixed. Nothing was charged.`, `To make up for it, we've gone ahead and illustrated ${name5}'s ${whole ? "whole book, the cover and all ten pages," : "book"} so you can see ${whole ? "every picture" : "the pictures"} before you decide. Here's the cover and the first page.`, `If you love it, you can pay securely on the same page. It's the ${PRODUCTS[o.size].label} at ${price}, with UK delivery${town ? " to " + town : ""} included, the same price you saw today. We'll then send you the finished proof to check before anything is printed.`, `If you'd like anything changed, or have any questions, just reply to this email.`];
       const esc2 = (t2) => t2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       const html2 = `<div style="max-width:560px;margin:0 auto;font:16px/1.6 Georgia,serif;color:#173e34">${lines.slice(0, 3).map((l) => `<p>${esc2(l)}</p>`).join("")}<p style="text-align:center"><img src="cid:cover" alt="${esc2(title2)} cover" width="260" style="border-radius:6px;margin:6px"><img src="cid:page1" alt="Page 1" width="260" style="border-radius:6px;margin:6px"></p><p style="text-align:center;margin:26px 0"><a href="${link}" style="background:#173e34;color:#fff;padding:14px 26px;border-radius:999px;text-decoration:none;font-family:Arial,sans-serif;font-weight:bold">See ${esc2(name5)}'s ${whole ? "whole " : ""}book</a></p>${lines.slice(3).map((l) => `<p>${esc2(l)}</p>`).join("")}<p>Thank you, and sorry again,<br>Luke<br>Craven &amp; Quill</p></div>`;
@@ -53778,6 +53779,22 @@ You can stop offer emails here: ${unsubscribe}`;
       }
       requireThat(ok, "The email service did not accept this email (HTTP " + r.status + ").", 502);
       return reply({ ...publicOrder(o, true), emailSent: { to: b.to, subject } });
+    }
+    if (action === "peek-web") {
+      requireThat(o.data.prebuilt && o.payment_status === "unpaid", "Only drawn-early books use web copies.", 409);
+      const index = b.page === "cover" ? "cover" : Number(b.page);
+      requireThat(index === "cover" || Number.isInteger(index) && index >= 0 && index < 10, "Choose a valid illustration.");
+      requireThat(index === "cover" ? o.data.art.cover : o.data.art.scenes[index], "Draw this picture first.", 409);
+      const m2 = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(b.image || ""));
+      requireThat(m2 && m2[1].length < 9e5, "Send a JPEG under 650 KB.");
+      const bytes = Uint8Array.from(atob(m2[1]), (c) => c.charCodeAt(0));
+      requireThat(bytes[0] === 255 && bytes[1] === 216, "Send a JPEG.");
+      const key2 = await assetPut(env2, o, bytes, "image/jpeg", "web");
+      const fresh = await get(env2, id);
+      fresh.data.peekWeb = fresh.data.peekWeb || { cover: null, scenes: Array(10).fill(null) };
+      if (index === "cover") fresh.data.peekWeb.cover = key2;
+      else fresh.data.peekWeb.scenes[index] = key2;
+      return reply(publicOrder(await save(env2, fresh, fresh.data), true));
     }
     if (action === "prebuild") {
       requireThat(b.confirm === true, "Confirm this paid drawing request.");

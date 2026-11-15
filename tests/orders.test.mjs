@@ -354,6 +354,14 @@ test('owner can reopen a failed checkout, draw the whole book early, and the cus
  o=await state(env,id);assert.equal(o.status,'saved');assert.ok(o.data.art.cover&&o.data.art.scenes[0]);assert.equal(o.data.prebuilt,true);
  const pub=await (await request(env,'/'+id)).json();assert.equal(pub.peek.cover,o.data.art.cover);assert.equal(pub.peek.scenes[0],o.data.art.scenes[0]);
  assert.equal((await request(env,'/'+id+'/file?file='+o.data.art.scenes[0])).status,200);
+ // Watermarked web copy: owner only, then the customer sees it instead of the full-size original.
+ const webJpeg='data:image/jpeg;base64,'+btoa(String.fromCharCode(0xFF,0xD8,0xFF,0xD9));
+ assert.equal((await request(env,'/'+id+'/peek-web',{revision:o.revision,page:0,image:webJpeg})).status,403);
+ r=await request(env,'/'+id+'/peek-web',{revision:o.revision,page:0,image:webJpeg},{admin:true});assert.equal(r.status,200);
+ o=await state(env,id);const webKey=o.data.peekWeb.scenes[0];assert.ok(webKey&&webKey!==o.data.art.scenes[0]);
+ const pub2=await (await request(env,'/'+id)).json();assert.equal(pub2.peek.scenes[0],webKey);
+ assert.equal((await request(env,'/'+id+'/file?file='+webKey)).status,200);
+ assert.equal((await request(env,'/'+id+'/file?file='+o.data.art.scenes[0])).status,404);
  env.fetch=async(url,init)=>url.includes('/payment_intent')&&init?.body?Response.json({...intent(env,o.amount),redirect_url:'https://pay.ziina.com/x'}):Response.json(intent(env,o.amount));
  assert.equal((await request(env,'/'+id+'/preview-pdf',undefined,{admin:true})).status,409);assert.equal((await request(env,'/'+id+'/preview-pdf')).status,403);
  const mails=[];env.fetch=async(url,init)=>{mails.push({url,body:JSON.parse(init.body)});return Response.json({id:'m'});};
