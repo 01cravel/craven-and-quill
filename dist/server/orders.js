@@ -53615,6 +53615,17 @@ You can stop offer emails here: ${unsubscribe}`;
       requireThat(equal(await sha(b2.token || ""), o.token_hash), "Order not found.", 404);
       return reply({ ok: true }, 200, { "Set-Cookie": `cq_order_${id.replaceAll("-", "")}=${b2.token}; Path=/api/orders/${id}; Secure; HttpOnly; SameSite=Strict; Max-Age=2592000` });
     }
+    if (action === "preview-pdf" && req.method === "GET") {
+      requireThat(isAdmin, "Owner access required.", 403);
+      requireThat(o.data.art.cover && o.data.art.scenes.every(Boolean), "Draw the cover and all ten pictures first.", 409);
+      const [font, logo] = await Promise.all(["story-serif.ttf", "logo-mark-on-white.png"].map(async (name5) => {
+        const r = await env2.ASSETS.fetch(new Request(url.origin + "/assets/" + name5));
+        requireThat(r.ok, "Book design asset unavailable.", 503);
+        return r.arrayBuffer();
+      }));
+      const render = await printBook({ ...o.data, size: o.size }, (key2) => assetRead(env2, o, key2), font, logo);
+      return new Response(render.bytes, { headers: { "Content-Type": "application/pdf", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Content-Disposition": `inline; filename="${String(o.data.names || "book").replace(/[^A-Za-z0-9 -]/g, "").slice(0, 30)}-book.pdf"` } });
+    }
     if (action === "file" && req.method === "GET") {
       const key2 = url.searchParams.get("proof") === o.data.proof?.hash ? o.data.proof?.key : url.searchParams.get("file");
       const permitted = [o.data.proof?.key, ...o.data.prebuilt && o.payment_status === "unpaid" ? [o.data.art.cover, ...o.data.art.scenes] : [], ...isAdmin ? [...o.data.characters, ...o.data.art.scenes, o.data.art.cover, o.data.spine?.key] : []];
