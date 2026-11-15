@@ -53739,6 +53739,35 @@ You can stop offer emails here: ${unsubscribe}`;
       await audit(env2, id, "checkout_reopened", actor, { failed });
       return reply(publicOrder(await save(env2, o, o.data, "saved"), true));
     }
+    if (action === "rescue-email") {
+      requireThat(b.confirm === true && ["owner", "customer"].includes(b.to), "Choose who receives this email.");
+      requireThat(o.payment_status === "unpaid" && o.status === "saved" && o.data.prebuilt && o.data.art.cover && o.data.art.scenes[0], "Draw the book before sending this email.", 409);
+      requireThat(env2.RESEND_API_KEY && env2.ORDER_EMAIL_FROM, "Order email is not connected.", 503);
+      if (b.to === "customer") requireThat(!o.data.emails?.rescue?.sent, "This email was already sent to the customer.", 409);
+      const link = `${url.origin}/order.html?id=${id}#key=${await privateKey(env2, o.data.privateKey, true)}`, name5 = String(o.data.names || "your child").replace(/[\r\n<>]/g, "").slice(0, 40), title2 = String(o.data.story?.title || "their book").replace(/[\r\n<>]/g, "").slice(0, 90), price = "\xA3" + (o.amount / 100).toFixed(2), town = String(o.data.recipient?.address?.townOrCity || "").replace(/[\r\n<>]/g, "").slice(0, 40), drawn = (o.data.art.cover ? 1 : 0) + o.data.art.scenes.filter(Boolean).length, whole = drawn === 11;
+      const b64 = async (k) => {
+        const a = await assetRead(env2, o, k);
+        let s = "";
+        const u = new Uint8Array(a.bytes);
+        for (let i4 = 0; i4 < u.length; i4 += 32768) s += String.fromCharCode(...u.subarray(i4, i4 + 32768));
+        return btoa(s);
+      };
+      const attachments = [{ filename: "cover.jpg", content: await b64(o.data.art.cover), content_id: "cover" }, { filename: "page-1.jpg", content: await b64(o.data.art.scenes[0]), content_id: "page1" }];
+      const lines = [`Hello,`, `Earlier today you made "${title2}" and pressed pay, but our payment page didn't open. That was a fault on our side and it's now fixed. Nothing was charged.`, `To make up for it, we've gone ahead and illustrated ${name5}'s ${whole ? "whole book, the cover and all ten pages," : "book"} so you can see ${whole ? "every picture" : "the pictures"} before you decide. Here's the cover and the first page.`, `If you love it, you can pay securely on the same page. It's the ${PRODUCTS[o.size].label} at ${price}, with UK delivery${town ? " to " + town : ""} included, the same price you saw today. We'll then send you the finished proof to check before anything is printed.`, `If you'd like anything changed, or have any questions, just reply to this email.`];
+      const esc2 = (t2) => t2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const html2 = `<div style="max-width:560px;margin:0 auto;font:16px/1.6 Georgia,serif;color:#173e34">${lines.slice(0, 3).map((l) => `<p>${esc2(l)}</p>`).join("")}<p style="text-align:center"><img src="cid:cover" alt="${esc2(title2)} cover" width="260" style="border-radius:6px;margin:6px"><img src="cid:page1" alt="Page 1" width="260" style="border-radius:6px;margin:6px"></p><p style="text-align:center;margin:26px 0"><a href="${link}" style="background:#173e34;color:#fff;padding:14px 26px;border-radius:999px;text-decoration:none;font-family:Arial,sans-serif;font-weight:bold">See ${esc2(name5)}'s ${whole ? "whole " : ""}book</a></p>${lines.slice(3).map((l) => `<p>${esc2(l)}</p>`).join("")}<p>Thank you, and sorry again,<br>Luke<br>Craven &amp; Quill</p></div>`;
+      const text = [...lines.slice(0, 3), `See ${name5}'s ${whole ? "whole " : ""}book: ${link}`, ...lines.slice(3), "Thank you, and sorry again,\nLuke\nCraven & Quill"].join("\n\n");
+      const to = b.to === "owner" ? env2.ORDERS_ADMIN_EMAIL || "cravenluke@gmail.com" : o.email, subject = (b.to === "owner" ? "[Preview, not sent to customer] " : "") + `${name5}'s ${whole ? "whole " : ""}book is ready to see`;
+      const r = await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + env2.RESEND_API_KEY, "Content-Type": "application/json", "Idempotency-Key": `rescue-${id}-${b.to}-${b.to === "owner" ? Date.now() : "once"}` }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, to: [to], ...b.to === "customer" && env2.ORDERS_ADMIN_EMAIL ? { reply_to: env2.ORDERS_ADMIN_EMAIL } : {}, subject, html: html2, text, attachments }), signal: AbortSignal.timeout(2e4) });
+      const ok = r.ok;
+      if (b.to === "customer") {
+        o.data.emails = { ...o.data.emails || {}, rescue: { sent: ok, at: now2() } };
+        await audit(env2, id, "rescue_email", actor, { sent: ok });
+        o = await save(env2, o, o.data);
+      }
+      requireThat(ok, "The email service did not accept this email (HTTP " + r.status + ").", 502);
+      return reply({ ...publicOrder(o, true), emailSent: { to: b.to, subject } });
+    }
     if (action === "prebuild") {
       requireThat(b.confirm === true, "Confirm this paid drawing request.");
       requireThat(o.payment_status === "unpaid" && o.status === "saved" && !o.session_id, "Reopen the checkout first. Only a saved, unpaid book can be drawn early.", 409);

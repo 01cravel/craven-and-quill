@@ -355,5 +355,12 @@ test('owner can reopen a failed checkout, draw the whole book early, and the cus
  const pub=await (await request(env,'/'+id)).json();assert.equal(pub.peek.cover,o.data.art.cover);assert.equal(pub.peek.scenes[0],o.data.art.scenes[0]);
  assert.equal((await request(env,'/'+id+'/file?file='+o.data.art.scenes[0])).status,200);
  env.fetch=async(url,init)=>url.includes('/payment_intent')&&init?.body?Response.json({...intent(env,o.amount),redirect_url:'https://pay.ziina.com/x'}):Response.json(intent(env,o.amount));
+ const mails=[];env.fetch=async(url,init)=>{mails.push({url,body:JSON.parse(init.body)});return Response.json({id:'m'});};
+ r=await request(env,'/'+id+'/rescue-email',{revision:o.revision,to:'owner',confirm:true},{admin:true});assert.equal(r.status,200);
+ assert.equal(mails.at(-1).body.to[0],env.ORDERS_ADMIN_EMAIL);assert.match(mails.at(-1).body.subject,/Preview, not sent to customer/);assert.equal(mails.at(-1).body.attachments.length,2);assert.match(mails.at(-1).body.html,/cid:cover/);assert.match(mails.at(-1).body.text,/order\.html\?id=/);
+ assert.equal((await request(env,'/'+id+'/rescue-email',{revision:o.revision,to:'customer',confirm:true})).status,403);
+ o=await state(env,id);r=await request(env,'/'+id+'/rescue-email',{revision:o.revision,to:'customer',confirm:true},{admin:true});assert.equal(r.status,200);assert.equal(mails.at(-1).body.to[0],'qa-order@example.test');
+ o=await state(env,id);assert.equal(o.data.emails.rescue.sent,true);assert.equal((await request(env,'/'+id+'/rescue-email',{revision:o.revision,to:'customer',confirm:true},{admin:true})).status,409);
+ env.fetch=async(url,init)=>url.includes('/payment_intent')&&init?.body?Response.json({...intent(env,o.amount),redirect_url:'https://pay.ziina.com/x'}):Response.json(intent(env,o.amount));o=await state(env,id);
  r=await request(env,'/'+id+'/checkout',{revision:o.revision});assert.equal(r.status,200);assert.match((await r.json()).url,/pay\.ziina\.com/);
 });
