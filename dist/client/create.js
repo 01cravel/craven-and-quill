@@ -824,7 +824,7 @@ async function drawPages(){
     const spread=state.storyDraft.spreads[i],forId=state.previewId;let done=false;
     try{
       for(let attempt=0;attempt<2&&!done;attempt++){
-        const r=await fetch('/api/preview-page',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({previewId:forId,page:i,characters:state.characterImages.filter(Boolean),scene:spread.image_scene||'',text:spread.text,title:state.storyDraft.title}),signal:AbortSignal.timeout(170000)});
+        const r=await fetch('/api/preview-page',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({previewId:forId,page:i,characters:state.characterImages.filter(Boolean),age:state.age,scene:spread.image_scene||'',text:spread.text,title:state.storyDraft.title}),signal:AbortSignal.timeout(170000)});
         const d=await r.json().catch(()=>({}));
         if(r.ok&&d.image){if(state.previewId===forId){state.pageArt[i]=d.image;window.dispatchEvent(new Event('cq-draft-change'));track('preview_page_drawn');}done=true;}
         else if([400,403,409].includes(r.status))break;
