@@ -53213,15 +53213,37 @@ async function ziinaCheckout(env2, o, origin) {
   o = await save(env2, o, o.data, "checkout_pending");
   const link = origin + "/order.html?id=" + o.id;
   try {
-    const p = await ziina(env2, "/payment_intent", { amount: o.amount, currency_code: "GBP", message: "Personalised storybook for " + String(o.data.names || "your child").slice(0, 40) + ", " + PRODUCTS[o.size].label + ". Order ref " + o.id, success_url: link, cancel_url: link, failure_url: link, test: o.data.payment.mode !== "live", allow_tips: false });
+    const p = await ziina(env2, "/payment_intent", { amount: o.amount, currency_code: "GBP", message: "C&Q " + o.size.toUpperCase() + " book " + o.id.slice(0, 8), success_url: link, cancel_url: link, failure_url: link, test: o.data.payment.mode !== "live", allow_tips: false });
     requireThat(typeof p.id === "string" && p.id.length < 100, "Missing Ziina payment reference.", 502);
     matchZiina(p, { ...o, session_id: p.id });
     const redirect = ziinaUrl(p);
     const updated = await q(env2, "UPDATE customer_orders SET session_id=?1,status='awaiting_payment',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 RETURNING id", p.id, now2(), o.id, o.revision).first();
     requireThat(updated, "Checkout needs reconciliation.", 409);
     return { url: redirect };
-  } catch {
+  } catch (error2) {
+    await checkoutFailed(env2, o, error2);
     throw new OrderError("Checkout could not be confirmed. Your book is saved. Contact us before trying another payment; we will check Ziina first.", 502);
+  }
+}
+async function checkoutFailed(env2, o, error2) {
+  const reason = (error2 instanceof OrderError ? error2.message : error2?.name === "TimeoutError" ? "Ziina did not answer within 20 seconds." : "Could not reach Ziina (" + String(error2?.name || "network error").slice(0, 40) + ").").slice(0, 300), at = now2();
+  try {
+    await q(env2, "UPDATE customer_orders SET state=json_set(state,'$.payment.error',?1,'$.payment.errorAt',?2,'$.holdReason',?3),revision=revision+1,updated_at=?2 WHERE id=?4", reason, at, "Checkout failed: " + reason, o.id).run();
+  } catch {
+    console.error("Checkout failure not saved", o.id);
+  }
+  console.error("Ziina checkout failed", o.id, reason);
+  if (!env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return;
+  try {
+    await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + env2.RESEND_API_KEY, "Content-Type": "application/json", "Idempotency-Key": "checkout-failed-" + o.id }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, to: [env2.ORDERS_ADMIN_EMAIL || "cravenluke@gmail.com"], subject: "Payment page failed: a customer could not pay", text: `A customer pressed pay but the Ziina payment page did not open.
+
+Ziina's reason: ${reason}
+Book: ${String(o.data.story?.title || "Untitled").replace(/[\r\n]+/g, " ").slice(0, 80)} (${PRODUCTS[o.size].label}, \xA3${(o.amount / 100).toFixed(2)})
+Customer: ${o.email}
+
+The order is on hold at https://cravenandquill.com/orders` }), signal: AbortSignal.timeout(15e3) });
+  } catch {
+    console.error("Checkout failure email not sent", o.id);
   }
 }
 async function syncPayment(env2, o) {
