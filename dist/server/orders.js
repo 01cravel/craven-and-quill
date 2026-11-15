@@ -53658,7 +53658,7 @@ You can stop offer emails here: ${unsubscribe}`;
     if (action === "return-link" && req.method === "POST") {
       return reply({ url: `${url.origin}/order.html?id=${id}#key=${await privateKey(env2, o.data.privateKey, true)}` });
     }
-    const b = await input(req);
+    const b = await input(req, action === "peek-web" && isAdmin ? 12e5 : 65536);
     requireThat(b.revision === o.revision, "This order changed. Reload before continuing.", 409);
     if (action === "apply-offer") {
       requireThat(o.payment_status === "unpaid" && o.status === "saved" && !o.session_id, "This checkout needs owner review before its price can change.", 409);

@@ -358,6 +358,7 @@ test('owner can reopen a failed checkout, draw the whole book early, and the cus
  const webJpeg='data:image/jpeg;base64,'+btoa(String.fromCharCode(0xFF,0xD8,0xFF,0xD9));
  assert.equal((await request(env,'/'+id+'/peek-web',{revision:o.revision,page:0,image:webJpeg})).status,403);
  r=await request(env,'/'+id+'/peek-web',{revision:o.revision,page:0,image:webJpeg},{admin:true});assert.equal(r.status,200);
+ o=await state(env,id);r=await request(env,'/'+id+'/peek-web',{revision:o.revision,page:'cover',image:'data:image/jpeg;base64,/9j/'+'A'.repeat(300000)},{admin:true});assert.equal(r.status,200,'a real-size web copy (about 300 KB) must be accepted');
  o=await state(env,id);const webKey=o.data.peekWeb.scenes[0];assert.ok(webKey&&webKey!==o.data.art.scenes[0]);
  const pub2=await (await request(env,'/'+id)).json();assert.equal(pub2.peek.scenes[0],webKey);
  assert.equal((await request(env,'/'+id+'/file?file='+webKey)).status,200);
