@@ -4311,7 +4311,7 @@ var PRODUCTS = {
 var OWNER_TEST = { codeHash: "4494c8d03100dff3c9560ca54ada85bc13cacb7852092bb59fbc8166b0578cdb", email: "cravenluke@gmail.com", pricePence: 200, expiresAt: "2026-12-01T00:00:00Z" };
 var BOOK = { pdfPages: 28, interiorPages: 26, spreads: 10, paper: "200gsm gloss", cover: "Matte hardback", safeMm: 10 };
 function catalogue(enabled = false) {
-  return { version: CATALOG_VERSION, products: Object.values(PRODUCTS).map(({ estimatedSupplierPence, ...p }) => p), book: BOOK, currency: "GBP", shippingPence: 0, country: "GB", includes: ["UK standard delivery", "Digital PDF", "Human print review"], checkoutEnabled: enabled, proofPreparationDays: 7, delivery: "First complete illustrated proof within 7 calendar days of payment. Usually 7\u201312 working days after final proof approval. An estimate, not a guaranteed arrival date." };
+  return { version: CATALOG_VERSION, products: Object.values(PRODUCTS).map(({ estimatedSupplierPence, ...p }) => p), book: BOOK, currency: "GBP", shippingPence: 0, country: "GB", includes: ["UK standard delivery", "Human print review"], checkoutEnabled: enabled, proofPreparationDays: 7, delivery: "First complete illustrated proof within 7 calendar days of payment. Usually 7\u201312 working days after final proof approval. An estimate, not a guaranteed arrival date." };
 }
 var OrderError = class extends Error {
   constructor(message2, status = 400) {
@@ -4570,7 +4570,7 @@ ${c.intro.map((t2) => p(t2)).join("")}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 0 30px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${esc(c.buttonUrl || url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${sans};">${esc(c.button)}</a></td></tr></table>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#f5f0e6;"><tr><td style="padding:16px 20px;border-left:3px solid #ad843f;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
-${f.title ? row("Book", `<i style="font-family:${serif};">${esc(f.title)}</i>`) : ""}${row("Format", esc(f.label) + " + digital PDF")}${row("Paid", esc(f.paid) + ", UK delivery included")}${f.to ? row("Posting to", esc(f.to)) : ""}${row("Order ref", esc(f.ref))}
+${f.title ? row("Book", `<i style="font-family:${serif};">${esc(f.title)}</i>`) : ""}${row("Format", esc(f.label))}${row("Paid", esc(f.paid) + ", UK delivery included")}${f.to ? row("Posting to", esc(f.to)) : ""}${row("Order ref", esc(f.ref))}
 </table></td></tr></table>
 ${c.note ? p(esc(c.note), "margin:24px 0 0;color:#655a50;font-size:14px;") : ""}
 <p style="margin:${c.note ? "8px" : "24px"} 0 0;color:#655a50;font:14px/1.6 ${sans};">Questions? Just reply to this email.</p>
@@ -4586,7 +4586,7 @@ function orderEmail(o, kind, url) {
     c.heading,
     ...c.introText,
     c.steps.map(([w, t2]) => `${w}: ${t2}`).join("\n"),
-    [f.title ? `Book: ${f.title}` : "", `Format: ${f.label} + digital PDF`, `Paid: ${f.paid} including UK standard delivery`, f.to ? `Posting to: ${f.to}` : "", `Order ref: ${f.ref}`].filter(Boolean).join("\n"),
+    [f.title ? `Book: ${f.title}` : "", `Format: ${f.label}`, `Paid: ${f.paid} including UK standard delivery`, f.to ? `Posting to: ${f.to}` : "", `Order ref: ${f.ref}`].filter(Boolean).join("\n"),
     `${c.button}: ${c.buttonUrl || url}`,
     c.buttonUrl ? `Your order: ${url}` : "",
     c.note,
@@ -53712,7 +53712,7 @@ You can stop offer emails here: ${unsubscribe}`;
         requireThat(s2.payment_status !== "paid", "Payment is processing. Refresh your order shortly.", 409);
         throw new OrderError("Checkout has expired. Contact us to reopen this saved order.", 409);
       }
-      const form = new URLSearchParams({ mode: "payment", success_url: link, cancel_url: link, customer_email: o.email, client_reference_id: id, "metadata[cq_order_id]": id, "line_items[0][price_data][currency]": "gbp", "line_items[0][price_data][unit_amount]": String(o.amount), "line_items[0][price_data][product_data][name]": PRODUCTS[o.size].label + " + digital PDF, UK delivery included", "line_items[0][quantity]": "1", "payment_intent_data[metadata][cq_order_id]": id });
+      const form = new URLSearchParams({ mode: "payment", success_url: link, cancel_url: link, customer_email: o.email, client_reference_id: id, "metadata[cq_order_id]": id, "line_items[0][price_data][currency]": "gbp", "line_items[0][price_data][unit_amount]": String(o.amount), "line_items[0][price_data][product_data][name]": PRODUCTS[o.size].label + ", UK delivery included", "line_items[0][quantity]": "1", "payment_intent_data[metadata][cq_order_id]": id });
       const s = await stripe(env2, "checkout/sessions", form, "cq-checkout-" + id);
       requireThat(s.id && s.url && new URL(s.url).hostname === "checkout.stripe.com", "Unconfirmed checkout.", 502);
       const updated = await q(env2, "UPDATE customer_orders SET session_id=?1,status='awaiting_payment',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 RETURNING id", s.id, now2(), id, o.revision).first();

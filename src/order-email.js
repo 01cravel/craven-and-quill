@@ -69,7 +69,7 @@ ${c.intro.map(t=>p(t)).join('')}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 0 30px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${esc(c.buttonUrl||url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${sans};">${esc(c.button)}</a></td></tr></table>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#f5f0e6;"><tr><td style="padding:16px 20px;border-left:3px solid #ad843f;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
-${f.title?row('Book',`<i style="font-family:${serif};">${esc(f.title)}</i>`):''}${row('Format',esc(f.label)+' + digital PDF')}${row('Paid',esc(f.paid)+', UK delivery included')}${f.to?row('Posting to',esc(f.to)):''}${row('Order ref',esc(f.ref))}
+${f.title?row('Book',`<i style="font-family:${serif};">${esc(f.title)}</i>`):''}${row('Format',esc(f.label))}${row('Paid',esc(f.paid)+', UK delivery included')}${f.to?row('Posting to',esc(f.to)):''}${row('Order ref',esc(f.ref))}
 </table></td></tr></table>
 ${c.note?p(esc(c.note),'margin:24px 0 0;color:#655a50;font-size:14px;'):''}
 <p style="margin:${c.note?'8px':'24px'} 0 0;color:#655a50;font:14px/1.6 ${sans};">Questions? Just reply to this email.</p>
@@ -83,7 +83,7 @@ ${c.note?p(esc(c.note),'margin:24px 0 0;color:#655a50;font-size:14px;'):''}
 export function orderEmail(o,kind,url){
   const c=copy(o,kind),f=facts(o);
   const text=[c.heading,...c.introText,c.steps.map(([w,t])=>`${w}: ${t}`).join('\n'),
-    [f.title?`Book: ${f.title}`:'',`Format: ${f.label} + digital PDF`,`Paid: ${f.paid} including UK standard delivery`,f.to?`Posting to: ${f.to}`:'',`Order ref: ${f.ref}`].filter(Boolean).join('\n'),
+    [f.title?`Book: ${f.title}`:'',`Format: ${f.label}`,`Paid: ${f.paid} including UK standard delivery`,f.to?`Posting to: ${f.to}`:'',`Order ref: ${f.ref}`].filter(Boolean).join('\n'),
     `${c.button}: ${c.buttonUrl||url}`,c.buttonUrl?`Your order: ${url}`:'',c.note,'This link is private to you. Please don’t forward it.\nQuestions? Just reply to this email.\n\nCraven & Quill'].filter(Boolean).join('\n\n');
   return {subject:'Craven & Quill: '+c.subject,text,html:html(o,c,url),key:`${o.id}:${kind}:${kind==='proof'?o.data.proof?.hash:'1'}`};
 }
