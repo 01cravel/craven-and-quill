@@ -53209,9 +53209,18 @@ async function ziinaCheckout(env2, o, origin) {
   if (o.session_id) {
     requireThat(o.data.payment?.provider === "ziina", "Use the original payment provider for this order.", 409);
     const p = await ziinaSync(env2, o);
-    requireThat(["requires_payment_instrument", "requires_user_action"].includes(p.status), "Payment is processing or checkout has ended. Refresh or contact us.", 409);
-    return { url: ziinaUrl(p) };
+    if (["failed", "canceled"].includes(p.status)) {
+      o.data.failedPayments = [...o.data.failedPayments || [], { ...o.data.payment, sessionId: o.session_id, endedStatus: p.status, clearedAt: now2() }];
+      o.data.payment = null;
+      const cleared = await q(env2, "UPDATE customer_orders SET session_id=NULL,state=?1,status='saved',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 AND payment_status='unpaid' RETURNING id", JSON.stringify(o.data), now2(), o.id, o.revision).first();
+      requireThat(cleared, "This order changed. Reload before checkout.", 409);
+      o = await get(env2, o.id);
+    } else {
+      requireThat(["requires_payment_instrument", "requires_user_action"].includes(p.status), "Payment is processing or checkout has ended. Refresh or contact us.", 409);
+      return { url: ziinaUrl(p) };
+    }
   }
+  if (o.session_id) throw new OrderError("Checkout needs reconciliation.", 409);
   requireThat(!o.data.payment, "Checkout needs owner reconciliation before another attempt.", 409);
   o.data.payment = { provider: "ziina", mode: env2.ZIINA_MODE, accountId: env2.ZIINA_ACCOUNT_ID, startedAt: now2() };
   o = await save(env2, o, o.data, "checkout_pending");
@@ -53753,7 +53762,7 @@ You can stop offer emails here: ${unsubscribe}`;
     }
     if (action === "rescue-email") {
       requireThat(b.confirm === true && ["owner", "customer"].includes(b.to), "Choose who receives this email.");
-      requireThat(o.payment_status === "unpaid" && o.status === "saved" && o.data.prebuilt && o.data.art.cover && o.data.art.scenes[0], "Draw the book before sending this email.", 409);
+      requireThat(o.payment_status === "unpaid" && ["saved", "awaiting_payment"].includes(o.status) && o.data.prebuilt && o.data.art.cover && o.data.art.scenes[0], "Draw the book before sending this email.", 409);
       requireThat(env2.RESEND_API_KEY && env2.ORDER_EMAIL_FROM, "Order email is not connected.", 503);
       if (b.to === "customer") requireThat(!o.data.emails?.rescue?.sent, "This email was already sent to the customer.", 409);
       const link = `${url.origin}/order.html?id=${id}#key=${await privateKey(env2, o.data.privateKey, true)}`, name5 = String(o.data.names || "your child").replace(/[\r\n<>]/g, "").slice(0, 40), title2 = String(o.data.story?.title || "their book").replace(/[\r\n<>]/g, "").slice(0, 90), price = "\xA3" + (o.amount / 100).toFixed(2), town = String(o.data.recipient?.address?.townOrCity || "").replace(/[\r\n<>]/g, "").slice(0, 40), drawn = (o.data.art.cover ? 1 : 0) + o.data.art.scenes.filter(Boolean).length, whole = drawn === 11;
@@ -53798,7 +53807,7 @@ You can stop offer emails here: ${unsubscribe}`;
     }
     if (action === "prebuild") {
       requireThat(b.confirm === true, "Confirm this paid drawing request.");
-      requireThat(o.payment_status === "unpaid" && o.status === "saved" && !o.session_id, "Reopen the checkout first. Only a saved, unpaid book can be drawn early.", 409);
+      requireThat(o.payment_status === "unpaid" && (o.status === "saved" && !o.session_id || o.status === "awaiting_payment" && o.data.payment?.provider === "ziina"), "Reopen the checkout first. Only a saved, unpaid book can be drawn early.", 409);
       const index = b.page === "cover" ? "cover" : Number(b.page);
       requireThat(index === "cover" || Number.isInteger(index) && index >= 0 && index < 10, "Choose a valid illustration.");
       requireThat((o.data.artAttempts || 0) < (o.data.artBudget || 22), "This book reached its illustration request limit.", 429);
@@ -53806,7 +53815,7 @@ You can stop offer emails here: ${unsubscribe}`;
       requireThat(!slot || b.replace === true, "Artwork exists. Explicitly choose replacement.", 409);
       const drawing = await drawPage2(env2, o, index), key2 = await assetPut(env2, o, drawing.bytes, "image/jpeg", "art");
       const fresh = await get(env2, id);
-      requireThat(fresh.payment_status === "unpaid" && fresh.status === "saved", "This book changed while drawing. Reload.", 409);
+      requireThat(fresh.payment_status === "unpaid" && fresh.status === o.status && (fresh.session_id || null) === (o.session_id || null), "This book changed while drawing. Reload.", 409);
       if (index === "cover") fresh.data.art.cover = key2;
       else fresh.data.art.scenes[index] = key2;
       fresh.data.artAttempts = (fresh.data.artAttempts || 0) + 1;

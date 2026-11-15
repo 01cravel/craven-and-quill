@@ -374,3 +374,20 @@ test('owner can reopen a failed checkout, draw the whole book early, and the cus
  env.fetch=async(url,init)=>url.includes('/payment_intent')&&init?.body?Response.json({...intent(env,o.amount),redirect_url:'https://pay.ziina.com/x'}):Response.json(intent(env,o.amount));o=await state(env,id);
  r=await request(env,'/'+id+'/checkout',{revision:o.revision});assert.equal(r.status,200);assert.match((await r.json()).url,/pay\.ziina\.com/);
 });
+
+test('owner can draw and email a book whose card page opened but was not paid; an ended card page is replaced, an open one reused',async()=>{
+ const env=environment(),{id,order}=await create(env);ziinaConnected(env);env.OPENAI_API_KEY='sk-test';env.RESEND_API_KEY='re_test';env.ORDER_EMAIL_FROM='orders@example.test';
+ let ziinaStatus='requires_payment_instrument',made=0;const mails=[];
+ env.fetch=async(url,init)=>{if(url.includes('api.resend.com')){mails.push(JSON.parse(init.body));return Response.json({id:'m'});}if(url.includes('api.openai.com'))return Response.json({data:[{b64_json:jpeg.toString('base64')}],usage:{total_tokens:1}});if(url.includes('/payment_intent')&&init?.method==='POST'){made++;return Response.json({...intent(env,order.amount),id:'ziina-intent-'+made});}return Response.json({...intent(env,order.amount,ziinaStatus),id:'ziina-intent-'+made});};
+ assert.equal((await request(env,'/'+id+'/checkout',{revision:order.revision})).status,200);
+ let o=await state(env,id);assert.equal(o.status,'awaiting_payment');
+ assert.equal((await request(env,'/'+id+'/prebuild',{revision:o.revision,page:'cover',confirm:true})).status,403);
+ let r=await request(env,'/'+id+'/prebuild',{revision:o.revision,page:'cover',confirm:true},{admin:true});assert.equal(r.status,200);
+ o=await state(env,id);r=await request(env,'/'+id+'/prebuild',{revision:o.revision,page:0,confirm:true},{admin:true});assert.equal(r.status,200);
+ o=await state(env,id);assert.equal(o.status,'awaiting_payment');assert.equal(o.session_id,'ziina-intent-1');
+ r=await request(env,'/'+id+'/rescue-email',{revision:o.revision,to:'owner',confirm:true},{admin:true});assert.equal(r.status,200);assert.ok(!JSON.stringify(mails.at(-1)).includes('sorry'));
+ o=await state(env,id);r=await request(env,'/'+id+'/checkout',{revision:o.revision});assert.equal(r.status,200);assert.equal(made,1,'an open card page is reused');
+ ziinaStatus='canceled';o=await state(env,id);r=await request(env,'/'+id+'/checkout',{revision:o.revision});assert.equal(r.status,200);assert.equal(made,2,'an ended card page is replaced');
+ o=await state(env,id);assert.equal(o.session_id,'ziina-intent-2');assert.equal(o.status,'awaiting_payment');assert.equal(o.data.failedPayments.at(-1).sessionId,'ziina-intent-1');
+ ziinaStatus='pending';o=await state(env,id);assert.equal((await request(env,'/'+id+'/checkout',{revision:o.revision})).status,409);assert.equal(made,2,'a payment in progress is never replaced');
+});
