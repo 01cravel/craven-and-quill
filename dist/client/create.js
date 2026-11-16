@@ -1,5 +1,6 @@
 const state={storyError:'',emailNeedsLink:false,pageArt:[],pageArtFor:null,previewId:null,rewritesRemaining:3,step:1,storyMode:'invent',names:'',secondName:'',age:'',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a4',price:29.99};
 const pageJobs=new Set();
+const pageArtKey=()=>'reference-1:'+state.previewId;
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const track=(event,data={})=>{const names={story_maker_open:'maker_start',free_preview_created:'preview_success',free_preview_failed:'preview_error'};const allowed=['maker_start','photo_open','photo_picked','photo_passed','photo_failed','story_generated','story_edited','checkout_start','checkout_error','book_saved'];const value=names[event]||(event==='story_step_view'?'step_'+data.step:event==='photos_checked'?(data.passed?'photo_passed':'photo_failed'):event);if(allowed.includes(value)||/^step_(?:[1-9]|10|11)$/.test(value)||names[event])window.cqMeasurement?.record(value);};
@@ -675,7 +676,7 @@ function renderReviewPage(){const pages=state.storyDraft?.spreads||[];const tota
   if(!total){$('#review-text').textContent=previewText(selectedStory());$('#review-pos').hidden=true;$('#review-prev').hidden=$('#review-next').hidden=true;return;}
   reviewPage=Math.max(0,Math.min(total-1,reviewPage));
   $('#review-text').textContent=pages[reviewPage].text;$('#review-folio').textContent=reviewPage+1;
-  {const real=state.pageArtFor===state.previewId&&state.pageArt[reviewPage];const pg=$('.review-art-page');pg.classList.toggle('real',!!real);pg.classList.toggle('drawing',!real&&reviewPage<3&&pageJobs.has(reviewPage));$('#review-art').src=real||state.characterImages[0]||'assets/storybook.webp';$('.art-badge').textContent=reviewPage<3?'Drawing this page…':'Placeholder picture';$('.art-badge').hidden=!!real;}
+  {const real=state.pageArtFor===pageArtKey()&&state.pageArt[reviewPage];const pg=$('.review-art-page');pg.classList.toggle('real',!!real);pg.classList.toggle('drawing',!real&&reviewPage<3&&pageJobs.has(reviewPage));$('#review-art').src=real||state.characterImages[0]||'assets/storybook.webp';$('.art-badge').textContent=reviewPage<3?'Drawing this page…':'Placeholder picture';$('.art-badge').hidden=!!real;}
   $('#review-pos').hidden=false;$('#review-pos').textContent=`Page ${reviewPage+1} of ${total}`;
   $('#review-prev').hidden=$('#review-next').hidden=false;$('#review-prev').disabled=reviewPage===0;$('#review-next').disabled=reviewPage===total-1;}
 $('#review-prev').addEventListener('click',()=>{reviewPage--;renderReviewPage();});
@@ -713,7 +714,7 @@ function renderPreviewBook(){
   const slide=make('article','pbook-slide pbook-spread');slide.setAttribute('aria-label',`Page ${i+1} of ${spreads.length}`);
   const body=make('div','pbook-body');body.append(make('p','pbook-text',spread.text));
   const words=make('div','pbook-page pbook-words');words.append(make('p','pbook-head',title),body,make('span','pbook-folio',String(i*2+5)));
-  const art=make('div','pbook-page pbook-art');art.dataset.page=i;const painted=state.pageArtFor===state.previewId&&state.pageArt[i];
+  const art=make('div','pbook-page pbook-art');art.dataset.page=i;const painted=state.pageArtFor===pageArtKey()&&state.pageArt[i];
   if(painted){const img=make('img','pbook-paint');img.src=painted;img.alt=`Page ${i+1}, illustrated`;art.append(img,make('span','pbook-folio',String(i*2+4)));slide.append(art,words);slides.push(slide);return;}
   const sketch=make('div','pbook-sketch');
   sketch.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20z"/><path d="M14 7l3 3"/></svg>';
@@ -834,7 +835,7 @@ $('#postcode').addEventListener('blur',()=>{const v=$('#postcode').value;if(v.tr
 
 // Free preview pages: pages 1 to 3 drawn for real while they read, so they see the actual book before paying.
 function paintPageArt(){
-  const fresh=state.pageArtFor===state.previewId;
+  const fresh=state.pageArtFor===pageArtKey();
   $$('#story-pages .page-art').forEach(fig=>{const i=Number(fig.dataset.page);if(i>2)return;const src=fresh&&state.pageArt[i];
     fig.classList.toggle('drawing',!src);
     if(src){let img=fig.querySelector('img');if(!img){fig.replaceChildren();img=document.createElement('img');img.alt=`Page ${i+1}, illustrated`;fig.append(img);}if(img.src!==src)img.src=src;}
@@ -847,13 +848,13 @@ function paintPageArt(){
 }
 async function drawPages(){
   if(!state.previewId||!state.characterImages[0]||!draftValid(state.storyDraft))return;
-  if(state.pageArtFor!==state.previewId){state.pageArt=[];state.pageArtFor=state.previewId;}
+  if(state.pageArtFor!==pageArtKey()){state.pageArt=[];state.pageArtFor=pageArtKey();}
   const jobs=[0,1,2].filter(i=>!state.pageArt[i]&&!pageJobs.has(i)).map(async i=>{
     pageJobs.add(i);paintPageArt();
     const spread=state.storyDraft.spreads[i],forId=state.previewId;let done=false;
     try{
       for(let attempt=0;attempt<2&&!done;attempt++){
-        const r=await fetch('/api/preview-page',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({previewId:forId,page:i,characters:state.characterImages.filter(Boolean),age:state.age,scene:spread.image_scene||'',text:spread.text,title:state.storyDraft.title}),signal:AbortSignal.timeout(170000)});
+        const r=await fetch('/api/preview-page/reference-1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({previewId:forId,page:i,characters:state.characterImages.filter(Boolean),scene:spread.image_scene||'',text:spread.text,title:state.storyDraft.title}),signal:AbortSignal.timeout(170000)});
         const d=await r.json().catch(()=>({}));
         if(r.ok&&d.image){if(state.previewId===forId){state.pageArt[i]=d.image;window.dispatchEvent(new Event('cq-draft-change'));track('preview_page_drawn');}done=true;}
         else if([400,403,409].includes(r.status))break;
