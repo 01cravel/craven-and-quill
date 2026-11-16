@@ -122,7 +122,7 @@ function showStep(number){
   if(number===11)queueMicrotask(()=>void prepareAddressStep());
   document.body.dataset.step=number;
   if(number===4&&state.storyDraft)requestAnimationFrame(()=>turnStoryPage(state.storyPage,'instant'));
-  if(number===5){ensurePreview();updateReveal();updateXmas();if(state.characterImages[0])renderPreviewBook();}
+  if(number===5){ensurePreview();updateReveal();updateXmas();if(state.characterImages[0]){renderPreviewBook();startAutoFlip();}}
   if([4,5,11].includes(number))void drawPages();
   scrollToStepTop(number);
   if(number===5)requestAnimationFrame(observeBookPrice);
@@ -715,18 +715,32 @@ function renderPreviewBook(){
   const body=make('div','pbook-body');body.append(make('p','pbook-text',spread.text));
   const words=make('div','pbook-page pbook-words');words.append(make('p','pbook-head',title),body,make('span','pbook-folio',String(i*2+5)));
   const art=make('div','pbook-page pbook-art');art.dataset.page=i;const painted=state.pageArtFor===pageArtKey()&&state.pageArt[i];
-  if(painted){const img=make('img','pbook-paint');img.src=painted;img.alt=`Page ${i+1}, illustrated`;art.append(img,make('span','pbook-folio',String(i*2+4)));slide.append(art,words);slides.push(slide);return;}
+  if(painted){const img=make('img','pbook-paint');img.src=painted;img.alt=`Page ${i+1}, illustrated`;art.append(img);slide.append(art,words);slides.push(slide);return;}
   const sketch=make('div','pbook-sketch');
-  sketch.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20z"/><path d="M14 7l3 3"/></svg>';
-  sketch.append(make('b',null,i<3?'Being painted now':'Illustrated after you order'));
-  const scene=String(spread.image_scene||'').trim();if(scene)sketch.append(make('i',null,scene.length>110?scene.slice(0,107).replace(/\s+\S*$/,'')+'…':scene));
-  art.append(sketch,make('span','pbook-folio',String(i*2+4)));slide.append(art,words);slides.push(slide);
+  sketch.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z"/><path d="M18 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>';
+  const who=state.names||'them';
+  sketch.append(make('b',null,i<3?`Painting a magical picture of ${who} here`:`We’ll paint a magical picture of ${who} here`));
+  sketch.append(make('i',null,i<3?'Ready in a moment':'Painted once you order'));
+  art.append(sketch);slide.append(art,words);slides.push(slide);
  });
  track.replaceChildren(...slides);
  $('.pbook-nav').hidden=slides.length<2;
  previewBookPage=Math.min(previewBookPage,slides.length-1);
  requestAnimationFrame(()=>turnPreviewBook(previewBookPage,'instant'));
+ startAutoFlip();
 }
+// The book turns its own pages every few seconds until the shopper touches it.
+let autoFlip=null,autoFlipStopped=false;
+function startAutoFlip(){
+ if(autoFlip||autoFlipStopped||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ autoFlip=setInterval(()=>{
+  if(state.step!==5||document.visibilityState!=='visible')return;
+  const total=$$('#pbook-track .pbook-slide').length;if(total<2)return;
+  turnPreviewBook(previewBookPage+1>=total?0:previewBookPage+1);
+ },3500);
+}
+function stopAutoFlip(){autoFlipStopped=true;clearInterval(autoFlip);autoFlip=null;}
+['pointerdown','touchstart','wheel','keydown'].forEach(type=>$('#preview-book').addEventListener(type,stopAutoFlip,{passive:true}));
 function updatePreviewBook(index){
  const slides=$$('#pbook-track .pbook-slide');if(!slides.length)return;
  previewBookPage=Math.max(0,Math.min(index,slides.length-1));

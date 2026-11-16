@@ -830,3 +830,15 @@ body[data-step="5"] .maker-shell,body[data-step="4"] .maker-shell{grid-template-
  .step[data-step="5"] .product>span,.step[data-step="5"] .product input:checked+span{padding:10px 10px!important}
  .step[data-step="5"] .product b{font-size:.92rem}
 }
+/* Book pages: picture fills its page; words smaller and centred. */
+.pbook-art{padding:6%!important}
+.pbook-art:has(.pbook-paint){padding:0!important;overflow:hidden}
+.pbook-paint{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px 0 0 10px}
+.pbook-sketch{gap:8px;padding:10%;background:#fffaf0}
+.pbook-sketch svg{width:26px;height:26px}
+.pbook-sketch b{font-size:clamp(.72rem,3vw,.9rem);line-height:1.3;text-wrap:balance}
+.pbook-sketch i{font-size:clamp(.62rem,2.5vw,.74rem)}
+.pbook-words{position:relative;justify-content:center}
+.pbook-words .pbook-head{position:absolute;top:6%;left:10%;right:10%;margin:0}
+.pbook-body{flex:none;justify-content:center;max-height:72%}
+.pbook-text{margin:0!important;font-size:clamp(.66rem,2.6vw,.82rem)!important;line-height:1.55!important}
