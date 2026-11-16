@@ -821,3 +821,12 @@ body:not([data-step="1"]) .draft-storage-controls{display:none!important}
 /* One book on screen at a time: the side mock-up would show a second, different cover. */
 body[data-step="5"] .story-side,body[data-step="4"] .story-side{display:none!important}
 body[data-step="5"] .maker-shell,body[data-step="4"] .maker-shell{grid-template-columns:minmax(0,720px)!important;justify-content:center}
+/* Small phones (320 to 380 wide): keep the price on the button and the lines on screen. */
+.reveal-sub{white-space:normal!important;overflow-wrap:anywhere}
+.step[data-step="5"] .product b{white-space:nowrap}
+@media(max-width:380px){
+ .step-actions .next,.step-actions .checkout-button{padding:0 16px;font-size:.95rem;gap:8px}
+ .cta-price{padding-left:8px}
+ .step[data-step="5"] .product>span,.step[data-step="5"] .product input:checked+span{padding:10px 10px!important}
+ .step[data-step="5"] .product b{font-size:.92rem}
+}
