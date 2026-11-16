@@ -789,3 +789,35 @@ footer{height:auto;margin:0 clamp(12px,3vw,32px) 12px;padding:14px 20px;border-r
 .examples-cta b{color:var(--ink);font-size:1rem}
 .examples-cta .next{flex:none;width:auto;min-height:48px;padding:0 22px}
 .examples-cta .next{gap:8px}
+
+/* Six-screen journey (Nov 2026): one action bar, same place, every screen. */
+.step-actions{position:sticky;bottom:0;z-index:20;background:#fff;margin-top:20px;padding:12px 0 max(12px,env(safe-area-inset-bottom))}
+.step-actions .next,.step-actions .checkout-button{display:flex;justify-content:center;align-items:center;gap:10px;width:100%;margin:0}
+.step-actions .next:has(.cta-price){justify-content:space-between}
+.cta-price{font-variant-numeric:tabular-nums;font-weight:700;padding-left:14px;border-left:1px solid rgba(255,255,255,.3)}
+@media(max-width:780px){.step-actions{position:fixed;left:0;right:0;bottom:0;margin:0;padding:12px 16px max(12px,env(safe-area-inset-bottom));background:linear-gradient(to top,var(--mist,#f7f4ed) 78%,rgba(247,244,237,0))}.step{padding-bottom:96px}}
+.step[data-step="1"] fieldset{margin-top:18px}
+.face-confirm{min-height:56px;align-items:center!important}
+.face-confirm input{width:24px!important;height:24px!important;margin:0!important}
+.reveal-sub{margin:4px 0 0;color:var(--muted);font-size:.9rem}
+.text-link{background:none;border:0;padding:6px 0;min-height:36px;color:var(--ink);text-decoration:underline;text-underline-offset:3px;font:inherit;font-size:.9rem;cursor:pointer}
+#edit-words{display:block;margin:6px auto 4px}
+.step[data-step="5"] fieldset{border:0;padding:0;margin:0}
+.step[data-step="5"] .size-options{grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.step[data-step="5"] .product>span{display:flex;flex-direction:column;gap:2px;padding:12px 14px!important}
+.step[data-step="5"] .product input:checked+span{padding:12px 14px!important}
+.step[data-step="5"] .product .offer-label{display:none}
+.step[data-step="5"] .product strong{font-size:1.15rem;margin-top:4px}
+.urgency{margin:12px 0 0;padding:10px 14px;border-radius:12px;background:var(--sun,#fff4d6);color:var(--ink);font-size:.9rem;font-weight:600;text-align:center}
+.urgency[hidden]{display:none}
+#making-state .drawing-progress{margin-top:28px}
+.pay-small{font-size:.82rem;color:var(--muted);margin:10px 0 0;text-align:center}
+.pay-small .text-link{font-size:.82rem;min-height:0;padding:0 0 0 4px}
+.step[data-step="11"] .order-total{border-radius:14px;margin-top:14px}
+.step[data-step="11"] #step-7-error:empty,.step[data-step="11"] #step-11-error:empty{min-height:0;margin:0}
+body:not([data-step="1"]) .draft-storage-controls{display:none!important}
+/* Fade only: a sliding screen would carry the fixed action bar with it. */
+.step.active{animation:appear-soft .18s ease-out!important}
+/* One book on screen at a time: the side mock-up would show a second, different cover. */
+body[data-step="5"] .story-side,body[data-step="4"] .story-side{display:none!important}
+body[data-step="5"] .maker-shell,body[data-step="4"] .maker-shell{grid-template-columns:minmax(0,720px)!important;justify-content:center}

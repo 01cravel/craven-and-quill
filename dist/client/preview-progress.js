@@ -48,21 +48,16 @@
         const base=18+index/total*72,span=72/total;fill(base+span*.92*(1-Math.exp(-seconds/42)));
         const person=total>1?` (${index+1} of ${total})`:'';
         const n=firstName(),their=n?n+'’s':'their';
-        if(seconds<10)words('Sketching '+their+' face'+person,'Takes about a minute. Stick the kettle on.');
-        else if(seconds<20)words('Getting that smile just right'+person,'We’re working from their photo.');
-        else if(seconds<32)words('Doing the hair (always the tricky bit)'+person,'Curls, fringes, the lot.');
-        else if(seconds<45)words('Adding a splash of colour'+person,'Nearly ready for their first page.');
-        else if(seconds<70)words('Picking out a storybook outfit'+person,'Every hero needs one.');
-        else words('Final touches'+person,'Good drawings take a moment. Not long now.');
+        words('Drawing '+their+' pictures'+person,seconds<45?'Usually under a minute.':'Nearly there.');
       }
     };
     const update=event=>{if(stopped)return;if(phase!==event.phase)phaseAt=Date.now();phase=event.phase;root.dataset.phase=phase;
-      if(phase==='upload'){fill(10+index/total*72);words('Having a good look at their photo','Takes about a minute. Stick the kettle on.');}
+      if(phase==='upload'){fill(10+index/total*72);words('Reading their photo','Usually under a minute.');}
       if(phase==='drawing'){fill(18+index/total*72);tick();}
-      if(phase==='received'){fill(18+(index+1)/total*72);words(index+1===total?'Ta-da!':'One down, one to go',index+1===total?'Here they come.':'Next, we’ll draw their story companion.');}
+      if(phase==='received'){fill(18+(index+1)/total*72);words(index+1===total?'Nearly there':'One down, one to go','Putting the pages together.');}
     };
-    const nameEl=document.getElementById('sketch-name');if(nameEl)nameEl.textContent=firstName()||'them';const pad=sketch();root.dataset.phase='saving';fill(4);words('Getting the paper ready','Takes about a minute. Stick the kettle on.');const timer=setInterval(tick,1000);
-    return{update,person(next,count){index=next;total=count;update({phase:'upload'});},stop(ok){stopped=true;clearInterval(timer);pad.finish();root.dataset.phase=ok?'complete':'error';if(ok)fill(100);words(ok?'Your first page is ready':'Preview paused',ok?'A new adventure, with them at the heart of it.':'See below to continue.');}};
+    const nameEl=document.getElementById('sketch-name');if(nameEl)nameEl.textContent=firstName()||'them';const pad=sketch();root.dataset.phase='saving';fill(4);words('Getting started','Usually under a minute.');const timer=setInterval(tick,1000);
+    return{update,person(next,count){index=next;total=count;update({phase:'upload'});},stop(ok){stopped=true;clearInterval(timer);pad.finish();root.dataset.phase=ok?'complete':'error';if(ok)fill(100);words(ok?'Ready':'Paused',ok?'':'See below to continue.');}};
   }
   window.cqPreviewProgress={request,start};
 })();

@@ -22,21 +22,23 @@ test('separate email validation still rejects missing and malformed addresses',(
  nodes['#email'].validity.valid=false;assert.equal(validEmail(),false);
 });
 
-test('email is asked after the character is drawn, and saved before the story page',async()=>{
- const fn=source.slice(source.indexOf('async function capturePreviewEmail(){'),source.indexOf('async function preparePreview(){'));
+test('email is saved before their book shows, and re-linked once the character exists',async()=>{
+ const fn=source.slice(source.indexOf('async function capturePreviewEmail('),source.indexOf('function previewReady(){'));
  let payload;
  const ctx={state:{previewId:'receipt-id'},$:id=>({value:id==='#email'?'Person@Example.com':''}),AbortSignal,window:{cqMeasurement:{context:()=>({source:'meta'})}},fetch:async(url,options)=>{assert.equal(url,'/api/preview-email');payload=JSON.parse(options.body);return{ok:true,json:async()=>({ok:true})};}};
- vm.runInNewContext(fn,ctx);await ctx.capturePreviewEmail();assert.equal(payload.email,'person@example.com');assert.equal(payload.source,'meta');assert.equal(payload.previewId,'receipt-id');
+ vm.runInNewContext(fn,ctx);await ctx.capturePreviewEmail();assert.equal(payload.email,'person@example.com');assert.equal(payload.source,'meta');assert.equal(payload.previewId,'receipt-id');assert.equal(ctx.state.emailNeedsLink,false);
+ ctx.state.previewId=null;await ctx.capturePreviewEmail();assert.equal(ctx.state.emailNeedsLink,true,'no character yet, so link it later');
  ctx.fetch=async()=>({ok:false,json:async()=>({error:'Save failed'})});await assert.rejects(ctx.capturePreviewEmail(),/Save failed/);
  const prepare=source.slice(source.indexOf('async function preparePreview(){'),source.indexOf('for(let index=0;index<10;'));
- assert.equal(prepare.includes('capturePreviewEmail'),false,'drawing does not wait for an email');
+ assert.equal(prepare.includes('await capturePreviewEmail'),false,'drawing does not wait for an email');
+ assert.match(prepare,/state\.emailNeedsLink&&validPreviewEmail\(\)&&state\.previewId\)void capturePreviewEmail\(true\)/);
  const from=source.indexOf("$('#start-preview').addEventListener");const save=source.slice(from,source.indexOf("$('#revise-story').addEventListener",from));
- assert.ok(save.indexOf('await capturePreviewEmail()')>0&&save.indexOf('await capturePreviewEmail()')<save.indexOf('showStep(4)'));
- assert.match(source,/const order=\[1,9,2,5,10,4,6,11,7\]/);
+ assert.ok(save.indexOf('await capturePreviewEmail()')>0&&save.indexOf('await capturePreviewEmail()')<save.indexOf('showStep(5)'));
+ assert.match(source,/const order=\[1,9,2,10,5,11\]/);
 });
 
 test('multiple references create one character, not one character per photo',async()=>{
- const fn=source.slice(source.indexOf('async function renderStoryArt(){'),source.indexOf('async function capturePreviewEmail(){'));
+ const fn=source.slice(source.indexOf('async function renderStoryArt(){'),source.indexOf('async function capturePreviewEmail('));
  const nodes={'#preview-image':{},'#preview-image-second':{},'#preview-art':{classList:{toggle(){}}}};
  const photos=[{name:'front'},{name:'side'},{name:'smile'}];let calls=0;
  const ctx={state:{photos,names:'Leo',secondName:'',characterImages:[]},$:id=>nodes[id],drawingProgress:null,requestCharacter:async(files,name)=>{calls++;assert.equal(files.length,3);assert.equal(name,'Leo');return 'one-character';}};
