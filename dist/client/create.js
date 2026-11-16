@@ -208,7 +208,7 @@ async function writeStory(revision=false){
   updateLive();if(!validBrief())return;
   const error=$('#step-4-error');error.textContent='';
   const basis=JSON.parse(storyBasis());
-  if(!basis.age){showStep(1);$('#step-1-error').textContent='Choose their age first.';return;}
+  if(!basis.age){showStep(1);$('#step-1-error').textContent='Choose a reading age first.';return;}
   if(!basis.names){error.textContent='Add their first name before generating a story.';showStep(1);$('#names').focus();return;}
   if(!basis.idea){error.textContent='Add a starting idea before generating the story.';$('#own-idea').focus();return;}
   if(revision&&!draftValid(state.storyDraft)){error.textContent='Keep a title, storyline and words on all ten pages before updating the story.';return;}
@@ -512,11 +512,11 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     updateLive();
     if(!state.names){$('#step-1-error').textContent='Add their first name to continue.';$('#names').focus();return;}
     if(!$('#second-person').hidden&&!state.secondName){$('#step-1-error').textContent='Add the other person’s first name, or remove them.';$('#second-name').focus();return;}
-    if(!$('input[name="age"]:checked')){$('#step-1-error').textContent='Choose their age.';$('.age-grid input')?.focus();return;}
+    if(!$('input[name="age"]:checked')){$('#step-1-error').textContent='Choose a reading age.';$('.age-grid input')?.focus();return;}
     $('#step-1-error').textContent='';
   }
   if(state.step===8&&!$('input[name="age"]:checked')){$('#step-8-error').textContent='Choose a reading level.';return;}
-  if(state.step===9&&!$('input[name="age"]:checked')){$('#step-9-error').textContent='Choose their age.';$('.age-grid input').focus();return;}
+  if(state.step===9&&!$('input[name="age"]:checked')){$('#step-9-error').textContent='Choose a reading age.';$('.age-grid input').focus();return;}
   if(state.step===9){state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';}
   if(state.step===9){updateLive();const own=state.storyMode==='plot';const field=own?$('#own-idea'):$('#personal-details');if(!field.value.trim()){$('#step-9-error').textContent=own?'Give us a sentence about what should happen.':'Tap one thing they love, or write a line about them.';field.focus();return;}$('#step-9-error').textContent='';buildIdeas();state.storyError='';if(!storyWriting&&(!draftValid(state.storyDraft)||state.storyBasis!==storyBasis()))void writeStory(false);}
   if(state.step===11){
