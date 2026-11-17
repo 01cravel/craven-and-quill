@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=six-3">
+  <link rel="stylesheet" href="create.css?v=pay-email-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -22,9 +22,8 @@
       <span class="journey-step active" data-progress="1"><b>1</b><em>Name</em></span>
       <span class="journey-step" data-progress="9"><b>2</b><em>Loves</em></span>
       <span class="journey-step" data-progress="2"><b>3</b><em>Photo</em></span>
-      <span class="journey-step" data-progress="10"><b>4</b><em>Save</em></span>
-      <span class="journey-step" data-progress="5"><b>5</b><em>Their book</em></span>
-      <span class="journey-step" data-progress="11"><b>6</b><em>Delivery &amp; pay</em></span>
+      <span class="journey-step" data-progress="5"><b>4</b><em>Their book</em></span>
+      <span class="journey-step" data-progress="11"><b>5</b><em>Delivery &amp; pay</em></span>
     </nav>
     <div class="progress-mini" aria-hidden="true"><span class="progress-label"><b id="progress-num" hidden>1</b><em id="progress-name">Their name</em></span><span class="progress-bar"><i id="progress-fill"></i></span></div>
     <a class="save-note" href="index.html">Exit</a>
@@ -96,7 +95,7 @@
           <details class="optional-detail photo-privacy"><summary>How we use your photos</summary><p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p></details>
 
           <div class="error" id="step-2-error" role="alert"></div>
-          <div class="step-actions"><button class="back" type="button" data-back="9">Back</button><button class="next" id="photo-continue" type="button" data-next="10" disabled>Continue <span>→</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="9">Back</button><button class="next" id="photo-continue" type="button" data-next="5" disabled>Continue <span>→</span></button></div>
         </section>
 
 <section class="step" data-step="9" aria-labelledby="step-9-title" hidden><h1 id="step-9-title">A little about them.</h1><p class="intro">Tap a few. We write their story around them.</p>
@@ -159,13 +158,6 @@
           <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" id="generate-story" type="button">Write their story</button><button class="next" id="use-story" type="button" data-next="5" disabled>Done <span>→</span></button></div>
         </section>
 
-<section class="step" data-step="10" data-clarity-mask="true" aria-labelledby="step-10-title" hidden><h1 id="step-10-title">Where should we save it?</h1><p class="intro">We’re drawing <span data-first-name>them</span> now. We’ll keep the book for 7 days so you can come back to it.</p>          <div id="preview-email-wrap">
-            <label class="field-label" for="email">Your email</label>
-            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
-            <p class="privacy-line" id="preview-email-note">If you leave your book unfinished, we’ll email you up to twice about it, including a 10% offer. You can unsubscribe at any time.</p>
-          </div>
-
-<div class="error" id="step-10-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" type="button" id="start-preview">See their book <span>→</span></button></div></section>
         <section class="step preview-step" data-step="5" data-clarity-mask="true" aria-labelledby="step-5-title" hidden>
           <div id="making-state">
             <h1 id="step-5-title" tabindex="-1" class="sketch-title">Finishing the book for <span id="sketch-name">them</span>.</h1>
@@ -201,7 +193,7 @@
               <div id="locked-dots" hidden></div>
             </section>
 <div class="error" id="step-5-error" role="alert"></div>
-            <div class="step-actions"><button class="back" type="button" data-back="10">Back</button><button class="next" id="choose-book" type="button" data-next="11" disabled><span class="cta-text">Order the hardback</span> <span class="cta-price" data-cta-price>£29.99</span></button></div>
+            <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="choose-book" type="button" data-next="11" disabled><span class="cta-text">Order the hardback</span> <span class="cta-price" data-cta-price>£29.99</span></button></div>
           </div>
         </section>
 
@@ -209,6 +201,13 @@
 
 <section class="step" data-step="11" data-clarity-mask="true" aria-labelledby="step-11-title" hidden><h1 id="step-11-title">Where should it go?</h1>
           <p class="intro">You see the whole book first. Once you approve it, we print and post it, usually within 7–12 working days. UK delivery is included.</p>
+          <div id="preview-email-wrap" class="pay-email">
+            <label class="field-label" for="email">Your email</label>
+            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
+            <p class="privacy-line" id="preview-email-note">We send your receipt and the finished proof here. We keep their book for 7 days, and may remind you once or twice if you don’t finish. Unsubscribe any time.</p>
+            <div class="error" id="step-10-error" role="alert"></div>
+          </div>
+          
           <fieldset class="send-to"><legend>Who should the parcel go to?</legend>
             <label class="send-option"><input type="radio" name="send-to" value="them"><span><b>Straight to <span data-send-name>them</span></b><small>We post it to their address, ready to open.</small></span></label>
             <label class="send-option"><input type="radio" name="send-to" value="me" checked><span><b>To me, I’ll hand it over</b><small>Comes to you first, so you can wrap it or keep it a surprise.</small></span></label>
@@ -270,6 +269,6 @@
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=six-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=reader-2" defer></script><script src="draft-save.js?v=one-person-1" defer></script>
+  <script src="create.js?v=pay-email-1" defer></script><script src="draft-save.js?v=one-person-1" defer></script>
 </body>
 </html>

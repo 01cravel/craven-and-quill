@@ -25,16 +25,18 @@ test('separate email validation still rejects missing and malformed addresses',(
 test('email is saved before their book shows, and re-linked once the character exists',async()=>{
  const fn=source.slice(source.indexOf('async function capturePreviewEmail('),source.indexOf('function previewReady(){'));
  let payload;
- const ctx={state:{previewId:'receipt-id'},$:id=>({value:id==='#email'?'Person@Example.com':''}),AbortSignal,window:{cqMeasurement:{context:()=>({source:'meta'})}},fetch:async(url,options)=>{assert.equal(url,'/api/preview-email');payload=JSON.parse(options.body);return{ok:true,json:async()=>({ok:true})};}};
+ const ctx={crypto:{randomUUID:()=>'11111111-2222-4333-8444-555555555555'},state:{previewId:'receipt-id'},$:id=>({value:id==='#email'?'Person@Example.com':''}),AbortSignal,window:{cqMeasurement:{context:()=>({source:'meta'})}},fetch:async(url,options)=>{assert.equal(url,'/api/preview-email');payload=JSON.parse(options.body);return{ok:true,json:async()=>({ok:true})};}};
  vm.runInNewContext(fn,ctx);await ctx.capturePreviewEmail();assert.equal(payload.email,'person@example.com');assert.equal(payload.source,'meta');assert.equal(payload.previewId,'receipt-id');assert.equal(ctx.state.emailNeedsLink,false);
+ let leadId;ctx.window.cqMeasurement.savedLead=id=>{leadId=id;};await ctx.capturePreviewEmail();assert.equal(leadId,'11111111-2222-4333-8444-555555555555','Meta hears about the saved book');
+ leadId=null;await ctx.capturePreviewEmail(true);assert.equal(leadId,null,'re-linking does not count a second signup');
  ctx.state.previewId=null;await ctx.capturePreviewEmail();assert.equal(ctx.state.emailNeedsLink,true,'no character yet, so link it later');
  ctx.fetch=async()=>({ok:false,json:async()=>({error:'Save failed'})});await assert.rejects(ctx.capturePreviewEmail(),/Save failed/);
  const prepare=source.slice(source.indexOf('async function preparePreview(){'),source.indexOf('for(let index=0;index<10;'));
  assert.equal(prepare.includes('await capturePreviewEmail'),false,'drawing does not wait for an email');
  assert.match(prepare,/state\.emailNeedsLink&&validPreviewEmail\(\)&&state\.previewId\)void capturePreviewEmail\(true\)/);
- const from=source.indexOf("$('#start-preview').addEventListener");const save=source.slice(from,source.indexOf("$('#revise-story').addEventListener",from));
- assert.ok(save.indexOf('await capturePreviewEmail()')>0&&save.indexOf('await capturePreviewEmail()')<save.indexOf('showStep(5)'));
- assert.match(source,/const order=\[1,9,2,10,5,11\]/);
+ const pay=source.slice(source.indexOf("$('#join-launch').addEventListener"),source.indexOf("void loadOrderCatalog();"));
+ assert.ok(pay.indexOf('await saveEmailOnce()')>0&&pay.indexOf('await saveEmailOnce()')<pay.indexOf("fetch('/api/orders'"),'email is saved before the order');
+ assert.match(source,/const order=\[1,9,2,5,11\]/);
 });
 
 test('multiple references create one character, not one character per photo',async()=>{

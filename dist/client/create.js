@@ -105,8 +105,8 @@ function scrollToStepTop(number){
 }
 
 function showStep(number){
-  const order=[1,9,2,10,5,11];
-  number={8:1,3:9,12:9,6:5,7:11}[number]||number;
+  const order=[1,9,2,5,11];
+  number={8:1,3:9,12:9,6:5,7:11,10:5}[number]||number;
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
@@ -116,7 +116,7 @@ function showStep(number){
   if(number===9)configureBrief();
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);const at=order.indexOf(number===4?5:number);item.classList.toggle('active',order.indexOf(n)===at);item.classList.toggle('done',order.indexOf(n)<at);});
-  const names={1:'Their name',2:'Their photo',9:'What they love',4:'Their story',10:'Save',5:'Their book',11:'Delivery & pay'};
+  const names={1:'Their name',2:'Their photo',9:'What they love',4:'Their story',5:'Their book',11:'Delivery & pay'};
   const visibleStep=order.indexOf(number===4?5:number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
   $('.journey').setAttribute('aria-label',`Step ${visibleStep} of ${order.length}: ${names[number]}`);
   if(number===11)queueMicrotask(()=>void prepareAddressStep());
@@ -281,12 +281,24 @@ $('#generate-story').addEventListener('click',()=>{
   if(!JSON.parse(storyBasis()).idea){$('#step-4-error').textContent='Add a starting idea first.';$('#own-idea').focus();return;}
   void writeStory(draftValid(state.storyDraft));
 });
-$('#start-preview').addEventListener('click',async()=>{
-  if(!validPreviewEmail()){$('#step-10-error').textContent='Enter a valid email address to keep your preview.';$('#email').focus();return;}
-  const button=$('#start-preview');button.disabled=true;$('#step-10-error').textContent='';
-  try{await capturePreviewEmail();}catch(error){$('#step-10-error').textContent=error.message||'We could not save your email. Please try again.';return;}finally{button.disabled=false;}
-  showStep(5);
-});
+// Email sits on the pay screen. It is saved as soon as a valid address is typed, so a shopper who
+// stops before paying can still be reminded and is counted as a signup.
+let savedEmail='';
+async function saveEmailOnce(){
+  const email=$('#email').value.trim().toLowerCase();
+  if(!validPreviewEmail()||email===savedEmail)return true;
+  try{await capturePreviewEmail();savedEmail=email;recordQuote();$('#step-10-error').textContent='';return true;}
+  catch(error){$('#step-10-error').textContent=error.message||'We could not save your email. Please try again.';return false;}
+}
+function recordQuote(){
+  if(!state.previewId||!validPreviewEmail())return;
+  const body={...quoteContact(),size:state.product,pricePence:Math.round(state.price*100),names:fullNames()||state.names||'',title:state.storyDraft?.title||''};
+  const key=JSON.stringify([JSON.stringify(quoteContact()),body.size,body.pricePence]);if(lastQuoteKey===key)return;lastQuoteKey=key;
+  window.cqMeasurement?.record('price_visible');
+  saveQueue=saveQueue.then(()=>postQuote('quote-view',body)).catch(()=>{if(lastQuoteKey===key)lastQuoteKey='';});
+}
+$('#email').addEventListener('change',()=>{void saveEmailOnce();});
+$('#email').addEventListener('blur',()=>{void saveEmailOnce();});
 $('#edit-words').addEventListener('click',()=>{$('#story-editor').open=true;showStep(4);});
 $('#revise-story').addEventListener('click',()=>{void writeStory(true);});
 $('#story-previous').addEventListener('click',()=>turnStoryPage(state.storyPage-1));
@@ -453,7 +465,12 @@ async function capturePreviewEmail(relink=false){
   if(result.reminderActive&&state.characterImages[0]){
     void postQuote('followup-character',{...quoteContact(),image:state.characterImages[0],names:fullNames()}).catch(()=>{});
   }
-  if(!relink)void window.cqMeasurement?.previewLead?.(result.conversion);
+  if(!relink){
+    void window.cqMeasurement?.previewLead?.(result.conversion);
+    // Tell Meta someone saved their book (no name, email or photo), once per book.
+    state.leadEventId=state.leadEventId||crypto.randomUUID();
+    void window.cqMeasurement?.savedLead?.(state.leadEventId);
+  }
 }
 
 function previewReady(){return Boolean(state.characterImages[0]&&draftValid(state.storyDraft)&&!storyWriting);}
@@ -607,11 +624,12 @@ function updateProduct(){
   $('#order-price').textContent=`£${state.price.toFixed(2)}`;
   updateCtaPrices();
 }
-$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{orderRequest=null;updateProduct();observeBookPrice();}));
+$$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{orderRequest=null;updateProduct();observeBookPrice();recordQuote();}));
 $('#join-launch').addEventListener('click',async()=>{
  const error=$('#step-7-error'),button=$('#join-launch');if(button.disabled)return;
  const typedCode=$('#offer-code').value.replace(/\s/g,'').toUpperCase();if(typedCode){if(!/^CQ[A-Z0-9]{10}$/.test(typedCode)){error.textContent='Check the discount code. It starts with CQ and has 12 characters.';$('#offer-code').focus();return;}offerCode=typedCode;}
- if(!validPreviewEmail()){showStep(10);$('#step-10-error').textContent='Enter a valid email address.';return;}
+ if(!validPreviewEmail()){$('#step-10-error').textContent='Enter your email so we can send your receipt and proof.';$('#email').focus();$('#email').scrollIntoView({block:'center'});return;}
+ if(!await saveEmailOnce())return;
  if(!$('#purchase-intent').checked||!$('#photo-permission').checked){showStep(2);$('#step-2-error').textContent='Tick to confirm you have permission to use the photo.';return;}
  const fields=['recipient-name','address-line1','town','postcode'];const invalid=fields.find(id=>!$('#'+id).value.trim());if(invalid){showStep(11);$('#step-11-error').textContent='Complete the UK delivery address.';$('#'+invalid).focus();return;}
  if(!validUkPostcode($('#postcode').value)){$('#step-11-error').textContent='Check the postcode. It should look like YO1 7AA.';if(addressFinder.mode!=='manual')setAddressMode('manual');$('#postcode').focus();return;}
