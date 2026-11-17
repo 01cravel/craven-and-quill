@@ -843,3 +843,12 @@ body[data-step="5"] .maker-shell,body[data-step="4"] .maker-shell{grid-template-
 .pbook-body{flex:none;justify-content:center;max-height:72%}
 .pbook-text{margin:0!important;font-size:clamp(.66rem,2.6vw,.82rem)!important;line-height:1.55!important}
 .pay-email{margin:14px 0 6px}.pay-email .privacy-line{font-size:.8rem;margin-top:6px}.pay-email .error:empty{min-height:0;margin:0}
+/* Pay screen: book, postage and total on separate lines. */
+.order-total{display:block!important}
+.order-total .order-lines{display:grid;gap:4px;font-size:.92rem}
+.order-total .order-line{display:flex;justify-content:space-between;gap:12px}
+.order-total .order-postage{color:var(--muted)}
+.order-total .order-sum{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid rgba(0,0,0,.12);margin-top:8px;padding-top:8px;font-weight:700}
+/* Book screen: struck price and the offer line stay visible. */
+.step[data-step="5"] .product .offer-label{display:block;font-size:.72rem;color:#9a3b26;font-weight:700}
+.step[data-step="5"] .product strong del{font-size:.75em;margin-right:.35em}

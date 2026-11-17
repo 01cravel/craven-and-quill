@@ -1,4 +1,4 @@
-const state={storyError:'',emailNeedsLink:false,pageArt:[],pageArtFor:null,previewId:null,rewritesRemaining:3,step:1,storyMode:'invent',names:'',secondName:'',age:'',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a4',price:29.99};
+const state={storyError:'',emailNeedsLink:false,pageArt:[],pageArtFor:null,previewId:null,rewritesRemaining:3,step:1,storyMode:'invent',names:'',secondName:'',age:'',mood:'adventure',ownIdea:'',details:'',storyDraft:null,storyBasis:null,storylineNeedsUpdate:false,storyPage:0,ideas:[],selected:0,photos:[],photoChecks:[],characterImages:[],product:'a4',price:29.99,postage:3.99};
 const pageJobs=new Set();
 const pageArtKey=()=>'reference-1:'+state.previewId;
 const $=selector=>document.querySelector(selector);
@@ -615,13 +615,21 @@ if('IntersectionObserver' in window){
 }
 document.addEventListener('visibilitychange',observeBookPrice);
 window.addEventListener('online',observeBookPrice);
-async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;}}updateProduct();}catch{}}
+async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;const was=radio.closest('label').querySelector('del');if(was&&product.regularPricePence)was.textContent=`£${(product.regularPricePence/100).toFixed(2)}`;}}if(Number.isInteger(orderCatalog.shippingPence))state.postage=orderCatalog.shippingPence/100;if(orderCatalog.offerEndsAt)offerEndsAt=Date.parse(orderCatalog.offerEndsAt);endOffer();updateProduct();}catch{}}
 function setPayLabel(){$('#join-launch').innerHTML='<span class="cta-text">Pay securely</span> <span class="cta-price" data-cta-price></span>';updateCtaPrices();}
-function updateCtaPrices(){$$('[data-cta-price]').forEach(el=>el.textContent=`£${state.price.toFixed(2)}`);}
+// The book screen shows the book price. Postage is added only on the pay screen.
+function orderTotal(){return Math.round((state.price+state.postage)*100)/100;}
+function updateCtaPrices(){$$('[data-cta-price]').forEach(el=>el.textContent=`£${(el.closest('#join-launch')?orderTotal():state.price).toFixed(2)}`);}
+// The £10-off line and struck price disappear once the offer date passes.
+let offerEndsAt=Date.parse('2026-12-01T23:59:59Z');
+function endOffer(){if(Date.now()>offerEndsAt)$$('[data-offer]').forEach(el=>el.remove());}
+endOffer();
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
   $('#order-label').textContent=state.product==='a4'?'A4 hardback':'A5 hardback';
-  $('#order-price').textContent=`£${state.price.toFixed(2)}`;
+  $('#order-book-price').textContent=`£${state.price.toFixed(2)}`;
+  $('#order-postage').textContent=`£${state.postage.toFixed(2)}`;
+  $('#order-price').textContent=`£${orderTotal().toFixed(2)}`;
   updateCtaPrices();
 }
 $$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{orderRequest=null;updateProduct();observeBookPrice();recordQuote();}));
@@ -701,7 +709,7 @@ $('#review-prev').addEventListener('click',()=>{reviewPage--;renderReviewPage();
 $('#review-next').addEventListener('click',()=>{reviewPage++;renderReviewPage();});
 {let x0=null;const spread=$('#review-spread');spread.addEventListener('pointerdown',e=>{x0=e.clientX;});spread.addEventListener('pointerup',e=>{if(x0===null)return;const dx=e.clientX-x0;x0=null;if(Math.abs(dx)>40){reviewPage+=dx<0?1:-1;renderReviewPage();}});}
 const examplesDialog=$('#examples-dialog');
-function openExamples(fromStart){const frame=$('#examples-frame');if(frame.src==='about:blank'||!frame.src.includes('test-book'))frame.src='test-book.html?book=amara&sample=1&embed=1';$('#examples-cta').hidden=!fromStart;if(fromStart){const a5=$('input[name="product"][value="a5"]'),was=a5?.closest('label')?.querySelector('del')?.textContent;if(a5?.dataset.price)$('#examples-price').textContent=`Hardbacks from £${a5.dataset.price}`;$('#examples-note').textContent=`${was?`Was ${was}. `:''}UK delivery included. The preview is free.`;window.cqMeasurement?.record('example_opened');}examplesDialog.showModal();track('examples_opened');}
+function openExamples(fromStart){const frame=$('#examples-frame');if(frame.src==='about:blank'||!frame.src.includes('test-book'))frame.src='test-book.html?book=amara&sample=1&embed=1';$('#examples-cta').hidden=!fromStart;if(fromStart){const a5=$('input[name="product"][value="a5"]'),was=a5?.closest('label')?.querySelector('del')?.textContent;if(a5?.dataset.price)$('#examples-price').textContent=`Hardbacks from £${a5.dataset.price}`;$('#examples-note').textContent=`${was&&document.querySelector('[data-offer]')?`Was ${was}. `:''}The preview is free.`;window.cqMeasurement?.record('example_opened');}examplesDialog.showModal();track('examples_opened');}
 $('#open-examples').addEventListener('click',()=>openExamples(false));
 $('#see-example').addEventListener('click',()=>openExamples(true));
 $('#examples-make').addEventListener('click',()=>{examplesDialog.close();$('#names').focus();});

@@ -4303,7 +4303,9 @@ async function sendMetaPurchase(env2, o) {
 }
 
 // src/catalog.js
-var CATALOG_VERSION = "2026-11-09-ten-off";
+var CATALOG_VERSION = "2026-11-17-postage";
+var SHIPPING_PENCE = 399;
+var orderTotal = (size) => PRODUCTS[size].pricePence + SHIPPING_PENCE;
 var PRODUCTS = {
   a4: { id: "a4", label: "A4 hardback", widthMm: 210, heightMm: 297, sku: "BOOK-FE-A4-P-HARD-G", pricePence: 2999, regularPricePence: 3999, discountPercent: 25, estimatedSupplierPence: 1800 },
   a5: { id: "a5", label: "A5 hardback", widthMm: 148, heightMm: 210, sku: "BOOK-FE-A5-P-HARD-G", pricePence: 2499, regularPricePence: 3499, discountPercent: 28, estimatedSupplierPence: 1600 }
@@ -4311,7 +4313,7 @@ var PRODUCTS = {
 var OWNER_TEST = { codeHash: "4494c8d03100dff3c9560ca54ada85bc13cacb7852092bb59fbc8166b0578cdb", email: "cravenluke@gmail.com", pricePence: 200, expiresAt: "2026-12-01T00:00:00Z" };
 var BOOK = { pdfPages: 28, interiorPages: 26, spreads: 10, paper: "200gsm gloss", cover: "Matte hardback", safeMm: 10 };
 function catalogue(enabled = false) {
-  return { version: CATALOG_VERSION, products: Object.values(PRODUCTS).map(({ estimatedSupplierPence, ...p }) => p), book: BOOK, currency: "GBP", shippingPence: 0, country: "GB", includes: ["UK standard delivery", "Human print review"], checkoutEnabled: enabled, proofPreparationDays: 7, delivery: "First complete illustrated proof within 7 calendar days of payment. Usually 7\u201312 working days after final proof approval. An estimate, not a guaranteed arrival date." };
+  return { version: CATALOG_VERSION, products: Object.values(PRODUCTS).map(({ estimatedSupplierPence, ...p }) => p), book: BOOK, currency: "GBP", shippingPence: SHIPPING_PENCE, country: "GB", includes: ["Human print review"], offerEndsAt: "2026-12-01T23:59:59Z", checkoutEnabled: enabled, proofPreparationDays: 7, delivery: "First complete illustrated proof within 7 calendar days of payment. Usually 7\u201312 working days after final proof approval. An estimate, not a guaranteed arrival date." };
 }
 var OrderError = class extends Error {
   constructor(message2, status = 400) {
@@ -4567,7 +4569,7 @@ ${c.intro.map((t2) => p(t2)).join("")}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 0 30px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${esc(c.buttonUrl || url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${sans};">${esc(c.button)}</a></td></tr></table>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#f5f0e6;"><tr><td style="padding:16px 20px;border-left:3px solid #ad843f;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
-${f.title ? row("Book", `<i style="font-family:${serif};">${esc(f.title)}</i>`) : ""}${row("Format", esc(f.label))}${row("Paid", esc(f.paid) + ", UK delivery included")}${f.to ? row("Posting to", esc(f.to)) : ""}${row("Order ref", esc(f.ref))}
+${f.title ? row("Book", `<i style="font-family:${serif};">${esc(f.title)}</i>`) : ""}${row("Format", esc(f.label))}${row("Paid", esc(f.paid) + ", including UK postage")}${f.to ? row("Posting to", esc(f.to)) : ""}${row("Order ref", esc(f.ref))}
 </table></td></tr></table>
 ${c.note ? p(esc(c.note), "margin:24px 0 0;color:#655a50;font-size:14px;") : ""}
 <p style="margin:${c.note ? "8px" : "24px"} 0 0;color:#655a50;font:14px/1.6 ${sans};">Questions? Just reply to this email.</p>
@@ -53599,7 +53601,7 @@ You can stop offer emails here: ${unsubscribe}`;
       const data2 = { measurement: measurementContext(b2.measurement, req), privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, names: safeText(b2.names, 85), age: safeText(b2.age, 20), story, recipient: recipient(b2.recipient), dedication: safeText(b2.dedication, 300), senderName: safeText(b2.senderName, 80), characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now2(), storyApprovedAt: now2() };
       requireThat(data2.names, "Add the main character name.");
       const date = now2();
-      await q(env2, "INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,'saved','unpaid',1,?6,?7,?7)", o2.id, await sha(token), b2.email.toLowerCase(), b2.size, PRODUCTS[b2.size].pricePence, JSON.stringify(data2), date).run();
+      await q(env2, "INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,'saved','unpaid',1,?6,?7,?7)", o2.id, await sha(token), b2.email.toLowerCase(), b2.size, orderTotal(b2.size), JSON.stringify(data2), date).run();
       await audit(env2, o2.id, "saved", "customer", { size: b2.size, catalogueVersion: CATALOG_VERSION });
       return reply({ order: publicOrder(await get(env2, o2.id)), checkoutEnabled: checkoutReady(env2) }, 201);
     }
@@ -53688,7 +53690,7 @@ You can stop offer emails here: ${unsubscribe}`;
       const sequence = await q(env2, "SELECT second_status FROM followup_sequences WHERE email=?1", o.email).first();
       const automatic = !!reminder || sequence?.second_status === "accepted";
       const discount = automatic ? Math.round(PRODUCTS[o.size].pricePence * 0.1) : offer.discount_pence;
-      const amount = PRODUCTS[o.size].pricePence - discount;
+      const amount = orderTotal(o.size) - discount;
       requireThat(amount >= PRODUCTS[o.size].estimatedSupplierPence + (automatic ? 0 : 1800), "This offer cannot be applied to this format.", 409);
       const claim = await q(env2, `UPDATE ${table9} SET redeemed_order_id=?1 WHERE email=?2 AND discount_code=?3 AND (redeemed_order_id IS NULL OR redeemed_order_id=?1) RETURNING email`, id, o.email, code2).first();
       requireThat(claim, "This offer is already in use.", 409);
@@ -53703,7 +53705,7 @@ You can stop offer emails here: ${unsubscribe}`;
     }
     if (action === "checkout" && o.payment_status === "unpaid" && o.data.discount?.ownerTest && !o.session_id && (o.email !== OWNER_TEST.email || Date.parse(OWNER_TEST.expiresAt) <= Date.now())) {
       o.data.discount = null;
-      const changed = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", PRODUCTS[o.size].pricePence, JSON.stringify(o.data), now2(), id, o.revision).first();
+      const changed = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", orderTotal(o.size), JSON.stringify(o.data), now2(), id, o.revision).first();
       requireThat(changed, "This order changed. Reload before checkout.", 409);
       throw new OrderError("The offer expired. Your book is saved at the current price. Reload before checkout.", 409);
     }
@@ -53716,7 +53718,7 @@ You can stop offer emails here: ${unsubscribe}`;
         if (!offer || offer.redeemed_order_id !== id || Date.parse(offer.code_expires_at) <= Date.now()) {
           const code2 = o.data.discount.code;
           o.data.discount = null;
-          const changed = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", PRODUCTS[o.size].pricePence, JSON.stringify(o.data), now2(), id, o.revision).first();
+          const changed = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", orderTotal(o.size), JSON.stringify(o.data), now2(), id, o.revision).first();
           requireThat(changed, "This order changed. Reload before checkout.", 409);
           await q(env2, `UPDATE ${table9} SET redeemed_order_id=NULL WHERE email=?1 AND discount_code=?2 AND redeemed_order_id=?3`, o.email, code2, id).run();
           throw new OrderError("The offer expired. Your book is saved at the current price. Reload before checkout.", 409);
@@ -53730,7 +53732,7 @@ You can stop offer emails here: ${unsubscribe}`;
         requireThat(s2.payment_status !== "paid", "Payment is processing. Refresh your order shortly.", 409);
         throw new OrderError("Checkout has expired. Contact us to reopen this saved order.", 409);
       }
-      const form = new URLSearchParams({ mode: "payment", success_url: link, cancel_url: link, customer_email: o.email, client_reference_id: id, "metadata[cq_order_id]": id, "line_items[0][price_data][currency]": "gbp", "line_items[0][price_data][unit_amount]": String(o.amount), "line_items[0][price_data][product_data][name]": PRODUCTS[o.size].label + ", UK delivery included", "line_items[0][quantity]": "1", "payment_intent_data[metadata][cq_order_id]": id });
+      const form = new URLSearchParams({ mode: "payment", success_url: link, cancel_url: link, customer_email: o.email, client_reference_id: id, "metadata[cq_order_id]": id, "line_items[0][price_data][currency]": "gbp", "line_items[0][price_data][unit_amount]": String(o.amount), "line_items[0][price_data][product_data][name]": PRODUCTS[o.size].label + ", including \xA33.99 UK postage", "line_items[0][quantity]": "1", "payment_intent_data[metadata][cq_order_id]": id });
       const s = await stripe(env2, "checkout/sessions", form, "cq-checkout-" + id);
       requireThat(s.id && s.url && new URL(s.url).hostname === "checkout.stripe.com", "Unconfirmed checkout.", 502);
       const updated = await q(env2, "UPDATE customer_orders SET session_id=?1,status='awaiting_payment',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 RETURNING id", s.id, now2(), id, o.revision).first();

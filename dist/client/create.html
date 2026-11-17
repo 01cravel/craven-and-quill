@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=pay-email-1">
+  <link rel="stylesheet" href="create.css?v=postage-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -65,7 +65,7 @@
           <details class="optional-detail gift-message-field"><summary>Add who it’s from and a message <span>Optional</span></summary><label for="sender-name">Who is it from?</label><input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad"><label for="dedication">Your message inside the book</label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea></details>
                     <div class="error" id="step-1-error" role="alert"></div>
           <div class="step-actions step-actions-single"><button class="next" type="button" data-next="9">Continue <span>→</span></button></div>
-          <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>Rated 4.9★</b> with 3,000+ books sold across our book catalogue</span></p>
+          <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>Free preview.</b> See their character before you pay anything.</span></p>
         </section>
 
 <section class="step" data-step="8" aria-labelledby="step-8-title" hidden><h1 id="step-8-title">What’s their reading level?</h1><p class="intro">We’ll pitch the words to suit them. Tap one to continue.</p>
@@ -185,8 +185,8 @@
               <fieldset>
             <legend class="visually-hidden">Book format</legend>
             <div class="product-options size-options">
-              <label class="product"><input type="radio" name="product" value="a4" data-price="29.99" checked><span><b>A4 hardback</b><small>21 × 29.7 cm</small><strong><span class="current-price">£29.99</span></strong><small class="offer-label">UK delivery included</small></span></label>
-              <label class="product"><input type="radio" name="product" value="a5" data-price="24.99"><span><b>A5 hardback</b><small>14.8 × 21 cm</small><strong><span class="current-price">£24.99</span></strong><small class="offer-label">UK delivery included</small></span></label>
+              <label class="product"><input type="radio" name="product" value="a4" data-price="29.99" checked><span><b>A4 hardback</b><small>21 × 29.7 cm</small><strong><del data-offer>£39.99</del><span class="current-price">£29.99</span></strong><small class="offer-label" data-offer>£10 off until 1 December</small></span></label>
+              <label class="product"><input type="radio" name="product" value="a5" data-price="24.99"><span><b>A5 hardback</b><small>14.8 × 21 cm</small><strong><del data-offer>£34.99</del><span class="current-price">£24.99</span></strong><small class="offer-label" data-offer>£10 off until 1 December</small></span></label>
             </div>
             </fieldset>
               <p class="urgency" id="xmas-line" hidden></p>
@@ -200,7 +200,7 @@
         
 
 <section class="step" data-step="11" data-clarity-mask="true" aria-labelledby="step-11-title" hidden><h1 id="step-11-title">Where should it go?</h1>
-          <p class="intro">You see the whole book first. Once you approve it, we print and post it, usually within 7–12 working days. UK delivery is included.</p>
+          <p class="intro">You see the whole book first. Once you approve it, we print and post it, usually within 7–12 working days. UK postage is £3.99.</p>
           <div id="preview-email-wrap" class="pay-email">
             <label class="field-label" for="email">Your email</label>
             <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
@@ -229,7 +229,7 @@
             <button type="button" class="address-mode" id="address-mode" hidden>Enter the address myself</button>
 
 <div class="error" id="step-11-error" role="alert"></div>
-          <section class="order-total" aria-label="Your selected book"><div><span id="order-label">A4 hardback</span><small>UK delivery included</small></div><strong id="order-price">£29.99</strong></section>
+          <section class="order-total" aria-label="Your order"><div class="order-lines"><span class="order-line"><span id="order-label">A4 hardback</span><span id="order-book-price">£29.99</span></span><span class="order-line order-postage"><span>UK postage</span><span id="order-postage">£3.99</span></span></div><div class="order-sum"><span>Total</span><strong id="order-price">£33.98</strong></div></section>
           <p id="offer-code-note" class="privacy-line" hidden></p>
           <div class="offer-code-field" id="offer-code-field" hidden><label for="offer-code">Discount code</label><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="CQ…"></div>
           <div class="offer-code-field" id="offer-code-field" hidden><label for="offer-code">Discount code</label><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="CQ…"></div>
@@ -257,7 +257,7 @@
         <dialog class="examples-dialog" id="examples-dialog" aria-labelledby="examples-title">
           <div class="examples-bar"><h2 id="examples-title">Example books</h2><button type="button" class="examples-close" id="close-examples">Close</button></div>
           <iframe id="examples-frame" title="Example books you can page through" src="about:blank"></iframe>
-          <div class="examples-cta" id="examples-cta" hidden><p><b id="examples-price">Hardbacks from £24.99</b><span id="examples-note">UK delivery included. The preview is free.</span></p><button type="button" class="next" id="examples-make">Make theirs <span>→</span></button></div>
+          <div class="examples-cta" id="examples-cta" hidden><p><b id="examples-price">Hardbacks from £24.99</b><span id="examples-note">The preview is free.</span></p><button type="button" class="next" id="examples-make">Make theirs <span>→</span></button></div>
         </dialog>
       <div hidden class="draft-storage-controls"><button type="button" class="shuffle" id="email-draft">Email my private return link</button><p id="draft-email-status" class="privacy-line" role="status"></p><p id="draft-status" class="privacy-line" role="status"></p><div id="resume-draft" hidden><button type="button" class="shuffle" id="resume-button">Continue my saved draft</button></div><button type="button" class="shuffle" id="forget-draft" hidden>Start fresh</button></div>
       </form>
@@ -265,10 +265,10 @@
   </main>
 
   <footer><span>Images are used to create your preview and, if you save a book, to prepare its artwork.</span><a href="privacy.html">Privacy</a></footer>
-  <script src="campaign.js?v=6" defer></script>
+  <script src="campaign.js?v=7" defer></script>
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=six-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
-  <script src="create.js?v=pay-email-1" defer></script><script src="draft-save.js?v=one-person-1" defer></script>
+  <script src="create.js?v=postage-1" defer></script><script src="draft-save.js?v=one-person-1" defer></script>
 </body>
 </html>

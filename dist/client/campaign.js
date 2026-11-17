@@ -61,8 +61,8 @@
   let googleStarted=false,googleConfig=null;
   const googleSent=new Set();
   const cleanPage=()=>{const url=new URL(location.origin+(privatePage?'/order':location.pathname));for(const key of ['gclid','gbraid','wbraid'])if(click(adClick[key]))url.searchParams.set(key,adClick[key]);return url.href;};
-  async function startGoogle(){
-    if(preference!=='ads'||privatePage||!['cravenandquill.com','www.cravenandquill.com'].includes(location.hostname)||attribution.source==='qa'||/^qa(?:[_.-]|$)/.test(attribution.campaign)||attribution.campaign==='tracking_test')return false;
+  async function startGoogle(allowPrivate=false){
+    if(preference!=='ads'||(privatePage&&!allowPrivate)||!['cravenandquill.com','www.cravenandquill.com'].includes(location.hostname)||attribution.source==='qa'||/^qa(?:[_.-]|$)/.test(attribution.campaign)||attribution.campaign==='tracking_test')return false;
     if(!configPromise)configPromise=fetch('/api/ad-config').then(r=>r.ok?r.json():{}).catch(()=>({}));
     const config=await configPromise;
     if(preference!=='ads'||!/^AW-\d{5,20}$/.test(config.google?.tagId||''))return false;
@@ -83,7 +83,7 @@
   }
   async function googleConversion(kind,receipt){
     if(!receipt||!/^([a-f0-9-]{36}|[a-f0-9]{64})$/.test(receipt.eventId||'')||!Number.isFinite(receipt.value)||receipt.value<0)return;
-    if(!await startGoogle()||preference!=='ads')return;
+    if(!await startGoogle(kind==='purchase')||preference!=='ads')return;
     const sendTo=googleConfig[kind];if(!sendTo||!sendTo.startsWith(googleConfig.tagId+'/'))return;
     const id=kind+':'+receipt.eventId;if(googleSent.has(id))return;googleSent.add(id);
     // Google deduplicates repeats across reloads AND the server feed using this same ID.
@@ -125,7 +125,7 @@
     link.href=url.pathname+url.search;
   });
   function choose(choice){if(!['no','ads'].includes(choice))return;preference=choice;try{localStorage.setItem('cq-measurement-v3',choice);}catch{}if(choice!=='ads'){revokePixel();personId=null;try{localStorage.removeItem('cq-person-v1');}catch{}}else{persistClick();void startPixel();void startGoogle();void startClarity();}}
-  window.cqMeasurement={record,context,savedLead,choose,previewLead:receipt=>googleConversion('lead',receipt)};
+  window.cqMeasurement={record,context,savedLead,choose,previewLead:receipt=>googleConversion('lead',receipt),purchase:receipt=>googleConversion('purchase',receipt)};
   let arrivedFrom='';try{arrivedFrom=document.referrer?new URL(document.referrer).origin:'';}catch{}
   if(!privatePage&&arrivedFrom!==location.origin)count('arrive');
   if(!privatePage){record(location.pathname.includes('create')?'maker_start':'landing_view');record(matchMedia('(max-width:779px)').matches?'device_mobile':'device_desktop');}
