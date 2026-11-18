@@ -852,3 +852,4 @@ body[data-step="5"] .maker-shell,body[data-step="4"] .maker-shell{grid-template-
 /* Book screen: struck price and the offer line stay visible. */
 .step[data-step="5"] .product .offer-label{display:block;font-size:.72rem;color:#9a3b26;font-weight:700}
 .step[data-step="5"] .product strong del{font-size:.75em;margin-right:.35em}
+.examples-cta p del{color:var(--muted);text-decoration-thickness:1.5px}
