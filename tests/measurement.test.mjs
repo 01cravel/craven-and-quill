@@ -88,3 +88,13 @@ test('Google revocation during config fetch prevents loading and a rejected or m
  const h=harness({},'?gclid=abc',googleConfig,'cravenandquill.com');h.choose('no');await h.flush();assert.equal(h.scripts.length,0);
  await h.window.cqMeasurement.previewLead(null);await h.window.cqMeasurement.previewLead({eventId:'fake',value:1});assert.equal(googleQueue(h).length,0);
 });
+test('a made character tells Meta once per visit, with no personal fields, and never in QA or after opt-out',async()=>{
+  const h=harness();await h.flush();
+  await h.window.cqMeasurement.characterMade();await h.window.cqMeasurement.characterMade();
+  const ev=h.window.fbq.queue.map(a=>Array.from(a)).filter(a=>a[2]==='CompleteRegistration');
+  assert.equal(ev.length,1);assert.equal(JSON.stringify(ev[0][3]),'{"content_name":"free_character"}');assert.match(ev[0][4].eventID,/^character-[0-9a-f-]{36}$/);
+  const qa=harness({},'?utm_source=qa&utm_campaign=qa_test');await qa.flush();await qa.window.cqMeasurement.characterMade();
+  assert.equal((qa.window.fbq?.queue||[]).filter(a=>a[2]==='CompleteRegistration').length,0);
+  const off=harness({}, '?measurement=no');await off.flush();await off.window.cqMeasurement.characterMade();
+  assert.equal(off.window.fbq,undefined);
+});

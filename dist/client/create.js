@@ -507,7 +507,7 @@ async function preparePreview(){
     await renderStoryArt();
     await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
     drawingProgress.stop(true);
-    updateCover();renderPreviewBook();updateReveal();void drawPages();window.dispatchEvent(new Event('cq-draft-change'));track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});
+    updateCover();renderPreviewBook();updateReveal();void drawPages();window.dispatchEvent(new Event('cq-draft-change'));track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});void window.cqMeasurement?.characterMade?.();
     if(state.emailNeedsLink&&validPreviewEmail()&&state.previewId)void capturePreviewEmail(true).catch(()=>{});
   }catch(error){
     drawingProgress.stop(false);

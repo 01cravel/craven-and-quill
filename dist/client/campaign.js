@@ -58,6 +58,15 @@
     // story, reading age or purchase value is supplied to Meta. This is not a sale.
     window.fbq('trackSingle',pixelId,'Lead',{}, {eventID:eventId});
   }
+  // A free character was drawn. Sent once per visit as Meta's standard CompleteRegistration so ads can
+  // aim at people who make a character, not just people who tap. No name, photo, story or email is sent.
+  let characterSent=false;
+  async function characterMade(){
+    if(characterSent||preference!=='ads'||attribution.source==='qa'||/^qa(?:[_.-]|$)/.test(attribution.campaign))return;
+    characterSent=true;
+    if(!await startPixel()||preference!=='ads'){characterSent=false;return;}
+    window.fbq('trackSingle',pixelId,'CompleteRegistration',{content_name:'free_character'},{eventID:'character-'+visitId});
+  }
   let googleStarted=false,googleConfig=null;
   const googleSent=new Set();
   const cleanPage=()=>{const url=new URL(location.origin+(privatePage?'/order':location.pathname));for(const key of ['gclid','gbraid','wbraid'])if(click(adClick[key]))url.searchParams.set(key,adClick[key]);return url.href;};
@@ -125,7 +134,7 @@
     link.href=url.pathname+url.search;
   });
   function choose(choice){if(!['no','ads'].includes(choice))return;preference=choice;try{localStorage.setItem('cq-measurement-v3',choice);}catch{}if(choice!=='ads'){revokePixel();personId=null;try{localStorage.removeItem('cq-person-v1');}catch{}}else{persistClick();void startPixel();void startGoogle();void startClarity();}}
-  window.cqMeasurement={record,context,savedLead,choose,previewLead:receipt=>googleConversion('lead',receipt),purchase:receipt=>googleConversion('purchase',receipt)};
+  window.cqMeasurement={record,context,savedLead,characterMade,choose,previewLead:receipt=>googleConversion('lead',receipt),purchase:receipt=>googleConversion('purchase',receipt)};
   let arrivedFrom='';try{arrivedFrom=document.referrer?new URL(document.referrer).origin:'';}catch{}
   if(!privatePage&&arrivedFrom!==location.origin)count('arrive');
   if(!privatePage){record(location.pathname.includes('create')?'maker_start':'landing_view');record(matchMedia('(max-width:779px)').matches?'device_mobile':'device_desktop');}
