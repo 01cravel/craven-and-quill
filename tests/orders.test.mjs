@@ -419,3 +419,30 @@ test('the customer story wishes are saved on the order and shown only to the own
  const saved=await state(env,id);assert.equal(saved.data.wishes.details,'Loves her grey cat Pepper and the beach');assert.equal(saved.data.wishes.idea,'The missing sandwich');
  const r=await request(env,'/'+id,undefined,{admin:true});const owner=await r.json();assert.equal(owner.wishes.details,'Loves her grey cat Pepper and the beach');assert.equal(owner.wishes.mood,'adventure');
 });
+test('before payment: owner builds a whole-book preview, customer flips it and buys A4 or A5 straight from the book page',async()=>{
+ const env=environment(),{id,order}=await create(env);ziinaConnected(env);env.OPENAI_API_KEY='sk-test';env.RESEND_API_KEY='re_test';env.ORDER_EMAIL_FROM='orders@example.test';
+ let ziinaStatus='requires_payment_instrument',made=0,amount=order.amount;const mails=[];
+ env.fetch=async(url,init)=>{if(url.includes('api.resend.com')){mails.push(JSON.parse(init.body));return Response.json({id:'m'});}if(url.includes('api.openai.com'))return Response.json({data:[{b64_json:jpeg.toString('base64')}],usage:{total_tokens:1}});if(url.includes('/payment_intent')&&init?.method==='POST'){made++;amount=JSON.parse(init.body).amount;return Response.json({...intent(env,amount),id:'ziina-intent-'+made});}return Response.json({...intent(env,amount,ziinaStatus),id:'ziina-intent-'+made});};
+ assert.equal((await request(env,'/'+id+'/checkout',{revision:order.revision})).status,200);
+ let o=await state(env,id);
+ for(const page of ['cover',0,1,2,3,4,5,6,7,8,9,'back']){o=await state(env,id);assert.equal((await request(env,'/'+id+'/prebuild',{revision:o.revision,page,confirm:true},{admin:true})).status,200,'draw '+page);}
+ o=await state(env,id);assert.ok(o.data.art.back);assert.equal(o.status,'awaiting_payment');
+ assert.equal((await request(env,'/'+id+'/preview-email',{revision:o.revision,to:'owner'},{admin:true})).status,409,'no email before the preview exists');
+ assert.equal((await request(env,'/'+id+'/preview-book',{revision:o.revision})).status,403);
+ let r=await request(env,'/'+id+'/preview-book',{revision:o.revision},{admin:true});assert.equal(r.status,200);
+ o=await state(env,id);assert.equal(o.status,'awaiting_payment');assert.ok(!o.data.proof);const hash=o.data.preview.hash;
+ let cust=await (await request(env,'/'+id)).json();assert.equal(cust.previewBook.hash,hash);assert.equal(cust.bookPages,null);
+ const total=BOOK.pdfPages;
+ const img='data:image/jpeg;base64,'+jpeg.subarray(0,200000).toString('base64');
+ for(let page=0;page<total;page++){o=await state(env,id);assert.equal((await request(env,'/'+id+'/proof-web',{revision:o.revision,hash,page,total,image:img},{admin:true})).status,200);}
+ cust=await (await request(env,'/'+id)).json();assert.equal(cust.bookPages.length,total);
+ assert.equal((await request(env,'/'+id+'/file?file='+cust.bookPages[0])).status,200,'customer opens a page');
+ o=await state(env,id);r=await request(env,'/'+id+'/preview-email',{revision:o.revision,to:'owner'},{admin:true});assert.equal(r.status,200);let m=mails.at(-1);assert.ok(m.subject.startsWith('[Test] '));assert.ok(m.text.includes('/book.html?id='+id+'&test=1#key='));assert.notEqual(m.to[0],o.email);
+ o=await state(env,id);r=await request(env,'/'+id+'/preview-email',{revision:o.revision,to:'customer',greeting:'Hi Jan,',note:'Sorry the last link didn’t work.'},{admin:true});assert.equal(r.status,200);m=mails.at(-1);
+ assert.equal(m.to[0],o.email);assert.equal(m.from,'orders@example.test');assert.ok(m.text.includes('Hi Jan,')&&m.text.includes('Sorry the last link'));assert.ok(m.text.includes('A4 or A5'));assert.ok(!m.html.includes('<img src="cid:'),'no pictures in the email');assert.ok(m.text.includes('/book.html?id='+id+'#key='));
+ // A4 from the book page: the open A5 card page is retired and a new A4 one made.
+ o=await state(env,id);r=await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a4'});assert.equal(r.status,200,JSON.stringify(await r.clone().json()));assert.equal(made,2);
+ o=await state(env,id);assert.equal(o.size,'a4');assert.equal(o.amount,PRODUCTS.a4.pricePence+399);assert.equal(o.session_id,'ziina-intent-2');assert.equal(o.status,'awaiting_payment');assert.equal(o.data.failedPayments.at(-1).replacedForSize,'a4');
+ r=await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a4'});assert.equal(r.status,200);assert.equal(made,2,'same size reuses the open card page');
+ ziinaStatus='pending';o=await state(env,id);assert.equal((await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a5'})).status,409);o=await state(env,id);assert.equal(o.size,'a4','a payment in progress keeps its size');
+});

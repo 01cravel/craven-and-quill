@@ -49,6 +49,11 @@ main{display:flex;flex-direction:column;align-items:center;padding:14px 0 120px}
 .bar p{margin:0;color:var(--muted);font-size:.92rem;max-width:34ch}
 .approve{appearance:none;border:0;border-radius:999px;background:var(--gold);color:var(--gold-ink);font:700 1.05rem/1 Arial,Helvetica,sans-serif;padding:16px 42px;cursor:pointer;letter-spacing:.01em}
 .approve:hover{filter:brightness(1.06)}.approve:disabled{opacity:.5;cursor:default}
+.buy{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.buy .approve{padding:15px 26px;font-size:1rem}
+.approve.alt{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--gold)}
+@media (hover:hover){.approve.alt:hover{background:var(--gold);color:var(--gold-ink);filter:none}}
+@media (max-width:760px){.buy{width:100%}.buy .approve{flex:1 1 0;padding:14px 10px;font-size:.95rem}.bar p{text-align:center;max-width:none;width:100%}}
 .done{color:var(--ink);font-size:1rem;text-align:center}
 .done b{color:var(--gold);font-weight:400}
 dialog{border:0;border-radius:10px;padding:26px 24px;max-width:420px;width:calc(100% - 32px);background:var(--paper);color:#1f2a25;font:16px/1.55 Georgia,serif}
@@ -98,6 +103,7 @@ dialog .approve{padding:14px 26px;font-size:.98rem}
 <div class="bar" id="bar" hidden>
   <p id="barText">Happy with every page?</p>
   <button class="approve" id="approve" type="button">Approve</button>
+  <div class="buy" id="buy" hidden><button class="approve" id="buyA4" type="button" data-size="a4">Buy the A4 hardback</button><button class="approve alt" id="buyA5" type="button" data-size="a5">Buy the A5 hardback</button></div>
 </div>
 <dialog id="confirm">
   <h2 id="confirmTitle">Approve this book?</h2>
@@ -144,7 +150,18 @@ let sx=null,sy=null;$('book').addEventListener('touchstart',e=>{sx=e.touches[0].
 $('book').addEventListener('touchend',e=>{if(sx===null)return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;sx=null;if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)){e.preventDefault();turn(dx<0?1:-1);}},{passive:false});
 let wasPhone=phone();addEventListener('resize',()=>{if(phone()===wasPhone||!order)return;const page=spreads[at].right??spreads[at].left;wasPhone=phone();build();at=Math.max(0,spreads.findIndex(s=>s.right===page||s.left===page));show();});
 function approved(){$('bar').hidden=false;$('bar').replaceChildren();const p=document.createElement('p');p.className='done';p.innerHTML='<b>Approved.</b> Thank you, we’re getting '+(order.names?order.names.replace(/[<&>]/g,'')+'’s':'your')+' book ready to print.';$('bar').append(p);}
-function controls(){if(order.customerApproved||['awaiting_approval','approved','submitting','submitted','supplier_unknown'].includes(order.status))return approved();
+// Before payment: two buy buttons that go straight to the payment page. (19 Nov 2026)
+let cat=null;const money=p=>'£'+(p/100).toFixed(2);
+async function buyControls(){$('bar').hidden=false;$('approve').hidden=true;$('buy').hidden=false;$('barText').textContent='Happy with it? UK delivery is included.';
+  try{cat=await fetch('/api/orders/catalog').then(r=>r.json());for(const b of [$('buyA4'),$('buyA5')]){const p=cat.products.find(x=>x.id===b.dataset.size);if(p)b.textContent='Buy the '+b.dataset.size.toUpperCase()+' hardback, '+money(p.pricePence+cat.shippingPence);}}catch{}}
+async function buy(size){if(testCopy){$('barText').textContent='Test copy: the buy buttons are switched off here. The customer’s buttons go straight to payment.';return;}
+  for(const b of [$('buyA4'),$('buyA5')])b.disabled=true;$('barText').textContent='Opening the secure payment page…';
+  try{await api('/session',{revision:order.revision,token:key}).catch(()=>{});order=await api('');const d=await api('/checkout',{revision:order.revision,size});location.href=d.url;}
+  catch(e){$('barText').textContent=e.message;for(const b of [$('buyA4'),$('buyA5')])b.disabled=false;}}
+$('buyA4').onclick=()=>buy('a4');$('buyA5').onclick=()=>buy('a5');
+function controls(){if(order.paymentStatus==='unpaid'&&order.previewBook)return buyControls();
+  if(order.paymentStatus==='unpaid'){$('bar').hidden=true;return;}
+  if(order.customerApproved||['awaiting_approval','approved','submitting','submitted','supplier_unknown'].includes(order.status))return approved();
   if(order.status!=='proof_ready'){$('bar').hidden=false;$('approve').hidden=true;$('barText').textContent='We’re making a few final changes. We’ll email you when it’s ready.';return;}
   $('bar').hidden=false;}
 const testCopy=new URLSearchParams(location.search).get('test')==='1';

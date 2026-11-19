@@ -31,6 +31,13 @@ function copy(o,kind){
     introText:[hi,`${book} is ready. Use the link below to take a look, and approve it if you’re happy.`],
     after:[esc(change),'Thank you,<br>The Craven &amp; Quill team'],afterText:[change,'Thank you,\nThe Craven & Quill team'],
     steps:[],note:'',button:`See ${f.name?f.poss:'your'} book`};}
+  // Owner wording, 19 Nov 2026: the whole book before payment. Short, one button; A4 / A5 buy buttons are on the book page itself.
+  if(kind==='preview'){const x=(o.data||{}).emailExtra||{},first=String((o.data||{}).recipient?.name||'').trim().split(/\s+/)[0]||'',hi=x.greeting||(first?`Hi ${first},`:'Hello,'),book=f.name?f.poss+' book':'Your book';
+    const lines=[...(x.note?[x.note]:[]),`${book} is ready. Tap the button below to flip through every page.`],after='If you’d like anything changed, just reply to this email. When you’re happy, you can order the A4 or A5 hardback at the bottom of the page.';
+    return {simple:true,subject:`${book} is ready to see`,preheader:'Flip through every page, then order the A4 or A5 hardback.',kicker:'',heading:'',
+    intro:[esc(hi),...lines.map(esc)],introText:[hi,...lines],
+    after:[esc(after),'Thank you,<br>The Craven &amp; Quill team'],afterText:[after,'Thank you,\nThe Craven & Quill team'],
+    steps:[],note:'',button:`See ${f.name?f.poss:'your'} book`};}
   if(kind==='shipped')return {
     subject:`${f.name?f.poss:'Your'} book has gone to the printer`,
     preheader:'Tracking will appear on your order page.',
@@ -85,7 +92,7 @@ export function orderEmail(o,kind,url){
   const text=c.simple?[...c.introText,`${c.button}: ${url}`,...c.afterText].join('\n\n'):[c.heading,...c.introText,c.steps.map(([w,t])=>`${w}: ${t}`).join('\n'),
     [f.title?`Book: ${f.title}`:'',`Format: ${f.label}`,`Paid: ${f.paid} including UK standard delivery`,f.to?`Posting to: ${f.to}`:'',`Order ref: ${f.ref}`].filter(Boolean).join('\n'),
     `${c.button}: ${c.buttonUrl||url}`,c.buttonUrl?`Your order: ${url}`:'',c.note,'This link is private to you. Please don’t forward it.\nQuestions? Just reply to this email.\n\nCraven & Quill'].filter(Boolean).join('\n\n');
-  return {subject:'Craven & Quill: '+c.subject,text,html:html(o,c,url),key:`${o.id}:${kind}:${kind==='proof'?o.data.proof?.hash:'1'}`};
+  return {subject:'Craven & Quill: '+c.subject,text,html:html(o,c,url),key:`${o.id}:${kind}:${kind==='proof'?o.data.proof?.hash:kind==='preview'?o.data.preview?.hash:'1'}`};
 }
 
 export async function sendOrderEmail(env,o,kind,url,test=null){if(!env.RESEND_API_KEY||!env.ORDER_EMAIL_FROM)return {sent:false,message:'Order email is not connected. Use your private order link.'};const message=orderEmail(o,kind,url);try{const r=await (env.fetch||fetch)('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`,'Content-Type':'application/json','Idempotency-Key':test?message.key+'-test-'+Date.now():message.key},body:JSON.stringify({from:env.ORDER_EMAIL_FROM,reply_to:env.ORDER_EMAIL_REPLY_TO||'cravenluke@gmail.com',to:[test?test.to:o.email],subject:(test?'[Test] ':'')+message.subject,html:message.html,text:message.text}),signal:AbortSignal.timeout(15000)});const d=await r.json();return {sent:!!(r.ok&&d.id),providerId:r.ok?d.id:null,kind,proofHash:kind==='proof'?o.data.proof?.hash:null,message:r.ok&&d.id?'Email accepted by provider; inbox delivery not yet confirmed.':'Email was not accepted. Retry from the order desk.'};}catch{return {sent:false,kind,message:'Email could not be confirmed. Retry from the order desk.'};}}

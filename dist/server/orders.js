@@ -4526,6 +4526,24 @@ function copy(o, kind) {
       button: `See ${f.name ? f.poss : "your"} book`
     };
   }
+  if (kind === "preview") {
+    const x = (o.data || {}).emailExtra || {}, first = String((o.data || {}).recipient?.name || "").trim().split(/\s+/)[0] || "", hi = x.greeting || (first ? `Hi ${first},` : "Hello,"), book = f.name ? f.poss + " book" : "Your book";
+    const lines = [...x.note ? [x.note] : [], `${book} is ready. Tap the button below to flip through every page.`], after = "If you\u2019d like anything changed, just reply to this email. When you\u2019re happy, you can order the A4 or A5 hardback at the bottom of the page.";
+    return {
+      simple: true,
+      subject: `${book} is ready to see`,
+      preheader: "Flip through every page, then order the A4 or A5 hardback.",
+      kicker: "",
+      heading: "",
+      intro: [esc(hi), ...lines.map(esc)],
+      introText: [hi, ...lines],
+      after: [esc(after), "Thank you,<br>The Craven &amp; Quill team"],
+      afterText: [after, "Thank you,\nThe Craven & Quill team"],
+      steps: [],
+      note: "",
+      button: `See ${f.name ? f.poss : "your"} book`
+    };
+  }
   if (kind === "shipped") return {
     subject: `${f.name ? f.poss : "Your"} book has gone to the printer`,
     preheader: "Tracking will appear on your order page.",
@@ -4598,7 +4616,7 @@ function orderEmail(o, kind, url) {
     c.note,
     "This link is private to you. Please don\u2019t forward it.\nQuestions? Just reply to this email.\n\nCraven & Quill"
   ].filter(Boolean).join("\n\n");
-  return { subject: "Craven & Quill: " + c.subject, text, html: html(o, c, url), key: `${o.id}:${kind}:${kind === "proof" ? o.data.proof?.hash : "1"}` };
+  return { subject: "Craven & Quill: " + c.subject, text, html: html(o, c, url), key: `${o.id}:${kind}:${kind === "proof" ? o.data.proof?.hash : kind === "preview" ? o.data.preview?.hash : "1"}` };
 }
 async function sendOrderEmail(env2, o, kind, url, test = null) {
   if (!env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { sent: false, message: "Order email is not connected. Use your private order link." };
@@ -52964,9 +52982,10 @@ function wishes(w) {
   w = w && typeof w === "object" ? w : {};
   return { details: safeText(w.details, 1500), ownIdea: safeText(w.ownIdea, 1500), mood: safeText(w.mood, 40), storyMode: safeText(w.storyMode, 20), idea: safeText(w.idea, 200) };
 }
+var shownBook = (o) => o.data.proof || o.payment_status === "unpaid" && o.data.preview || null;
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, bookPages: d.proof && d.proofWeb?.hash === d.proof.hash && d.proofWeb.pages.every(Boolean) ? d.proofWeb.pages : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, previewId: d.previewId || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, bookPages: shownBook(o) && d.proofWeb?.hash === shownBook(o).hash && d.proofWeb.pages.every(Boolean) ? d.proofWeb.pages : null, previewBook: !d.proof && o.payment_status === "unpaid" && d.preview ? { hash: d.preview.hash, createdAt: d.preview.createdAt } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, previewId: d.previewId || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
 }
 var editable = (o) => o.payment_status === "paid" && ["awaiting_review", "building", "proof_ready", "awaiting_approval"].includes(o.status);
 function archiveContent(o, kind, actor) {
@@ -53689,8 +53708,8 @@ You can stop offer emails here: ${unsubscribe}`;
       return new Response(render.bytes, { headers: { "Content-Type": "application/pdf", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Content-Disposition": `inline; filename="${String(o.data.names || "book").replace(/[^A-Za-z0-9 -]/g, "").slice(0, 30)}-book.pdf"` } });
     }
     if (action === "file" && req.method === "GET") {
-      const key2 = url.searchParams.get("proof") === o.data.proof?.hash ? o.data.proof?.key : url.searchParams.get("file");
-      const permitted = [o.data.proof?.key, ...o.data.proof && o.data.proofWeb?.hash === o.data.proof.hash ? o.data.proofWeb.pages : [], ...o.data.prebuilt && o.payment_status === "unpaid" ? [o.data.peekWeb?.cover || o.data.art.cover, ...o.data.art.scenes.map((x, i4) => o.data.peekWeb?.scenes?.[i4] || x)] : [], ...isAdmin ? [...o.data.characters, ...o.data.art.scenes, o.data.art.cover, o.data.art.back, o.data.spine?.key] : []];
+      const shown = shownBook(o), key2 = shown && url.searchParams.get("proof") === shown.hash ? shown.key : url.searchParams.get("file");
+      const permitted = [shown?.key, ...shown && o.data.proofWeb?.hash === shown.hash ? o.data.proofWeb.pages : [], ...o.data.prebuilt && o.payment_status === "unpaid" ? [o.data.peekWeb?.cover || o.data.art.cover, ...o.data.art.scenes.map((x, i4) => o.data.peekWeb?.scenes?.[i4] || x)] : [], ...isAdmin ? [...o.data.characters, ...o.data.art.scenes, o.data.art.cover, o.data.art.back, o.data.spine?.key] : []];
       requireThat(permitted.filter(Boolean).includes(key2), "File not found.", 404);
       const a = await assetRead(env2, o, key2);
       const peekKey = o.data.prebuilt && a.type === "image/jpeg" && [o.data.art.cover, ...o.data.art.scenes, o.data.peekWeb?.cover, ...o.data.peekWeb?.scenes || []].includes(key2);
@@ -53770,6 +53789,21 @@ You can stop offer emails here: ${unsubscribe}`;
       const changed = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", orderTotal(o.size), JSON.stringify(o.data), now2(), id, o.revision).first();
       requireThat(changed, "This order changed. Reload before checkout.", 409);
       throw new OrderError("The offer expired. Your book is saved at the current price. Reload before checkout.", 409);
+    }
+    if (action === "checkout" && b.size && b.size !== o.size) {
+      requireThat(PRODUCTS[b.size], "Choose A4 or A5.");
+      requireThat(o.payment_status === "unpaid" && ["saved", "awaiting_payment"].includes(o.status) && !o.data.discount, "This book\u2019s size can\u2019t be changed here. Reply to our email and we\u2019ll help.", 409);
+      if (o.session_id) {
+        requireThat(o.data.payment?.provider === "ziina", "Reply to our email and we\u2019ll help with this order.", 409);
+        const p = await ziinaSync(env2, o);
+        requireThat(["requires_payment_instrument", "requires_user_action", "failed", "canceled"].includes(p.status), "Payment is processing. Refresh shortly.", 409);
+        o.data.failedPayments = [...o.data.failedPayments || [], { ...o.data.payment, sessionId: o.session_id, endedStatus: p.status, replacedForSize: b.size, clearedAt: now2() }];
+        o.data.payment = null;
+      }
+      const changed = await q(env2, "UPDATE customer_orders SET size=?1,amount=?2,session_id=NULL,status='saved',state=?3,revision=revision+1,updated_at=?4 WHERE id=?5 AND revision=?6 AND payment_status='unpaid' RETURNING id", b.size, orderTotal(b.size), JSON.stringify(o.data), now2(), id, o.revision).first();
+      requireThat(changed, "This order changed. Reload before checkout.", 409);
+      await audit(env2, id, "size_changed", isAdmin ? "owner" : "customer", { size: b.size });
+      o = await get(env2, id);
     }
     if (action === "checkout") {
       requireThat(checkoutReady(env2), "Payments are not open yet. Your book is saved and nothing has been charged.", 503);
@@ -53852,7 +53886,8 @@ You can stop offer emails here: ${unsubscribe}`;
       return reply({ ...publicOrder(o, true), emailSent: { to: b.to, subject } });
     }
     if (action === "proof-web") {
-      requireThat(o.data.proof && b.hash === o.data.proof.hash, "The book changed. Reload and make the phone pages again.", 409);
+      const shown = shownBook(o);
+      requireThat(shown && b.hash === shown.hash, "The book changed. Reload and make the phone pages again.", 409);
       const total = Number(b.total), page = Number(b.page);
       requireThat(Number.isInteger(total) && total >= 24 && total <= 60 && Number.isInteger(page) && page >= 0 && page < total, "Choose a valid page.");
       const m2 = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(b.image || ""));
@@ -53860,8 +53895,9 @@ You can stop offer emails here: ${unsubscribe}`;
       const bytes = Uint8Array.from(atob(m2[1]), (c) => c.charCodeAt(0));
       requireThat(bytes[0] === 255 && bytes[1] === 216, "Send a JPEG.");
       const key2 = await assetPut(env2, o, bytes, "image/jpeg", "web");
-      const fresh = await get(env2, id);
-      if (fresh.data.proofWeb?.hash !== fresh.data.proof?.hash || fresh.data.proofWeb.pages.length !== total) fresh.data.proofWeb = { hash: fresh.data.proof.hash, pages: Array(total).fill(null) };
+      const fresh = await get(env2, id), now22 = shownBook(fresh);
+      requireThat(now22 && now22.hash === b.hash, "The book changed. Reload and make the phone pages again.", 409);
+      if (fresh.data.proofWeb?.hash !== now22.hash || fresh.data.proofWeb.pages.length !== total) fresh.data.proofWeb = { hash: now22.hash, pages: Array(total).fill(null) };
       fresh.data.proofWeb.pages[page] = key2;
       return reply(publicOrder(await save(env2, fresh, fresh.data), true));
     }
@@ -53881,18 +53917,49 @@ You can stop offer emails here: ${unsubscribe}`;
       else fresh.data.peekWeb.scenes[index] = key2;
       return reply(publicOrder(await save(env2, fresh, fresh.data), true));
     }
+    if (action === "preview-book") {
+      const unpaidOk = o.payment_status === "unpaid" && o.data.prebuilt && (o.status === "saved" && !o.session_id || o.status === "awaiting_payment" && o.data.payment?.provider === "ziina");
+      requireThat(unpaidOk, "Only a drawn-early, unpaid book can have a preview book.", 409);
+      requireThat(o.data.art.cover && o.data.art.scenes.every(Boolean), "Draw the cover and all ten pages first.", 409);
+      const [font, logo, coverLogo] = await Promise.all(["story-serif.ttf", "logo-mark-on-white.png", "logo-on-dark.png"].map(async (name5) => {
+        const r = await env2.ASSETS.fetch(new Request(url.origin + "/assets/" + name5));
+        requireThat(r.ok, "Book design asset unavailable.", 503);
+        return r.arrayBuffer();
+      }));
+      const render = await printBook({ ...o.data, size: o.size }, (key3) => assetRead(env2, o, key3), font, logo, coverLogo);
+      const key2 = await assetPut(env2, o, render.bytes, "application/pdf", "preview");
+      const fresh = await get(env2, id);
+      requireThat(fresh.payment_status === "unpaid" && fresh.status === o.status, "This book changed. Reload.", 409);
+      fresh.data.preview = { key: key2, hash: await sha(render.bytes), createdAt: now2() };
+      await audit(env2, id, "preview_built", actor, { hash: fresh.data.preview.hash });
+      return reply(publicOrder(await save(env2, fresh, fresh.data), true));
+    }
+    if (action === "preview-email") {
+      requireThat(["owner", "customer"].includes(b.to), "Choose who receives this email.");
+      requireThat(o.payment_status === "unpaid" && !o.data.proof && o.data.preview && o.data.proofWeb?.hash === o.data.preview.hash && o.data.proofWeb.pages.every(Boolean), "Make the preview book and its phone pages first.", 409);
+      const token = await privateKey(env2, o.data.privateKey, true), link = `${url.origin}/book.html?id=${id}${b.to === "owner" ? "&test=1" : ""}#key=${token}`;
+      const extra = { greeting: safeText(b.greeting, 40), note: safeText(b.note, 400) };
+      const r = await notify(env2, { ...o, data: { ...o.data, emailExtra: extra } }, "preview", link, b.to === "owner" ? { to: actor } : null);
+      if (b.to === "customer") {
+        o.data.emails = { ...o.data.emails || {}, preview: { sent: r.sent, at: now2(), providerId: r.providerId || null } };
+        o = await save(env2, o, o.data);
+      }
+      await audit(env2, id, b.to === "owner" ? "test_email_sent" : "preview_email_sent", actor, { sent: r.sent });
+      return reply({ ...publicOrder(o, true), emailSent: { to: b.to, sent: r.sent, message: r.message } });
+    }
     if (action === "prebuild") {
       requireThat(b.confirm === true, "Confirm this paid drawing request.");
       requireThat(o.payment_status === "unpaid" && (o.status === "saved" && !o.session_id || o.status === "awaiting_payment" && o.data.payment?.provider === "ziina"), "Reopen the checkout first. Only a saved, unpaid book can be drawn early.", 409);
-      const index = b.page === "cover" ? "cover" : Number(b.page);
-      requireThat(index === "cover" || Number.isInteger(index) && index >= 0 && index < 10, "Choose a valid illustration.");
+      const index = b.page === "cover" || b.page === "back" ? b.page : Number(b.page);
+      requireThat(index === "cover" || index === "back" || Number.isInteger(index) && index >= 0 && index < 10, "Choose a valid illustration.");
       requireThat((o.data.artAttempts || 0) < (o.data.artBudget || 22), "This book reached its illustration request limit.", 429);
-      const slot = index === "cover" ? o.data.art.cover : o.data.art.scenes[index];
+      const slot = index === "cover" ? o.data.art.cover : index === "back" ? o.data.art.back : o.data.art.scenes[index];
       requireThat(!slot || b.replace === true, "Artwork exists. Explicitly choose replacement.", 409);
-      const drawing = await drawPage2(env2, o, index), key2 = await assetPut(env2, o, drawing.bytes, "image/jpeg", "art");
+      const drawing = await drawPage2(env2, o, index), key2 = await assetPut(env2, o, drawing.bytes, drawing.type || "image/jpeg", "art");
       const fresh = await get(env2, id);
       requireThat(fresh.payment_status === "unpaid" && fresh.status === o.status && (fresh.session_id || null) === (o.session_id || null), "This book changed while drawing. Reload.", 409);
       if (index === "cover") fresh.data.art.cover = key2;
+      else if (index === "back") fresh.data.art.back = key2;
       else fresh.data.art.scenes[index] = key2;
       fresh.data.artAttempts = (fresh.data.artAttempts || 0) + 1;
       fresh.data.artUsage = [...fresh.data.artUsage || [], { at: now2(), page: index, usage: drawing.usage, prebuild: true }];
