@@ -4508,17 +4508,24 @@ function copy(o, kind) {
     note: "Nothing prints until you\u2019ve approved the proof.",
     button: "See your order"
   };
-  if (kind === "proof") return {
-    subject: `${f.name ? f.poss[0].toUpperCase() + f.poss.slice(1) : "Your"} book is ready`,
-    preheader: "Have a flick through, then press Approve and we\u2019ll print it.",
-    kicker: "Your book is ready",
-    heading: `${f.name ? f.poss[0].toUpperCase() + f.poss.slice(1) : "Your"} book is ready.`,
-    intro: [`Thank you for your order. ${f.title ? `<i>${esc(f.title)}</i>` : "Your book"} is finished and we hope you love it.`, "Have a flick through every page. If everything looks right, press Approve and we\u2019ll send it to print."],
-    introText: [`Thank you for your order. ${f.title || "Your book"} is finished and we hope you love it.`, "Have a flick through every page. If everything looks right, press Approve and we\u2019ll send it to print."],
-    steps: [["Now", "Flick through and press Approve."], ["Next", "Printed and bound in the UK."], ["Then 7\u201312 working days", `Posted${f.to ? " to " + f.to : ""}.`]],
-    note: "Want something changed? Every book includes one round of changes. Just reply to this email and tell us what you\u2019d like.",
-    button: `See ${f.name ? f.poss : "your"} book`
-  };
+  if (kind === "proof") {
+    const first = String((o.data || {}).recipient?.name || "").trim().split(/\s+/)[0] || "", hi = first ? `Hi ${first},` : "Hello,", book = f.name ? f.poss + " book" : "Your book";
+    const change = "If you\u2019d like anything changed, just reply to this email and our team will pick it up. Otherwise, we\u2019ll get it printed and posted out to you.";
+    return {
+      simple: true,
+      subject: `${book} is ready`,
+      preheader: "Take a look and approve it, or reply with any changes.",
+      kicker: "",
+      heading: "",
+      intro: [esc(hi), `${esc(book)} is ready. Tap the button below to take a look, and approve it if you\u2019re happy.`],
+      introText: [hi, `${book} is ready. Use the link below to take a look, and approve it if you\u2019re happy.`],
+      after: [esc(change), "Thank you,<br>The Craven &amp; Quill team"],
+      afterText: [change, "Thank you,\nThe Craven & Quill team"],
+      steps: [],
+      note: "",
+      button: `See ${f.name ? f.poss : "your"} book`
+    };
+  }
   if (kind === "shipped") return {
     subject: `${f.name ? f.poss : "Your"} book has gone to the printer`,
     preheader: "Tracking will appear on your order page.",
@@ -4562,17 +4569,17 @@ function html(o, c, url) {
 <table role="presentation" class="shell" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;max-width:560px;background:#fffdfa;">
 <tr><td align="center" style="padding:30px 24px 22px;border-bottom:1px solid #e9dec7;"><a href="https://cravenandquill.com"><img src="${LOGO}" width="150" alt="Craven &amp; Quill" style="display:block;width:150px;height:auto;border:0;color:#211d1a;font:21px ${serif};"></a></td></tr>
 <tr><td class="content" style="padding:40px 48px 44px;">
-<p style="margin:0 0 14px;color:#846329;font:700 13px/1.5 ${sans};">${esc(c.kicker)}</p>
-<h1 class="heading" style="margin:0 0 20px;color:#211d1a;font:normal 36px/1.12 ${serif};letter-spacing:-.5px;">${esc(c.heading)}</h1>
+${c.kicker ? `<p style="margin:0 0 14px;color:#846329;font:700 13px/1.5 ${sans};">${esc(c.kicker)}</p>` : ""}
+${c.heading ? `<h1 class="heading" style="margin:0 0 20px;color:#211d1a;font:normal 36px/1.12 ${serif};letter-spacing:-.5px;">${esc(c.heading)}</h1>` : ""}
 ${c.intro.map((t2) => p(t2)).join("")}
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:10px 0 28px;">${steps}</table>
+${c.steps.length ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:10px 0 28px;">${steps}</table>` : '<div style="height:8px;"></div>'}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 0 30px;"><tr><td bgcolor="#25201b" style="border-radius:3px;"><a class="button" href="${esc(c.buttonUrl || url)}" style="display:inline-block;padding:16px 26px;color:#ffffff;text-decoration:none;font:700 15px/1.2 ${sans};">${esc(c.button)}</a></td></tr></table>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#f5f0e6;"><tr><td style="padding:16px 20px;border-left:3px solid #ad843f;">
+${c.simple ? (c.after || []).map((t2) => p(t2)).join("") : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#f5f0e6;"><tr><td style="padding:16px 20px;border-left:3px solid #ad843f;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
 ${f.title ? row("Book", `<i style="font-family:${serif};">${esc(f.title)}</i>`) : ""}${row("Format", esc(f.label))}${row("Paid", esc(f.paid) + ", including UK postage")}${f.to ? row("Posting to", esc(f.to)) : ""}${row("Order ref", esc(f.ref))}
 </table></td></tr></table>
 ${c.note ? p(esc(c.note), "margin:24px 0 0;color:#655a50;font-size:14px;") : ""}
-<p style="margin:${c.note ? "8px" : "24px"} 0 0;color:#655a50;font:14px/1.6 ${sans};">Questions? Just reply to this email.</p>
+<p style="margin:${c.note ? "8px" : "24px"} 0 0;color:#655a50;font:14px/1.6 ${sans};">Questions? Just reply to this email.</p>`}
 </td></tr>
 <tr><td class="footer" style="padding:24px 48px 34px;border-top:1px solid #e9dec7;background:#faf7f0;">
 <p style="margin:0 0 8px;color:#655a50;font:13px/1.55 ${sans};">Craven &amp; Quill. Personalised books, made for one reader at a time.</p>
@@ -4581,7 +4588,7 @@ ${c.note ? p(esc(c.note), "margin:24px 0 0;color:#655a50;font-size:14px;") : ""}
 }
 function orderEmail(o, kind, url) {
   const c = copy(o, kind), f = facts(o);
-  const text = [
+  const text = c.simple ? [...c.introText, `${c.button}: ${url}`, ...c.afterText].join("\n\n") : [
     c.heading,
     ...c.introText,
     c.steps.map(([w, t2]) => `${w}: ${t2}`).join("\n"),
