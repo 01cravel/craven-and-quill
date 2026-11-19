@@ -28,7 +28,8 @@ main{display:flex;flex-direction:column;align-items:center;padding:14px 0 120px}
 .book.back{transform:translateX(calc(var(--page-w) * .5))}
 .side{position:absolute;top:0;width:var(--page-w);height:100%;overflow:hidden;background:var(--paper)}
 .side.l{left:0;border-radius:3px 0 0 3px}.side.r{left:var(--page-w);border-radius:0 3px 3px 0}
-.side img{display:block;width:100%;height:100%;object-fit:cover}
+.side img,.face img{display:block;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .25s}
+.side img.in,.face img.in{opacity:1}
 .side.none{background:transparent}.side.end{background:var(--end)}
 .side:not(.none){box-shadow:0 30px 50px -22px rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.25)}
 .side.l:not(.none):not(.cover)::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to left,rgba(0,0,0,.22),rgba(0,0,0,.05) 4%,transparent 12%)}
@@ -111,7 +112,9 @@ async function api(path,body){const r=await fetch('/api/orders/'+encodeURICompon
 function poss(n){return n?n+(/s$/i.test(n)?'’':'’s'):'Your';}
 // Page pictures load with the private key, then show from memory.
 function pic(i){if(!pics[i])pics[i]=fetch('/api/orders/'+encodeURIComponent(id)+'/file?file='+encodeURIComponent(order.bookPages[i]),{headers:auth}).then(r=>{if(!r.ok)throw Error();return r.blob();}).then(b=>URL.createObjectURL(b));return pics[i];}
-function img(el,i){el.replaceChildren();const im=new Image();im.alt='Page '+(i+1);im.decoding='async';pic(i).then(u=>{im.src=u;}).catch(()=>{});el.append(im);}
+function img(el,i){el.replaceChildren();const im=new Image();im.alt='Page '+(i+1);im.decoding='async';im.onload=()=>im.classList.add('in');pic(i).then(u=>{im.src=u;}).catch(()=>{});el.append(im);}
+// Load every page quietly in the background, three at a time, so turning is instant.
+async function preload(){const n=order.bookPages.length;let next=0;const worker=async()=>{while(next<n){const i=next++;await pic(i).catch(()=>{});}};await Promise.all([worker(),worker(),worker()]);}
 function fill(el,src,cover){el.className=el.className.split(' ').slice(0,2).join(' ');el.replaceChildren();if(src===null){el.classList.add('none');return;}if(src===END){el.classList.add('end');return;}if(cover)el.classList.add('cover');img(el,src);}
 function face(el,src){el.replaceChildren();el.classList.toggle('end',src===END);if(src!==null&&src!==END)img(el,src);}
 function build(){const n=order.bookPages.length;spreads=[];
@@ -146,7 +149,7 @@ $('yes').onclick=async()=>{$('yes').disabled=true;try{order=await api('/approve-
   const title=order.story?.title||'Your book';document.title=title+' | Craven & Quill';$('title').textContent=title;$('confirmTitle').textContent='Approve '+poss(order.names)+' book?';
   if(!order.bookPages?.length)return fail('We’re putting the finishing touches to this book. We’ll email you as soon as it’s ready to see.');
   $('lede').textContent=phone()?'Swipe or tap to turn the pages.':'Click a page or use the arrows to turn.';
-  build();$('stage').hidden=false;show();controls();})();
+  build();$('stage').hidden=false;show();controls();preload();})();
 })();
 </script>
 </body>
