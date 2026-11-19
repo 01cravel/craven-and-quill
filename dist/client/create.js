@@ -122,6 +122,7 @@ function showStep(number){
   if(number===11)queueMicrotask(()=>void prepareAddressStep());
   document.body.dataset.step=number;
   if(number===4&&state.storyDraft)requestAnimationFrame(()=>turnStoryPage(state.storyPage,'instant'));
+  if(number===5||number===11)void refreshHold();
   if(number===5){ensurePreview();updateReveal();updateXmas();if(state.characterImages[0]){renderPreviewBook();startAutoFlip();}}
   if([4,5,11].includes(number))void drawPages();
   scrollToStepTop(number);
@@ -458,7 +459,7 @@ async function requestCharacter(file,name){
   // Links this preview to the visit only when the visitor allowed site measurement.
   const visit=window.cqMeasurement?.context();if(visit?.measurementConsent&&visit.visitId){form.append('measurementConsent','true');form.append('visitId',visit.visitId);}
   const data=await window.cqPreviewProgress.request(form,event=>drawingProgress?.update(event));
-  state.previewId=data.previewId||null;
+  state.previewId=data.previewId||null;void refreshHold();
   return data.image;
 }
 
@@ -634,14 +635,42 @@ if('IntersectionObserver' in window){
 }
 document.addEventListener('visibilitychange',observeBookPrice);
 window.addEventListener('online',observeBookPrice);
-async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;const was=radio.closest('label').querySelector('del');if(was&&product.regularPricePence)was.textContent=`£${(product.regularPricePence/100).toFixed(2)}`;}}if(Number.isInteger(orderCatalog.shippingPence))state.postage=orderCatalog.shippingPence/100;if(orderCatalog.offerEndsAt)offerEndsAt=Date.parse(orderCatalog.offerEndsAt);endOffer();updateProduct();}catch{}}
+async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;const was=radio.closest('label').querySelector('del');if(was&&product.regularPricePence)was.textContent=`£${(product.regularPricePence/100).toFixed(2)}`;}}if(Number.isInteger(orderCatalog.shippingPence))state.postage=orderCatalog.shippingPence/100;if(orderCatalog.offerEndsAt)offerEndsAt=Date.parse(orderCatalog.offerEndsAt);endOffer();updateProduct();tickHold();}catch{}}
 function setPayLabel(){$('#join-launch').innerHTML='<span class="cta-text">Pay securely</span> <span class="cta-price" data-cta-price></span>';updateCtaPrices();}
 // The book screen shows the book price. Postage is added only on the pay screen.
 function orderTotal(){return Math.round((state.price+state.postage)*100)/100;}
 function updateCtaPrices(){$$('[data-cta-price]').forEach(el=>el.textContent=`£${(el.closest('#join-launch')?orderTotal():state.price).toFixed(2)}`);}
 // The £10-off line and struck price disappear once the offer date passes.
 let offerEndsAt=Date.parse('2026-12-01T23:59:59Z');
-function endOffer(){if(Date.now()>offerEndsAt)$$('[data-offer]').forEach(el=>el.remove());}
+function endOffer(){}
+// One-hour personal price hold. The server starts the hour when the free preview is made and charges the
+// regular price once it has passed, so this countdown is real. Uses the server's clock, not the phone's.
+let hold=null,holdFor=null,holdTimer=null,holdShown=null;
+async function refreshHold(){
+  const id=state.previewId;
+  if(id&&holdFor!==id&&/^[a-f0-9-]{36}$/.test(id)){
+    try{const r=await fetch('/api/orders/catalog?preview='+id);const c=await r.json();if(r.ok&&c.hold&&state.previewId===id){hold={endsAt:Date.parse(c.hold.endsAt)-Date.parse(c.hold.now)+Date.now(),products:c.products};holdFor=id;}}catch{}
+  }
+  tickHold();if(!holdTimer)holdTimer=setInterval(tickHold,1000);
+}
+function tickHold(){
+  const clocks=$$('[data-hold-clock]');
+  if(!hold||holdFor!==state.previewId){clocks.forEach(el=>el.hidden=true);return;}
+  const left=Math.max(0,Math.ceil((hold.endsAt-Date.now())/1000)),over=left<=0,time=`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;
+  const money=pence=>`£${(pence/100).toFixed(2)}`;let chosen=null;
+  for(const product of hold.products){
+    const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(!radio||!product.regularPricePence)continue;
+    const label=radio.closest('label'),price=over?product.regularPricePence:product.pricePence,saving=product.regularPricePence-product.pricePence;
+    radio.dataset.price=String(price/100);label.querySelector('.current-price').textContent=money(price);
+    const was=label.querySelector('del'),tag=label.querySelector('.offer-label');
+    if(was){was.hidden=over;was.textContent=money(product.regularPricePence);}
+    if(tag){tag.hidden=over;tag.textContent=`${money(saving).replace('.00','')} off for ${time}`;}
+    if(radio.checked)chosen=product;
+  }
+  if(chosen)clocks.forEach(el=>{el.hidden=false;el.classList.toggle('over',over);
+    el.textContent=over?`The offer has ended. The price is now ${money(chosen.regularPricePence)}.`:`Your ${money(chosen.regularPricePence-chosen.pricePence).replace('.00','')} off is held for ${time}. After that it’s ${money(chosen.regularPricePence)}.`;});
+  const shown=`${holdFor}:${over}`;if(shown!==holdShown){holdShown=shown;updateProduct();}
+}
 endOffer();
 function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);

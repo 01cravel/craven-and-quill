@@ -475,3 +475,25 @@ test('paid book draws itself from the order desk loop, and every picture gets th
  assert.ok(!draws[0].names.includes('book-cover.jpg'),'the cover has no earlier picture');assert.ok(draws[1].names.includes('book-cover.jpg')&&!draws[1].names.includes('previous-page.jpg'),'page 1 copies the cover');assert.ok(draws[2].names.includes('previous-page.jpg'),'later pages copy the page before');
  assert.ok(draws.every(d=>d.prompt.includes('Do not add any pet, animal or person')));
  const nothing=await (await request(env,'/artwork-step',{},{admin:true})).json();assert.equal(nothing.worked,false);});
+
+test('one-hour price hold: offer price within the hour, regular price after it, and the timer the shopper sees is the server\'s',async()=>{
+ const env=environment();ziinaConnected(env);
+ // Inside the hour: the usual offer price, and the catalogue reports when the hold ends.
+ const early=await create(env,'a4');assert.equal(early.order.amount,2999+399);assert.equal(early.order.fullPrice,false);
+ const c=await (await request(env,'/catalog?preview='+early.body.previewId,null,{auth:false})).json();
+ assert.ok(Math.abs(Date.parse(c.hold.endsAt)-Date.parse(c.hold.now)-3600000)<5000);
+ assert.equal((await (await request(env,'/catalog',null,{auth:false})).json()).hold,undefined);
+ // After the hour: a book saved from that preview costs the regular price, and stays there across sizes.
+ const preview=crypto.randomUUID(),id=crypto.randomUUID(),email='late@example.test',old=new Date(Date.now()-2*3600000).toISOString();
+ env.DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,created_at,email) VALUES (?,'succeeded',?,?)").run(preview,old,email);
+ env.DB.sqlite.prepare("INSERT INTO preview_contacts(email,source,medium,campaign,creative,country,created_at,updated_at) VALUES (?,'direct','none','none','none','GB',?,?)").run(email,old,old);
+ const r=await request(env,'',{...early.body,requestId:id,previewId:preview,email,size:'a4'});assert.equal(r.status,201);
+ let late=(await r.json()).order;assert.equal(late.amount,3999+399);assert.equal(late.fullPrice,true);
+ let amount=0;env.fetch=async(url,init)=>{if(url.includes('/payment_intent')&&init?.method==='POST')amount=JSON.parse(init.body).amount;return Response.json({...intent(env,amount||late.amount),id:'ziina-late'});};
+ assert.equal((await request(env,'/'+id+'/checkout',{revision:late.revision,size:'a5'})).status,200);
+ late=await state(env,id);assert.equal(late.amount,3499+399);
+ // The price the page reports must match the hold: the offer price is refused once the hour is up.
+ const view={email,previewId:preview,size:'a4'};
+ assert.equal((await request(env,'/quote-view',{...view,pricePence:2999},{auth:false})).status,400);
+ assert.equal((await request(env,'/quote-view',{...view,pricePence:3999},{auth:false})).status,200);
+});

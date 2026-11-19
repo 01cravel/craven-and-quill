@@ -1,7 +1,13 @@
 export const CATALOG_VERSION='2026-11-17-postage';
 // UK postage, added to every book at checkout.
 export const SHIPPING_PENCE=399;
-export const orderTotal=size=>PRODUCTS[size].pricePence+SHIPPING_PENCE;
+// Personal price hold (19 Nov 2026, Luke): the £10-off price is held for one hour from the moment a
+// shopper's free preview is made. After that the book really costs the regular price. The pay screen
+// timer counts down to this, so it must stay true: do not show the timer without charging the higher price.
+export const HOLD_MS=3600000,HOLD_GRACE_MS=120000;
+export const holdEnd=createdAt=>Date.parse(createdAt)+HOLD_MS;
+export const priceOf=(size,full=false)=>full?PRODUCTS[size].regularPricePence:PRODUCTS[size].pricePence;
+export const orderTotal=(size,full=false)=>priceOf(size,full)+SHIPPING_PENCE;
 export const PRODUCTS={
   a4:{id:'a4',label:'A4 hardback',widthMm:210,heightMm:297,sku:'BOOK-FE-A4-P-HARD-G',pricePence:2999,regularPricePence:3999,discountPercent:25,estimatedSupplierPence:1800},
   a5:{id:'a5',label:'A5 hardback',widthMm:148,heightMm:210,sku:'BOOK-FE-A5-P-HARD-G',pricePence:2499,regularPricePence:3499,discountPercent:28,estimatedSupplierPence:1600},

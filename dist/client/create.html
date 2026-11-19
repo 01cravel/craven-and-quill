@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=save-preview-2">
+  <link rel="stylesheet" href="create.css?v=hold-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -187,10 +187,11 @@
               <fieldset>
             <legend class="visually-hidden">Book format</legend>
             <div class="product-options size-options">
-              <label class="product"><input type="radio" name="product" value="a4" data-price="29.99" checked><span><b>A4 hardback</b><small>21 × 29.7 cm</small><strong><del data-offer>£39.99</del><span class="current-price">£29.99</span></strong><small class="offer-label" data-offer>£10 off until 1 December</small></span></label>
-              <label class="product"><input type="radio" name="product" value="a5" data-price="24.99"><span><b>A5 hardback</b><small>14.8 × 21 cm</small><strong><del data-offer>£34.99</del><span class="current-price">£24.99</span></strong><small class="offer-label" data-offer>£10 off until 1 December</small></span></label>
+              <label class="product"><input type="radio" name="product" value="a4" data-price="29.99" checked><span><b>A4 hardback</b><small>21 × 29.7 cm</small><strong><del data-offer>£39.99</del><span class="current-price">£29.99</span></strong><small class="offer-label" data-offer>£10 off</small></span></label>
+              <label class="product"><input type="radio" name="product" value="a5" data-price="24.99"><span><b>A5 hardback</b><small>14.8 × 21 cm</small><strong><del data-offer>£34.99</del><span class="current-price">£24.99</span></strong><small class="offer-label" data-offer>£10 off</small></span></label>
             </div>
             </fieldset>
+              <p class="hold-clock" data-hold-clock role="timer" hidden></p>
               <p class="see-first">You see the whole finished book before we print it.</p>
               <p class="urgency" id="xmas-line" hidden></p>
               <div class="save-preview" id="save-preview">
@@ -237,6 +238,7 @@
             <button type="button" class="address-mode" id="address-mode" hidden>Enter the address myself</button>
 
 <div class="error" id="step-11-error" role="alert"></div>
+          <p class="hold-clock" data-hold-clock role="timer" hidden></p>
           <section class="order-total" aria-label="Your order"><div class="order-lines"><span class="order-line"><span id="order-label">A4 hardback</span><span id="order-book-price">£29.99</span></span><span class="order-line order-postage"><span>UK postage</span><span id="order-postage">£3.99</span></span></div><div class="order-sum"><span>Total</span><strong id="order-price">£33.98</strong></div></section>
           <p id="offer-code-note" class="privacy-line" hidden></p>
           <div class="offer-code-field" id="offer-code-field" hidden><label for="offer-code">Discount code</label><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="CQ…"></div>
@@ -278,6 +280,6 @@
   <script src="preview-progress.js?v=six-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=save-preview-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=hold-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
 </body>
 </html>

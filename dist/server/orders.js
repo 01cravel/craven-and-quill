@@ -4305,7 +4305,11 @@ async function sendMetaPurchase(env2, o) {
 // src/catalog.js
 var CATALOG_VERSION = "2026-11-17-postage";
 var SHIPPING_PENCE = 399;
-var orderTotal = (size) => PRODUCTS[size].pricePence + SHIPPING_PENCE;
+var HOLD_MS = 36e5;
+var HOLD_GRACE_MS = 12e4;
+var holdEnd = (createdAt) => Date.parse(createdAt) + HOLD_MS;
+var priceOf = (size, full = false) => full ? PRODUCTS[size].regularPricePence : PRODUCTS[size].pricePence;
+var orderTotal = (size, full = false) => priceOf(size, full) + SHIPPING_PENCE;
 var PRODUCTS = {
   a4: { id: "a4", label: "A4 hardback", widthMm: 210, heightMm: 297, sku: "BOOK-FE-A4-P-HARD-G", pricePence: 2999, regularPricePence: 3999, discountPercent: 25, estimatedSupplierPence: 1800 },
   a5: { id: "a5", label: "A5 hardback", widthMm: 148, heightMm: 210, sku: "BOOK-FE-A5-P-HARD-G", pricePence: 2499, regularPricePence: 3499, discountPercent: 28, estimatedSupplierPence: 1600 }
@@ -53009,7 +53013,7 @@ function wishes(w) {
 var shownBook = (o) => o.data.proof || o.payment_status === "unpaid" && o.data.preview || null;
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, bookPages: shownBook(o) && d.proofWeb?.hash === shownBook(o).hash && d.proofWeb.pages.every(Boolean) ? d.proofWeb.pages : null, previewBook: !d.proof && o.payment_status === "unpaid" && d.preview ? { hash: d.preview.hash, createdAt: d.preview.createdAt } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, supplierError: isAdmin ? d.supplierError || null : void 0, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, previewId: d.previewId || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, fullPrice: !!d.fullPrice, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, bookPages: shownBook(o) && d.proofWeb?.hash === shownBook(o).hash && d.proofWeb.pages.every(Boolean) ? d.proofWeb.pages : null, previewBook: !d.proof && o.payment_status === "unpaid" && d.preview ? { hash: d.preview.hash, createdAt: d.preview.createdAt } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, supplierError: isAdmin ? d.supplierError || null : void 0, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, previewId: d.previewId || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
 }
 var editable = (o) => o.payment_status === "paid" && ["awaiting_review", "building", "proof_ready", "awaiting_approval"].includes(o.status);
 function archiveContent(o, kind, actor) {
@@ -53510,7 +53514,14 @@ async function ordersApi(req, env2) {
   if (!path.startsWith("/api/orders")) return null;
   try {
     if (path === "/api/orders/live-payment-test") return await livePaymentTest(req, env2, { admin, ziina, matchZiina });
-    if (path === "/api/orders/catalog" && req.method === "GET") return reply(catalogue(checkoutReady(env2)));
+    if (path === "/api/orders/catalog" && req.method === "GET") {
+      const c = catalogue(checkoutReady(env2)), pid = url.searchParams.get("preview") || "";
+      if (/^[a-f0-9-]{36}$/.test(pid) && env2.DB) {
+        const p = await q(env2, "SELECT created_at FROM preview_receipts WHERE id=?1 AND status='succeeded'", pid).first().catch(() => null);
+        if (p) c.hold = { endsAt: new Date(holdEnd(p.created_at)).toISOString(), now: now2() };
+      }
+      return reply(c);
+    }
     if (path === "/api/orders/offer-one-click" && req.method === "POST") {
       requireThat(env2.DB, "Email preferences are unavailable.", 503);
       const token = url.searchParams.get("token") || "";
@@ -53560,7 +53571,7 @@ async function ordersApi(req, env2) {
       const b2 = await input(req);
       const email = String(b2.email || "").trim().toLowerCase();
       requireThat(/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email) && email.length <= 254 && /^[a-f0-9-]{36}$/.test(b2.previewId || ""), "Complete your preview before choosing a book.");
-      const preview = await q(env2, "SELECT id,email FROM preview_receipts WHERE id=?1 AND status='succeeded'", b2.previewId).first();
+      const preview = await q(env2, "SELECT id,email,created_at FROM preview_receipts WHERE id=?1 AND status='succeeded'", b2.previewId).first();
       const contact = await q(env2, "SELECT email FROM preview_contacts WHERE email=?1", email).first();
       requireThat(preview?.email === email && contact, "Complete your preview before choosing a book.");
       const stamp = now2();
@@ -53571,7 +53582,10 @@ async function ordersApi(req, env2) {
         await recordFollowupConsent(env2, email, b2.optIn ? "yes" : "no");
         return reply({ ok: true });
       }
-      requireThat(Object.hasOwn(PRODUCTS, b2.size) && b2.pricePence === PRODUCTS[b2.size].pricePence, "Refresh to see the current book price.");
+      {
+        const left = holdEnd(preview.created_at) - Date.now();
+        requireThat(Object.hasOwn(PRODUCTS, b2.size) && (left > -HOLD_GRACE_MS && b2.pricePence === priceOf(b2.size) || left < HOLD_GRACE_MS && b2.pricePence === priceOf(b2.size, true)), "Refresh to see the current book price.");
+      }
       await q(env2, `INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,confirmed_view_at,unsubscribe_token)
     VALUES (?1,?2,?3,?4,?5,?5,?5,?6)
     ON CONFLICT(email) DO UPDATE SET size=excluded.size,price_pence=excluded.price_pence,catalogue_version=excluded.catalogue_version,
@@ -53723,8 +53737,9 @@ You can stop offer emails here: ${unsubscribe}`;
         await authorise(new Request(req.url, { headers: { Authorization: "Bearer " + token } }), env2, o3);
         return reply({ order: publicOrder(o3), existing: true }, 200);
       }
-      const preview = await q(env2, "SELECT id FROM preview_receipts WHERE id=?1 AND status='succeeded'", b2.previewId || "").first();
+      const preview = await q(env2, "SELECT id,created_at FROM preview_receipts WHERE id=?1 AND status='succeeded'", b2.previewId || "").first();
       requireThat(preview, "Create a successful character preview before saving a book.");
+      const fullPrice = Date.now() > holdEnd(preview.created_at) + HOLD_GRACE_MS;
       const recent = await q(env2, "SELECT count(*) AS n FROM customer_orders WHERE email=?1 AND created_at>?2", b2.email.toLowerCase(), new Date(Date.now() - 864e5).toISOString()).first();
       requireThat(recent.n < 3, "You already have saved books today. Use your private order links.", 429);
       const global2 = await q(env2, "SELECT count(*) AS n FROM customer_orders WHERE created_at>?1", new Date(Date.now() - 864e5).toISOString()).first();
@@ -53740,11 +53755,11 @@ You can stop offer emails here: ${unsubscribe}`;
         requireThat(bytes[0] === 255 && bytes[1] === 216, "Invalid character image.");
         characters.push(await assetPut(env2, o2, bytes, "image/jpeg", "character"));
       }
-      const data2 = { measurement: measurementContext(b2.measurement, req), privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, names: safeText(b2.names, 85), age: safeText(b2.age, 20), story, recipient: recipient(b2.recipient), dedication: safeText(b2.dedication, 300), senderName: safeText(b2.senderName, 80), wishes: wishes(b2.wishes), previewId: preview.id, characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now2(), storyApprovedAt: now2() };
+      const data2 = { measurement: measurementContext(b2.measurement, req), privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, names: safeText(b2.names, 85), age: safeText(b2.age, 20), story, recipient: recipient(b2.recipient), dedication: safeText(b2.dedication, 300), senderName: safeText(b2.senderName, 80), wishes: wishes(b2.wishes), previewId: preview.id, fullPrice, holdEndedAt: new Date(holdEnd(preview.created_at)).toISOString(), characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now2(), storyApprovedAt: now2() };
       requireThat(data2.names, "Add the main character name.");
       const date = now2();
-      await q(env2, "INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,'saved','unpaid',1,?6,?7,?7)", o2.id, await sha(token), b2.email.toLowerCase(), b2.size, orderTotal(b2.size), JSON.stringify(data2), date).run();
-      await audit(env2, o2.id, "saved", "customer", { size: b2.size, catalogueVersion: CATALOG_VERSION });
+      await q(env2, "INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,'saved','unpaid',1,?6,?7,?7)", o2.id, await sha(token), b2.email.toLowerCase(), b2.size, orderTotal(b2.size, fullPrice), JSON.stringify(data2), date).run();
+      await audit(env2, o2.id, "saved", "customer", { size: b2.size, fullPrice, catalogueVersion: CATALOG_VERSION });
       return reply({ order: publicOrder(await get(env2, o2.id)), checkoutEnabled: checkoutReady(env2) }, 201);
     }
     const m = path.match(/^\/api\/orders\/([a-f0-9-]{36})(?:\/([a-z-]+))?$/);
@@ -53826,7 +53841,7 @@ You can stop offer emails here: ${unsubscribe}`;
       requireThat(!o.data.discount, "Only one offer can be used on a book.", 409);
       if (await sha(code2) === OWNER_TEST.codeHash) {
         requireThat(o.email === OWNER_TEST.email && Date.parse(OWNER_TEST.expiresAt) > Date.now(), "This offer is unavailable or expired.", 409);
-        o.data.discount = { code: "OWNER-TEST", amountPence: PRODUCTS[o.size].pricePence - OWNER_TEST.pricePence, ownerTest: true, appliedAt: now2() };
+        o.data.discount = { code: "OWNER-TEST", amountPence: priceOf(o.size, !!o.data.fullPrice) - OWNER_TEST.pricePence, ownerTest: true, appliedAt: now2() };
         const changed2 = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", OWNER_TEST.pricePence, JSON.stringify(o.data), now2(), id, o.revision).first();
         requireThat(changed2, "This order changed. Reload before applying the offer.", 409);
         await audit(env2, id, "owner_test_price", o.email, { amount: OWNER_TEST.pricePence });
@@ -53839,8 +53854,8 @@ You can stop offer emails here: ${unsubscribe}`;
       await ensureFollowupTable(env2);
       const sequence = await q(env2, "SELECT second_status FROM followup_sequences WHERE email=?1", o.email).first();
       const automatic = !!reminder || sequence?.second_status === "accepted";
-      const discount = automatic ? Math.round(PRODUCTS[o.size].pricePence * 0.1) : offer.discount_pence;
-      const amount = orderTotal(o.size) - discount;
+      const discount = automatic ? Math.round(priceOf(o.size, !!o.data.fullPrice) * 0.1) : offer.discount_pence;
+      const amount = orderTotal(o.size, !!o.data.fullPrice) - discount;
       requireThat(amount >= PRODUCTS[o.size].estimatedSupplierPence + (automatic ? 0 : 1800), "This offer cannot be applied to this format.", 409);
       const claim = await q(env2, `UPDATE ${table9} SET redeemed_order_id=?1 WHERE email=?2 AND discount_code=?3 AND (redeemed_order_id IS NULL OR redeemed_order_id=?1) RETURNING email`, id, o.email, code2).first();
       requireThat(claim, "This offer is already in use.", 409);
@@ -53855,7 +53870,7 @@ You can stop offer emails here: ${unsubscribe}`;
     }
     if (action === "checkout" && o.payment_status === "unpaid" && o.data.discount?.ownerTest && !o.session_id && (o.email !== OWNER_TEST.email || Date.parse(OWNER_TEST.expiresAt) <= Date.now())) {
       o.data.discount = null;
-      const changed = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", orderTotal(o.size), JSON.stringify(o.data), now2(), id, o.revision).first();
+      const changed = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", orderTotal(o.size, !!o.data.fullPrice), JSON.stringify(o.data), now2(), id, o.revision).first();
       requireThat(changed, "This order changed. Reload before checkout.", 409);
       throw new OrderError("The offer expired. Your book is saved at the current price. Reload before checkout.", 409);
     }
@@ -53869,7 +53884,7 @@ You can stop offer emails here: ${unsubscribe}`;
         o.data.failedPayments = [...o.data.failedPayments || [], { ...o.data.payment, sessionId: o.session_id, endedStatus: p.status, replacedForSize: b.size, clearedAt: now2() }];
         o.data.payment = null;
       }
-      const changed = await q(env2, "UPDATE customer_orders SET size=?1,amount=?2,session_id=NULL,status='saved',state=?3,revision=revision+1,updated_at=?4 WHERE id=?5 AND revision=?6 AND payment_status='unpaid' RETURNING id", b.size, orderTotal(b.size) - (o.data.discount?.ownerGift ? o.data.discount.amountPence : 0), JSON.stringify(o.data), now2(), id, o.revision).first();
+      const changed = await q(env2, "UPDATE customer_orders SET size=?1,amount=?2,session_id=NULL,status='saved',state=?3,revision=revision+1,updated_at=?4 WHERE id=?5 AND revision=?6 AND payment_status='unpaid' RETURNING id", b.size, orderTotal(b.size, !!o.data.fullPrice) - (o.data.discount?.ownerGift ? o.data.discount.amountPence : 0), JSON.stringify(o.data), now2(), id, o.revision).first();
       requireThat(changed, "This order changed. Reload before checkout.", 409);
       await audit(env2, id, "size_changed", isAdmin ? "owner" : "customer", { size: b.size });
       o = await get(env2, id);
@@ -53883,7 +53898,7 @@ You can stop offer emails here: ${unsubscribe}`;
         if (!offer || offer.redeemed_order_id !== id || Date.parse(offer.code_expires_at) <= Date.now()) {
           const code2 = o.data.discount.code;
           o.data.discount = null;
-          const changed = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", orderTotal(o.size), JSON.stringify(o.data), now2(), id, o.revision).first();
+          const changed = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", orderTotal(o.size, !!o.data.fullPrice), JSON.stringify(o.data), now2(), id, o.revision).first();
           requireThat(changed, "This order changed. Reload before checkout.", 409);
           await q(env2, `UPDATE ${table9} SET redeemed_order_id=NULL WHERE email=?1 AND discount_code=?2 AND redeemed_order_id=?3`, o.email, code2, id).run();
           throw new OrderError("The offer expired. Your book is saved at the current price. Reload before checkout.", 409);
@@ -53998,7 +54013,7 @@ You can stop offer emails here: ${unsubscribe}`;
         o.data.payment = null;
       }
       o.data.discount = { code: "THANKYOU" + Math.round(pence / 100), amountPence: pence, ownerGift: true, at: now2() };
-      const changed = await q(env2, "UPDATE customer_orders SET amount=?1,session_id=NULL,status='saved',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' RETURNING id", orderTotal(o.size) - pence, JSON.stringify(o.data), now2(), id, o.revision).first();
+      const changed = await q(env2, "UPDATE customer_orders SET amount=?1,session_id=NULL,status='saved',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' RETURNING id", orderTotal(o.size, !!o.data.fullPrice) - pence, JSON.stringify(o.data), now2(), id, o.revision).first();
       requireThat(changed, "This order changed. Reload.", 409);
       await audit(env2, id, "gift_discount", actor, { amountPence: pence });
       return reply(publicOrder(await get(env2, id), true));
