@@ -8,7 +8,9 @@ const ukDay=t=>new Intl.DateTimeFormat('en-CA',{timeZone:ZONE}).format(t);
 const addDays=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*86400000).toISOString().slice(0,10);
 const shortDay=day=>new Date(day+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
 const pct=(a,b)=>b?Math.round(a/b*100)+'%':'—';
-const adName=c=>!c||c==='none'?'Not from an ad':c;
+const searchLandings={seo_home:'Homepage',seo_maker:'Book maker',seo_ordering:'Ordering',seo_birthday:'Birthday books',seo_amara:'The Map Beneath the Moon',seo_sample:'Example book reader'};
+const sourceName=s=>s==='organic_search'?'Organic search':s;
+const adName=c=>Object.hasOwn(searchLandings,c)?'Search · '+searchLandings[c]:!c||c==='none'?'No ad recorded':c;
 const countryName=c=>{try{return !c||c==='unknown'?'Unknown':new Intl.DisplayNames(['en-GB'],{type:'region'}).of(c);}catch{return c;}};
 function E(tag,text,cls){const e=document.createElement(tag);if(text!==undefined&&text!==null)e.textContent=String(text);if(cls)e.className=cls;return e;}
 function msg(text,bad=false){$('#message').textContent=text;$('#message').classList.toggle('error',bad);}
@@ -32,12 +34,12 @@ async function load(){
   if(!r.ok){msg(d.error||'Analytics could not be loaded.',true);return;}
   S.data=d;$('#filters').hidden=false;$('#report').hidden=false;$('#signin').hidden=true;
   fillOptions(d);render(d);
-  msg(`Showing ${shortDay(d.range.from)} to ${shortDay(d.range.to)}${d.filter.creative?', ad '+d.filter.creative:''}${d.filter.source?', source '+d.filter.source:''}. Updated ${when(d.generatedAt)}.`);
+  msg(`Showing ${shortDay(d.range.from)} to ${shortDay(d.range.to)}${d.filter.creative?', '+adName(d.filter.creative):''}${d.filter.source?', source '+sourceName(d.filter.source):''}. Updated ${when(d.generatedAt)}.`);
 }
 function fillOptions(d){
-  for(const [id,list,first] of [['#creative',d.options.creatives,'All ads and visits'],['#source',d.options.sources,'All sources'],['#spend-creative',d.options.creatives.filter(c=>c!=='none'),'Whole campaign']]){
+  for(const [id,list,first] of [['#creative',d.options.creatives,'All ads and visits'],['#source',d.options.sources,'All sources'],['#spend-creative',d.options.creatives.filter(c=>c!=='none'&&!Object.hasOwn(searchLandings,c)),'Whole campaign']]){
     const sel=$(id),keep=sel.value;sel.replaceChildren(E('option',first));sel.options[0].value=id==='#spend-creative'?'all':'';
-    for(const v of list){const o=E('option',id==='#creative'?adName(v):v);o.value=v;sel.append(o);}
+    for(const v of list){const o=E('option',id==='#creative'?adName(v):id==='#source'?sourceName(v):v);o.value=v;sel.append(o);}
     if([...sel.options].some(o=>o.value===keep))sel.value=keep;
   }
 }
@@ -198,7 +200,7 @@ function bars(root,items,name=x=>x){
 }
 function breakdowns(d){
   const t=d.traffic,device={mobile:'Phone',desktop:'Computer',unknown:'Not recorded'};
-  bars($('#by-source'),t.source);bars($('#by-campaign'),t.campaign);bars($('#by-country'),t.country,countryName);bars($('#by-device'),t.device,k=>device[k]||k);
+  bars($('#by-source'),t.source,sourceName);bars($('#by-campaign'),t.campaign);bars($('#by-country'),t.country,countryName);bars($('#by-device'),t.device,k=>device[k]||k);
 }
 
 // Detail lists.
@@ -256,7 +258,7 @@ function steps(j,d){const box=E('span',undefined,'steps');box.dataset.tip=`Reach
 function visits(root,d){
   const body=E('div');
   const draw=()=>{body.replaceChildren();const list=d.journeys.filter(j=>matches(j.creative,j.source,j.country,j.furthest,j.campaign,j.device,j.signup?.email,whereText(j.where),j.made?.email,j.made?.book?.title,j.made?.book?.names));
-    table(body,['Arrived','Pages reached','Got as far as','What they made','Ad','Device','Where','Notes'],list.map(j=>[when(j.firstAt),steps(j,d),j.furthest,madeCell(j.made),[E('span',adName(j.creative)),E('small',j.source)],j.device==='mobile'?'Phone':j.device==='desktop'?'Computer':'—',where(j.where,j.country),[...j.errors.map(e=>tag(e,'bad')),...(j.steps.includes('paid')?[tag('Paid','good')]:[]),...(j.firstScreen?[tag('First screen '+j.firstScreen,j.firstScreen==='under 5s'?'bad':undefined)]:[]),...(j.extras.includes('name_typed')?[tag('Typed a name')]:[]),...(j.extras.includes('start_tapped')?[tag('Tapped start')]:[]),...(j.extras.includes('example_opened')?[tag('Looked at example')]:[]),...(j.extras.includes('story_edited')?[tag('Edited story')]:[]),...(j.signup?[tag('Launch list: '+j.signup.email,'warn')]:[])]]),'No visits match.');};
+    table(body,['Arrived','Pages reached','Got as far as','What they made','Ad','Device','Where','Notes'],list.map(j=>[when(j.firstAt),steps(j,d),j.furthest,madeCell(j.made),[E('span',adName(j.creative)),E('small',sourceName(j.source))],j.device==='mobile'?'Phone':j.device==='desktop'?'Computer':'—',where(j.where,j.country),[...j.errors.map(e=>tag(e,'bad')),...(j.steps.includes('paid')?[tag('Paid','good')]:[]),...(j.firstScreen?[tag('First screen '+j.firstScreen,j.firstScreen==='under 5s'?'bad':undefined)]:[]),...(j.extras.includes('name_typed')?[tag('Typed a name')]:[]),...(j.extras.includes('start_tapped')?[tag('Tapped start')]:[]),...(j.extras.includes('example_opened')?[tag('Looked at example')]:[]),...(j.extras.includes('story_edited')?[tag('Edited story')]:[]),...(j.signup?[tag('Launch list: '+j.signup.email,'warn')]:[])]]),'No visits match.');};
   tools(root,'Filter by ad, town, email, book…',`Newest ${num(d.journeys.length)} of ${num(d.journeyTotal)} visits. Each square is one page in the funnel above.`,draw);root.append(body);draw();
 }
 function previews(root,d){

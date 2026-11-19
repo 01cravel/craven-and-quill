@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const code=readFileSync(new URL('../dist/client/campaign.js',import.meta.url),'utf8');
-function harness(saved={},search='?utm_source=meta&utm_medium=paid_social&utm_campaign=cq_uk_validation_2026',config={pixelId:'1234567890'},host='example.com',pathname='/'){
-  const calls=[],scripts=[],store=new Map(Object.entries(saved)),session=new Map(),settings=[],links=[],replaced=[];
+function harness(saved={},search='?utm_source=meta&utm_medium=paid_social&utm_campaign=cq_uk_validation_2026',config={pixelId:'1234567890'},host='example.com',pathname='/',referrer='',targets=[],historyState=null){
+  const calls=[],scripts=[],store=new Map(Object.entries(saved)),session=new Map(),settings=[],replaced=[],states=[];
+  const links=targets.map(target=>({href:target,getAttribute(){return this.href;},addEventListener(name,callback){this[name]=callback;}}));
   const storage=map=>({getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)});
-  const document={cookie:'',referrer:'',createElement(tag){return {tag,dataset:{},setAttribute(){},addEventListener(name,cb){this[name]=cb;}};},querySelectorAll(selector){return selector==='.measurement-settings'?settings:selector.startsWith('a[href')?links:[];},body:{append(){},prepend(){}},head:{append(node){if(node.tag==='script')scripts.push(node);}}};
-  const window={};const context={matchMedia:()=>({matches:true}),document,window,URL,URLSearchParams,crypto,localStorage:storage(store),sessionStorage:storage(session),history:{state:null,replaceState:(s,t,url)=>replaced.push(String(url))},location:{search,pathname,hostname:host,href:'https://'+host+pathname+search,origin:'https://'+host},fetch:async(path,options)=>{calls.push({path,options});return {ok:true,json:async()=>config};}};
+  const document={cookie:'',referrer,createElement(tag){return {tag,dataset:{},setAttribute(){},addEventListener(name,cb){this[name]=cb;}};},querySelectorAll(selector){return selector==='.measurement-settings'?settings:selector.startsWith('a[href')?links:[];},body:{append(){},prepend(){}},head:{append(node){if(node.tag==='script')scripts.push(node);}}};
+  const window={};const context={matchMedia:()=>({matches:true}),document,window,URL,URLSearchParams,crypto,localStorage:storage(store),sessionStorage:storage(session),history:{state:historyState,replaceState:(s,t,url)=>{states.push(s);replaced.push(String(url));}},location:{search,pathname,hostname:host,href:'https://'+host+pathname+search,origin:'https://'+host},fetch:async(path,options)=>{calls.push({path,options});return {ok:true,json:async()=>config};}};
   vm.runInNewContext(code,context);
-  return {window,calls,scripts,store,session,links,replaced,choose(choice){window.cqMeasurement.choose(choice);},flush:()=>new Promise(resolve=>setImmediate(resolve))};
+  return {window,calls,scripts,store,session,links,replaced,states,choose(choice){window.cqMeasurement.choose(choice);},flush:()=>new Promise(resolve=>setImmediate(resolve))};
 }
 const measured=h=>h.calls.filter(c=>c.path==='/api/campaign-event').map(c=>JSON.parse(c.options.body));
 const counts=h=>h.calls.filter(c=>c.path==='/api/visit-count').map(c=>JSON.parse(c.options.body));
@@ -97,4 +98,54 @@ test('a made character tells Meta once per visit, with no personal fields, and n
   assert.equal((qa.window.fbq?.queue||[]).filter(a=>a[2]==='CompleteRegistration').length,0);
   const off=harness({}, '?measurement=no');await off.flush();await off.window.cqMeasurement.characterMade();
   assert.equal(off.window.fbq,undefined);
+});
+
+test('organic search retains engine, original public page and visit through the example, maker, and checkout',async()=>{
+  const site='cravenandquill.com', birthday='/personalised-birthday-book', example='/examples/the-map-beneath-the-moon';
+  const saved={'cq-ad-click-v1':JSON.stringify({expires:Date.now()+60000,click:{gclid:'Old'},attribution:{source:'google',medium:'cpc',campaign:'old',creative:'old'}})};
+  const landing=harness(saved,'?email=private@example.com',googleConfig,site,birthday,'https://www.google.co.uk/search?q=private',[example,'https://other.example/create','/order?id=private','#details','/test-book?sample=1&book=amara&order=1']);
+  const arrival=measured(landing)[0];
+  assert.equal(arrival.source,'organic_search');assert.equal(arrival.medium,'organic');assert.equal(arrival.campaign,'google');assert.equal(arrival.creative,'seo_birthday');
+  assert.equal(arrival.gclid,null);assert.equal(landing.store.has('cq-ad-click-v1'),false);
+  assert.equal(landing.links[0].href,example);
+  assert.ok(landing.links.slice(1).every(link=>!link.click));
+  landing.links[0].click();
+  const target=new URL(landing.links[0].href,'https://'+site);
+  assert.doesNotMatch(target.href,/private|gclid|utm_/);
+  const sample=harness({},target.search,googleConfig,site,target.pathname,'https://'+site+birthday,['/create']);
+  sample.links[0].click();
+  const maker=harness({},new URL(sample.links[0].href,'https://'+site).search,googleConfig,site,'/create','https://'+site+example);
+  maker.window.cqMeasurement.record('checkout_start');
+  for(const context of [measured(sample)[0],measured(maker).at(-1),maker.window.cqMeasurement.context()]){
+    assert.equal(context.visitId,arrival.visitId);assert.equal(context.source,'organic_search');assert.equal(context.creative,'seo_birthday');assert.equal(context.campaign,'google');
+  }
+  const refreshed=harness({},'?v='+arrival.visitId,googleConfig,site,birthday,'',[],landing.states[0]);
+  assert.equal(measured(refreshed)[0].creative,'seo_birthday');
+  await landing.flush();assert.equal(landing.scripts.length,0);
+});
+test('paid and tagged visits take precedence, direct and unrelated referrals do not become organic search',()=>{
+  const site='cravenandquill.com',page='/examples/the-map-beneath-the-moon';
+  const source=(search,ref)=>measured(harness({},search,{},site,page,ref))[0];
+  assert.equal(source('?gclid=Real','https://www.google.co.uk/').medium,'cpc');
+  assert.equal(source('?msclkid=abc','https://www.bing.com/').medium,'cpc');
+  assert.equal(source('?gad_source=1','https://www.google.co.uk/').medium,'cpc');
+  assert.equal(source('?utm_content=g_birthday','https://www.google.com/').source,'google');
+  assert.equal(source('?utm_source=newsletter&utm_medium=email','https://www.google.com/').source,'newsletter');
+  assert.equal(source('?fbclid=ABC','https://www.google.com/').source,'facebook');
+  assert.equal(source('','https://www.google.co.uk.evil.example/').source,'referral');
+  assert.equal(source('','https://mail.google.com/').source,'referral');
+  assert.equal(source('','').campaign,'unattributed');
+  assert.equal(source('','https://www.bing.com/').creative,'seo_amara');
+});
+test('public sample handoff preserves sample selectors, excludes embedded and private books, respects advertising opt-out',()=>{
+  const url='/test-book?book=luke&sample=1',site='cravenandquill.com';
+  const h=harness({'cq-measurement-v3':'no'},'?gclid=abcd&token=private',{},site,'/','https://www.google.com/',[url]);
+  h.links[0].click();
+  const next=new URL(h.links[0].href,'https://'+site);
+  assert.equal(next.searchParams.get('book'),'luke');assert.equal(next.searchParams.get('sample'),'1');assert.equal(next.searchParams.get('utm_medium'),'cpc');
+  assert.doesNotMatch(next.href,/gclid|private/);
+  for(const search of ['?order=1','?sample=1&book=noah&embed=1','?sample=1&book=noah&order=1']){
+    const privateViewer=harness({},search,googleConfig,site,'/test-book');
+    assert.equal(privateViewer.calls.length,0);assert.equal(privateViewer.replaced.length,0);
+  }
 });

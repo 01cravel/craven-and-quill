@@ -11,7 +11,7 @@ const deviceOf=request=>{const ua=request.headers.get('User-Agent')||'';return /
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
 const code=(value,fallback='')=>typeof value==='string'&&/^[a-zA-Z0-9_.-]{1,100}$/.test(value)?value:fallback;
-const attribution=input=>[code(input.source,'direct'),code(input.medium,'none'),code(input.campaign,'organic'),code(input.creative,'none')];
+const attribution=input=>[code(input.source,'direct'),code(input.medium,'none'),code(input.campaign,'unattributed'),code(input.creative,'none')];
 const country=request=>code(request.headers.get('CF-IPCountry'),'unknown');
 function authorized(request,env){const token=request.headers.get('Authorization')?.replace(/^Bearer /,'');return Boolean(env.SIGNUPS_EXPORT_TOKEN&&token===env.SIGNUPS_EXPORT_TOKEN);}
 async function body(request){if(Number(request.headers.get('Content-Length')||0)>4096)throw new Error('Too much data.');const raw=await request.text();if(raw.length>4096)throw new Error('Too much data.');return JSON.parse(raw);}

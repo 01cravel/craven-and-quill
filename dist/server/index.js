@@ -141,7 +141,12 @@ async function exportSignups(request,env){
 async function serveAsset(request,env){
   if(!env.ASSETS)return new Response('Site assets are unavailable.',{status:503});
   const url=new URL(request.url);let path=url.pathname;
-  if(path==='/')path='/index.html';else if(!path.split('/').pop().includes('.'))path=`${path.replace(/\/$/,'')}.html`;
+  if(['/personalised','/personalised/','/personalised.html'].includes(path)){
+    url.pathname='/';
+    return Response.redirect(url.toString(),301);
+  }
+  if(path==='/colouring-books/')path='/colouring-books/index.html';
+  else if(path==='/')path='/index.html';else if(!path.split('/').pop().includes('.'))path=`${path.replace(/\/$/,'')}.html`;
   const assetUrl=new URL(url);assetUrl.pathname=path;
   return env.ASSETS.fetch(new Request(assetUrl,request));
 }

@@ -1,0 +1,97 @@
+/* The public book shelf and its illustrated reader. */
+.story-page {
+  --measure: 1120px;
+  --paper: #fffdf8;
+}
+.story-page .header-bar,
+.story-page footer { max-width: var(--measure); }
+.story-nav { display: flex; align-items: center; gap: 1.5rem; padding-right: .75rem; }
+.story-nav a { text-decoration: none; color: var(--muted); }
+.story-nav a:hover, .story-nav a:focus-visible { text-decoration: underline; }
+.story-page main {
+  display: block;
+  width: min(var(--measure), calc(100% - 2 * var(--gutter)));
+  margin: auto;
+  padding-bottom: clamp(3rem, 8vw, 6rem);
+}
+.story-page main > section { width: 100%; }
+.story-page h1, .story-page h2, .story-page h3 { text-wrap: balance; }
+.story-page h1 {
+  font: 400 clamp(2.75rem, 6.2vw, 5.25rem)/1.02 var(--serif);
+  letter-spacing: -.035em;
+  margin: 0;
+}
+.story-page h2 { max-width: none; font-size: clamp(2.1rem, 4.2vw, 3.4rem); }
+.story-page h3 { margin: 0; font: 400 clamp(1.45rem, 2.6vw, 2.1rem)/1.12 var(--serif); }
+.story-page p { max-width: 64ch; }
+.story-hero {
+  display: grid;
+  grid-template-columns: 1fr 1.02fr;
+  align-items: center;
+  gap: clamp(1.5rem, 6vw, 5.5rem);
+  padding-block: clamp(2rem, 6vw, 5.5rem);
+}
+.story-kicker, .story-folio {
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0 0 .85rem;
+}
+.story-intro { font-size: clamp(1.05rem, 1.7vw, 1.26rem); line-height: 1.55; margin: 1.2rem 0 1.5rem; }
+.story-price { color: var(--muted); margin: .85rem 0 0; font-size: .96rem; }
+.story-hero figure { margin: 0; }
+.story-hero figure img { width: 100%; border-radius: 18px; }
+.story-hero figcaption { font-size: .9rem; color: var(--muted); margin: .65rem .15rem 0; }
+.story-actions { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; align-items: center; }
+.story-section { border-top: 1px solid var(--line); padding-top: clamp(2.2rem, 5vw, 4rem); margin-top: clamp(2.5rem, 7vw, 6rem); }
+.story-hero + .story-section { margin-top: .5rem; }
+.story-section > p { margin: .75rem 0 1.7rem; }
+.story-examples { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1rem, 4vw, 3rem); }
+.story-examples article img { width: 100%; height: auto; border-radius: 14px; margin-bottom: 1rem; }
+.story-examples article p { margin: .6rem 0; }
+.story-example-link { text-decoration: none; }
+.story-example-link:hover h3, .story-example-link:focus-visible h3 { text-decoration: underline; }
+.story-example-link .story-kicker { display: block; margin: 0 0 .35rem; }
+.story-buying { display: grid; grid-template-columns: .75fr 1fr; gap: 1.25rem clamp(1.25rem, 6vw, 5rem); }
+.story-buying dl { margin: 0; }
+.story-buying dt { font-weight: 650; }
+.story-buying dd { margin: .2rem 0 1.15rem; }
+.story-buying dd:last-child { margin-bottom: 0; }
+.story-invitation { padding: clamp(1.5rem, 5vw, 3.6rem); background: var(--dusk-pale); border-radius: 20px; margin-top: clamp(2.5rem, 6vw, 5rem); }
+.story-invitation p { margin: .8rem 0 1.3rem; }
+.story-reader { max-width: 850px; margin-inline: auto; }
+.story-reader > h2 { margin-bottom: 1.4rem; }
+.story-spread {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: clamp(1.75rem, 5vw, 4rem);
+  background: var(--paper);
+  border-radius: 4px 14px 14px 4px;
+  overflow: hidden;
+  box-shadow: var(--shadow-book);
+}
+.story-spread img { width: 100%; height: 100%; object-fit: contain; background: #e8e4da; }
+.story-spread .words {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(1.25rem, 4vw, 3.1rem);
+  box-shadow: inset 12px 0 18px -18px rgba(48,40,23,.55);
+}
+.story-spread .words > p:last-child { font: 400 clamp(1.07rem, 1.8vw, 1.35rem)/1.56 var(--serif); margin: .9rem 0 0; }
+.story-page footer nav a { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 700px) {
+  .story-nav { display: none; }
+  .story-page .header-bar .brand span { display: inline; font-size: .98rem; }
+  .story-hero, .story-buying, .story-examples { grid-template-columns: 1fr; }
+  .story-examples { gap: 2rem; }
+  .story-hero { gap: 1.4rem; }
+  .story-hero figure { width: min(100%, 520px); }
+  .story-actions .text-link { white-space: normal; }
+}
+@media (max-width: 560px) {
+  .story-spread { grid-template-columns: 1fr; border-radius: 12px; }
+  .story-spread img { height: auto; }
+  .story-spread .words { box-shadow: none; padding: 1.3rem 1.5rem 1.65rem; }
+}

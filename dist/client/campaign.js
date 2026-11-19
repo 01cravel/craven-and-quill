@@ -3,21 +3,85 @@
   const AD_VERSION='ads-2026-11-06',privatePage=/\/order(?:\.html)?$/.test(location.pathname);
   const click=value=>/^[a-zA-Z0-9_-]{1,500}$/.test(value||'')?value:null;
   const safe=value=>/^[a-zA-Z0-9_.-]{1,100}$/.test(value||'')?value:'';
-  let attribution={source:safe(query.get('utm_source'))||'direct',medium:safe(query.get('utm_medium'))||'none',campaign:safe(query.get('utm_campaign'))||'organic',creative:safe(query.get('utm_content'))||'none'};
+  const pathName=path=>path.replace(/\.html$/,'').replace(/\/$/,'')||'/';
+  const landingPages=new Map([
+    ['/','home'],['/index','home'],['/create','maker'],['/ordering','ordering'],
+    ['/personalised-birthday-book','birthday'],['/examples/the-map-beneath-the-moon','amara']
+  ]);
+  function publicPage(url){
+    const path=pathName(url.pathname);
+    if(path==='/test-book'){
+      const sample=url.searchParams;
+      if(sample.get('sample')==='1'&&!sample.has('embed')&&!sample.has('order')&&['amara','noah','oliver','luke'].includes(sample.get('book')))return 'sample';
+      return null;
+    }
+    return landingPages.get(path)||null;
+  }
+  const page=publicPage(new URL(location.href));
+  if(pathName(location.pathname)==='/test-book'&&!page)return;
+  const infoPage=['ordering','birthday','amara','sample'].includes(page);
+  // Store only a known engine and a public page code. Search terms and referrer URLs never leave the page.
+  const searchHosts=new Map([
+    ['google.co.uk','google'],['google.com','google'],['google.ie','google'],['google.fr','google'],
+    ['bing.com','bing'],['duckduckgo.com','duckduckgo'],['search.yahoo.com','yahoo'],['uk.search.yahoo.com','yahoo'],
+    ['ecosia.org','ecosia'],['search.brave.com','brave'],['startpage.com','startpage']
+  ]);
+  let referrer=null;
+  try{referrer=new URL(document.referrer);}catch{}
+  const external=referrer&&referrer.origin!==location.origin;
+  const engine=external&&searchHosts.get(referrer.hostname.replace(/^www\./,''));
+  let attribution={source:safe(query.get('utm_source'))||'direct',medium:safe(query.get('utm_medium'))||'none',campaign:safe(query.get('utm_campaign'))||'unattributed',creative:safe(query.get('utm_content'))||'none'};
   // First-party visit measurement works for everyone and uses no cookies or device storage: the
   // visit's random reference travels in the page link (?v=) so a reload or the home-to-maker link
   // keeps one journey together. Advertising identifiers use storage unless measurement is turned off.
   const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   let visitId=(query.get('v')||'').toLowerCase();if(!UUID.test(visitId))visitId=crypto.randomUUID();
-  if(query.get('v')!==visitId){try{const url=new URL(location.href);url.searchParams.set('v',visitId);history.replaceState(history.state,'',url);}catch{}}
   // Advertising measurement (Google tag, Meta pixel) is on for everyone unless the visitor turned it
   // off: ?measurement=no on any page (the privacy page links to it), remembered in local storage.
   let preference='ads';try{const asked=query.get('measurement');if(asked==='no'||asked==='ads'){preference=asked;localStorage.setItem('cq-measurement-v3',asked);}else if(localStorage.getItem('cq-measurement-v3')==='no'||localStorage.getItem('cq-measurement-v2')==='no')preference='no';}catch{}
   let adClick={gclid:click(query.get('gclid')),gbraid:click(query.get('gbraid')),wbraid:click(query.get('wbraid')),fbclid:click(query.get('fbclid'))};
   const hasNewClick=Boolean(adClick.gclid||adClick.gbraid||adClick.wbraid),hasAnyClick=hasNewClick||Boolean(adClick.fbclid);
-  if(preference==='ads'){try{const saved=JSON.parse(localStorage.getItem('cq-ad-click-v1')||'null');if(!hasAnyClick&&!query.has('utm_source')&&saved?.expires>Date.now()){adClick={fbclid:null,...saved.click};attribution=saved.attribution;}}catch{}}
-  if((hasNewClick||['g_birthday','g_christmas','g_grandchild','g_adult'].includes(attribution.creative))&&attribution.source==='direct'){attribution={...attribution,source:'google',medium:'cpc',campaign:['g_birthday','g_christmas','g_grandchild','g_adult'].includes(attribution.creative)?'cq_gifts':'google_untagged'};}
-  function persistClick(){if(preference!=='ads')return;try{if(hasAnyClick||query.has('utm_source'))localStorage.setItem('cq-ad-click-v1',JSON.stringify({click:adClick,attribution,expires:Date.now()+30*86400000}));}catch{}}
+  const googleCreative=['g_birthday','g_christmas','g_grandchild','g_adult'].includes(attribution.creative);
+  // Some paid links carry campaign markers without a Google or Meta conversion identifier.
+  const paidEngine=hasNewClick||googleCreative||click(query.get('dclid'))||/^\d+$/.test(query.get('gad_source')||'')?'google':click(query.get('msclkid'))?'bing':null;
+  const tagged=['utm_source','utm_medium','utm_campaign','utm_content'].some(key=>safe(query.get(key)));
+  const validEntries=new Set([...landingPages.values(),'sample']);
+  const previousSearch=history.state?.cqSearch;
+  let search=null;
+  if(page&&!tagged&&!hasAnyClick&&!paidEngine){
+    if(engine)search={engine,entry:page};
+    else if(!external&&query.get('v')===visitId){
+      const saved=previousSearch?.visitId===visitId?previousSearch:null;
+      const engine=query.get('cq_search')||saved?.engine,entry=query.get('cq_entry')||saved?.entry;
+      if([...searchHosts.values()].includes(engine)&&validEntries.has(entry))search={engine,entry};
+    }
+  }
+  if(search){
+    attribution={source:'organic_search',medium:'organic',campaign:search.engine,creative:'seo_'+search.entry};
+  }else if(attribution.source==='direct'&&paidEngine){
+    attribution={...attribution,source:paidEngine,medium:'cpc',campaign:googleCreative?'cq_gifts':paidEngine+'_untagged'};
+  }else if(attribution.source==='direct'&&adClick.fbclid){
+    attribution={...attribution,source:'facebook',medium:'referral'};
+  }else if(page&&!tagged&&external){
+    attribution={...attribution,source:'referral',medium:'referral'};
+  }else if(!tagged&&!hasAnyClick&&preference==='ads'){
+    try{
+      const saved=JSON.parse(localStorage.getItem('cq-ad-click-v1')||'null');
+      if(saved?.attribution&&saved.expires>Date.now()){adClick={fbclid:null,...saved.click};attribution=saved.attribution;}
+    }catch{}
+  }
+  if(query.get('v')!==visitId||search){
+    try{const url=new URL(location.href);url.searchParams.set('v',visitId);
+      history.replaceState({...history.state,cqSearch:search?{...search,visitId}:null},'',url);
+    }catch{}
+  }
+  function persistClick(){
+    if(preference!=='ads')return;
+    try{
+      if(search||(page&&!tagged&&!hasAnyClick&&!paidEngine&&external))localStorage.removeItem('cq-ad-click-v1');
+      else if(hasAnyClick||tagged||paidEngine)localStorage.setItem('cq-ad-click-v1',JSON.stringify({click:adClick,attribution,expires:Date.now()+30*86400000}));
+    }catch{}
+  }
   let pixelId=null,pixelStarted=false,configPromise=null;const sent=new Set(),counted=new Set(),leadSent=new Set();
   // Returning visitors: one random reference kept on this device for 30 days (not with measurement turned off),
   // so a parent who comes back from a reminder ad or email is counted as coming back, not as a stranger.
@@ -34,7 +98,7 @@
     fetch('/api/campaign-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...context(),event}),keepalive:true}).then(response=>{if(!response.ok)sent.delete(event);}).catch(()=>sent.delete(event));
   }
   async function startPixel(){
-    if(preference!=='ads'||privatePage)return false;
+    if(preference!=='ads'||privatePage||infoPage)return false;
     if(!configPromise)configPromise=fetch('/api/ad-config').then(r=>r.ok?r.json():{}).catch(()=>({}));
     const config=await configPromise;
     if(preference!=='ads'||!/^\d{5,30}$/.test(config.pixelId||''))return false;
@@ -71,7 +135,7 @@
   const googleSent=new Set();
   const cleanPage=()=>{const url=new URL(location.origin+(privatePage?'/order':location.pathname));for(const key of ['gclid','gbraid','wbraid'])if(click(adClick[key]))url.searchParams.set(key,adClick[key]);return url.href;};
   async function startGoogle(allowPrivate=false){
-    if(preference!=='ads'||(privatePage&&!allowPrivate)||!['cravenandquill.com','www.cravenandquill.com'].includes(location.hostname)||attribution.source==='qa'||/^qa(?:[_.-]|$)/.test(attribution.campaign)||attribution.campaign==='tracking_test')return false;
+    if(preference!=='ads'||infoPage||(privatePage&&!allowPrivate)||!['cravenandquill.com','www.cravenandquill.com'].includes(location.hostname)||attribution.source==='qa'||/^qa(?:[_.-]|$)/.test(attribution.campaign)||attribution.campaign==='tracking_test')return false;
     if(!configPromise)configPromise=fetch('/api/ad-config').then(r=>r.ok?r.json():{}).catch(()=>({}));
     const config=await configPromise;
     if(preference!=='ads'||!/^AW-\d{5,20}$/.test(config.google?.tagId||''))return false;
@@ -103,7 +167,7 @@
   // Typed text is masked, and photos, characters, stories, emails and addresses are hidden (data-clarity-mask).
   let clarityStarted=false;
   async function startClarity(){
-    if(preference!=='ads'||privatePage||clarityStarted||!['cravenandquill.com','www.cravenandquill.com'].includes(location.hostname)||attribution.source==='qa'||/^qa(?:[_.-]|$)/.test(attribution.campaign))return;
+    if(preference!=='ads'||privatePage||infoPage||clarityStarted||!['cravenandquill.com','www.cravenandquill.com'].includes(location.hostname)||attribution.source==='qa'||/^qa(?:[_.-]|$)/.test(attribution.campaign))return;
     if(!configPromise)configPromise=fetch('/api/ad-config').then(r=>r.ok?r.json():{}).catch(()=>({}));
     const id=(await configPromise).clarityId;
     if(preference!=='ads'||clarityStarted||!/^[a-z0-9]{6,20}$/i.test(id||''))return;
@@ -124,19 +188,31 @@
     fetch('/api/ad-revoke',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({visitId}),keepalive:true}).catch(()=>{});
     for(const name of names)for(const domain of ['',location.hostname,'.'+location.hostname])document.cookie=name+'=; Max-Age=0; Path=/; SameSite=Lax'+(domain?'; Domain='+domain:'');
   }
-  document.querySelectorAll('a[href="create.html"],a[href="/create"]').forEach(link=>{
-    const url=new URL(link.getAttribute('href'),location.href);
-    for(const key of ['utm_source','utm_medium','utm_campaign','utm_content']){const value=safe(query.get(key));if(value)url.searchParams.set(key,value);}
-    url.searchParams.set('v',visitId);
-    // Preserve Meta's ad-click identifier in the URL only. Meta may use it only
-    // if the visitor subsequently permits advertising measurement.
-    for(const key of ['fbclid','gclid','gbraid','wbraid']){const id=query.get(key);if(id&&/^[a-zA-Z0-9_.-]{1,500}$/.test(id))url.searchParams.set(key,id);}
-    link.href=url.pathname+url.search;
+  // Keep crawlable links clean until the visitor follows them. Only our public shopping pages
+  // receive the visit and attribution codes. Never copy arbitrary query parameters or fragments.
+  document.querySelectorAll('a[href]').forEach(link=>{
+    const href=link.getAttribute('href');
+    if(!href||href.startsWith('#'))return;
+    const target=new URL(href,location.href);
+    if(target.origin!==location.origin||!publicPage(target))return;
+    if([...target.searchParams.keys()].some(key=>!['sample','book'].includes(key))||target.hash.includes('='))return;
+    const keys={source:'utm_source',medium:'utm_medium',campaign:'utm_campaign',creative:'utm_content'};
+    const carry=()=>{
+      const url=new URL(target);
+      url.searchParams.set('v',visitId);
+      if(search){
+        url.searchParams.set('cq_search',search.engine);url.searchParams.set('cq_entry',search.entry);
+      }else if(attribution.source!=='direct'||tagged){
+        for(const [field,key] of Object.entries(keys))if(safe(attribution[field]))url.searchParams.set(key,attribution[field]);
+      }
+      if(preference==='ads')for(const key of ['fbclid','gclid','gbraid','wbraid'])if(click(adClick[key]))url.searchParams.set(key,adClick[key]);
+      link.href=url.pathname+url.search+url.hash;
+    };
+    for(const event of ['pointerdown','contextmenu','click'])link.addEventListener(event,carry);
   });
   function choose(choice){if(!['no','ads'].includes(choice))return;preference=choice;try{localStorage.setItem('cq-measurement-v3',choice);}catch{}if(choice!=='ads'){revokePixel();personId=null;try{localStorage.removeItem('cq-person-v1');}catch{}}else{persistClick();void startPixel();void startGoogle();void startClarity();}}
   window.cqMeasurement={record,context,savedLead,characterMade,choose,previewLead:receipt=>googleConversion('lead',receipt),purchase:receipt=>googleConversion('purchase',receipt)};
-  let arrivedFrom='';try{arrivedFrom=document.referrer?new URL(document.referrer).origin:'';}catch{}
-  if(!privatePage&&arrivedFrom!==location.origin)count('arrive');
+  if(!privatePage&&referrer?.origin!==location.origin)count('arrive');
   if(!privatePage){record(location.pathname.includes('create')?'maker_start':'landing_view');record(matchMedia('(max-width:779px)').matches?'device_mobile':'device_desktop');}
   if(preference==='ads'){persistClick();void startPixel();void startGoogle();void startClarity();}
 })();

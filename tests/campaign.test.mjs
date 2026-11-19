@@ -93,7 +93,7 @@ test('captures preview email before drawing, deduplicates and never creates a ma
  const csv=await(await campaignApi(new Request('https://example.com/api/preview-emails.csv',{headers:{Authorization:'Bearer test-only'}}),env)).text();assert.match(csv,/early@example.com/);assert.match(csv,/not_granted/);
  assert.equal((await campaignApi(new Request('https://example.com/api/preview-emails.csv'),env)).status,404);
  await campaignApi(request('preview-email',{email:'private@example.com'}),env);
- assert.equal(env.DB.sqlite.prepare('SELECT campaign FROM preview_contacts WHERE email=?').get('private@example.com').campaign,'organic');
+ assert.equal(env.DB.sqlite.prepare('SELECT campaign FROM preview_contacts WHERE email=?').get('private@example.com').campaign,'unattributed');
 });
 test('preview capture rejects invalid or cross-origin input and fails honestly when saving fails',async()=>{
  const env={DB:testDb()};
