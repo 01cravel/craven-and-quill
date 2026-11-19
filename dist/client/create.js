@@ -122,7 +122,7 @@ function showStep(number){
   if(number===11)queueMicrotask(()=>void prepareAddressStep());
   document.body.dataset.step=number;
   if(number===4&&state.storyDraft)requestAnimationFrame(()=>turnStoryPage(state.storyPage,'instant'));
-  if(number===5||number===11)void refreshHold();
+  if(number===5||number===11)void refreshHold();else document.body.classList.remove('hold-on');
   if(number===5){ensurePreview();updateReveal();updateXmas();if(state.characterImages[0]){renderPreviewBook();startAutoFlip();}}
   if([4,5,11].includes(number))void drawPages();
   scrollToStepTop(number);
@@ -655,7 +655,7 @@ async function refreshHold(){
 }
 function tickHold(){
   const clocks=$$('[data-hold-clock]');
-  if(!hold||holdFor!==state.previewId){clocks.forEach(el=>el.hidden=true);return;}
+  if(!hold||holdFor!==state.previewId){clocks.forEach(el=>el.hidden=true);document.body.classList.remove('hold-on');return;}
   const left=Math.max(0,Math.ceil((hold.endsAt-Date.now())/1000)),over=left<=0,time=`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;
   const money=pence=>`£${(pence/100).toFixed(2)}`;let chosen=null;
   for(const product of hold.products){
@@ -667,8 +667,12 @@ function tickHold(){
     if(tag){tag.hidden=over;tag.textContent=`${money(saving).replace('.00','')} off for ${time}`;}
     if(radio.checked)chosen=product;
   }
-  if(chosen)clocks.forEach(el=>{el.hidden=false;el.classList.toggle('over',over);
-    el.textContent=over?`The offer has ended. The price is now ${money(chosen.regularPricePence)}.`:`Your ${money(chosen.regularPricePence-chosen.pricePence).replace('.00','')} off is held for ${time}. After that it’s ${money(chosen.regularPricePence)}.`;});
+  // While the hold runs, the countdown takes the place of the progress bar at the top of the screen
+  // (it turns over slowly). Once the hour is up the progress bar comes back and a quiet line says so.
+  const showing=!over&&!!chosen&&(state.step===5||state.step===11);
+  document.body.classList.toggle('hold-on',showing);$('#top-timer').setAttribute('aria-hidden',String(!showing));
+  if(chosen&&!over){$('#top-timer-what').textContent=`${money(chosen.regularPricePence-chosen.pricePence).replace('.00','')} off held for`;$('#top-timer-time').textContent=time;$('#top-timer-fill').style.width=`${Math.min(100,left/36)}%`;}
+  clocks.forEach(el=>{el.hidden=!over||!chosen;el.classList.add('over');if(over&&chosen)el.textContent=`The offer has ended. The price is now ${money(chosen.regularPricePence)}.`;});
   const shown=`${holdFor}:${over}`;if(shown!==holdShown){holdShown=shown;updateProduct();}
 }
 endOffer();
