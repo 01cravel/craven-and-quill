@@ -1,7 +1,7 @@
 import {adConsent,internalTraffic,sendMetaPurchase} from './ad-measurement.js';
 import {livePaymentTest} from './live-payment-test.js';
 import {ownerSession} from './owner-auth.js';
-import {sendOrderEmail} from './order-email.js';
+import {sendOrderEmail,savedPreviewEmail} from './order-email.js';
 import {PRODUCTS,OWNER_TEST,BOOK,CATALOG_VERSION,catalogue,recipient,safeText,sha,requireThat,OrderError,checkoutReady,referenceBrief,SHIPPING_PENCE,orderTotal} from './catalog.js';
 import {printBook,validatePdf,makeSpine} from './print-book.js';
 import {recordFollowupConsent,unsubscribeFollowup,ensureFollowupTable,runFollowups,followupStatus,saveFollowupDetails,recordPreviewChoice,enrolPastContacts} from './followups.js';
@@ -222,7 +222,7 @@ export async function ordersApi(req,env){const url=new URL(req.url),path=url.pat
  b.draft.state.photos=[];b.draft.state.photoChecks=[];b.draft.orderRequest=null;b.draft.expires=saved?.expires||Date.now()+7*86400000;
  const stored={draft:b.draft,expires:b.draft.expires,emailedAt:Date.now()};
  await env.BOOK_ASSETS.put(key,new TextEncoder().encode(await privateKey(env,JSON.stringify(stored))),{httpMetadata:{contentType:'text/plain'}});
- let sent=false;if(env.RESEND_API_KEY&&env.ORDER_EMAIL_FROM){try{const r=await (env.fetch||fetch)('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+env.RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':'draft-'+draftRoute[1]+'-'+Math.floor(Date.now()/60000)},body:JSON.stringify({from:env.ORDER_EMAIL_FROM,to:[b.email],subject:'Your Craven & Quill preview is saved',text:'Continue your book using this private link. It expires in 7 days. Keep it private: anyone with it can see your story and character preview. Original uploaded photos are not included.\n\nhttps://cravenandquill.com/create#draft='+draftRoute[1]+'&key='+token}),signal:AbortSignal.timeout(15000)});sent=r.ok;}catch{}}
+ let sent=false;if(env.RESEND_API_KEY&&env.ORDER_EMAIL_FROM){const mail=savedPreviewEmail(b.draft.state.names,'https://cravenandquill.com/create?utm_source=email&utm_medium=email&utm_campaign=saved_preview#draft='+draftRoute[1]+'&key='+token);try{const r=await (env.fetch||fetch)('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+env.RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':'draft-'+draftRoute[1]+'-'+Math.floor(Date.now()/60000)},body:JSON.stringify({from:env.ORDER_EMAIL_FROM,to:[b.email],reply_to:env.ORDER_EMAIL_REPLY_TO||'cravenluke@gmail.com',subject:mail.subject,text:mail.text,html:mail.html}),signal:AbortSignal.timeout(15000)});sent=r.ok;}catch{}}
  return reply({sent});
  }
  // Owner: draw the next picture (or build the print file) for paid orders waiting on automatic artwork. The order desk calls this

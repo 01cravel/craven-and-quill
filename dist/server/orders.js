@@ -4601,8 +4601,28 @@ ${c.note ? p(esc(c.note), "margin:24px 0 0;color:#655a50;font-size:14px;") : ""}
 </td></tr>
 <tr><td class="footer" style="padding:24px 48px 34px;border-top:1px solid #e9dec7;background:#faf7f0;">
 <p style="margin:0 0 8px;color:#655a50;font:13px/1.55 ${sans};">Craven &amp; Quill. Personalised books, made for one reader at a time.</p>
-<p style="margin:0;color:#8a7f73;font:12px/1.55 ${sans};">The button opens your private order page. Please don\u2019t forward this email.</p>
+<p style="margin:0;color:#8a7f73;font:12px/1.55 ${sans};">${esc(c.footer || "The button opens your private order page. Please don\u2019t forward this email.")}</p>
 </td></tr></table></td></tr></table></body></html>`;
+}
+function savedPreviewEmail(names, url) {
+  const name5 = String(names || "").replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, 60), book = name5 ? possessive(name5) + " book" : "your book", Book = name5 ? book : "Your book";
+  const lines = [`Here is ${book}, saved for 7 days.`, "Tap the button to see the cover, the first painted pages and the whole story."];
+  const after = "You see the whole finished book before we print it. When you\u2019re ready, you can order the A4 or A5 hardback from that page.";
+  const c = {
+    simple: true,
+    subject: `${Book} is saved`,
+    preheader: "Your free preview, saved for 7 days.",
+    kicker: "",
+    heading: "",
+    intro: ["Hello,", ...lines].map(esc),
+    after: [esc(after), "Thank you,<br>The Craven &amp; Quill team"],
+    steps: [],
+    note: "",
+    button: `See ${name5 ? possessive(name5) : "your"} book`,
+    footer: "The button opens your private preview. Anyone with the link can see the story and character, so please don\u2019t forward this email."
+  };
+  const text = ["Hello,", ...lines, `${c.button}: ${url}`, after, "Thank you,\nThe Craven & Quill team", c.footer].join("\n\n");
+  return { subject: "Craven & Quill: " + c.subject, text, html: html({ size: "a4", amount: 0, id: "", data: { names: name5 } }, c, url) };
 }
 function orderEmail(o, kind, url) {
   const c = copy(o, kind), f = facts(o);
@@ -53665,8 +53685,9 @@ You can stop offer emails here: ${unsubscribe}`;
       await env2.BOOK_ASSETS.put(key2, new TextEncoder().encode(await privateKey(env2, JSON.stringify(stored))), { httpMetadata: { contentType: "text/plain" } });
       let sent = false;
       if (env2.RESEND_API_KEY && env2.ORDER_EMAIL_FROM) {
+        const mail = savedPreviewEmail(b2.draft.state.names, "https://cravenandquill.com/create?utm_source=email&utm_medium=email&utm_campaign=saved_preview#draft=" + draftRoute[1] + "&key=" + token);
         try {
-          const r = await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + env2.RESEND_API_KEY, "Content-Type": "application/json", "Idempotency-Key": "draft-" + draftRoute[1] + "-" + Math.floor(Date.now() / 6e4) }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, to: [b2.email], subject: "Your Craven & Quill preview is saved", text: "Continue your book using this private link. It expires in 7 days. Keep it private: anyone with it can see your story and character preview. Original uploaded photos are not included.\n\nhttps://cravenandquill.com/create#draft=" + draftRoute[1] + "&key=" + token }), signal: AbortSignal.timeout(15e3) });
+          const r = await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + env2.RESEND_API_KEY, "Content-Type": "application/json", "Idempotency-Key": "draft-" + draftRoute[1] + "-" + Math.floor(Date.now() / 6e4) }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, to: [b2.email], reply_to: env2.ORDER_EMAIL_REPLY_TO || "cravenluke@gmail.com", subject: mail.subject, text: mail.text, html: mail.html }), signal: AbortSignal.timeout(15e3) });
           sent = r.ok;
         } catch {
         }

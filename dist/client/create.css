@@ -858,3 +858,16 @@ body[data-step="5"] .maker-shell,body[data-step="4"] .maker-shell{grid-template-
 #choose-saved-book {box-sizing:border-box;width:min(90vw,28rem);padding:1.5rem;border:1px solid #abb6aa;border-radius:1rem;color:#19382d;background:#fffdf7}
 #choose-saved-book::backdrop {background:rgb(21 39 32 / .55)}
 #choose-saved-book button {padding:.65rem .85rem;border-radius:1rem;background:#19382d;color:white;cursor:pointer}
+
+/* Character page: reassurance line and the no-commitment "email me this preview" box. */
+.see-first{margin:12px 0 0;text-align:center;font-size:.92rem;color:var(--muted)}
+.save-preview{margin:22px 0 0;padding:18px 0 0;border-top:1px solid var(--line)}
+.save-preview label{display:block;margin:0 0 10px;font-weight:600;font-size:1rem;color:var(--ink)}
+.save-row{display:grid;grid-template-columns:1fr auto;gap:8px}
+.save-row input{min-width:0;margin:0;min-height:50px}
+.save-row button{min-height:50px;padding:0 18px;border-radius:999px;border:1.5px solid var(--ink);background:#fff;color:var(--ink);font-weight:600;white-space:nowrap;cursor:pointer}
+.save-row button:hover:not(:disabled){background:var(--mint)}
+.save-row button:disabled{opacity:.55;cursor:default}
+.save-note{margin:10px 0 0;font-size:.8rem;line-height:1.5;color:var(--muted)}
+.save-note.bad{color:var(--danger)}.save-note.good{color:var(--ink);font-weight:600}
+@media(max-width:480px){.save-row{grid-template-columns:1fr}.save-row button{width:100%}}

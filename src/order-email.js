@@ -83,8 +83,21 @@ ${c.note?p(esc(c.note),'margin:24px 0 0;color:#655a50;font-size:14px;'):''}
 </td></tr>
 <tr><td class="footer" style="padding:24px 48px 34px;border-top:1px solid #e9dec7;background:#faf7f0;">
 <p style="margin:0 0 8px;color:#655a50;font:13px/1.55 ${sans};">Craven &amp; Quill. Personalised books, made for one reader at a time.</p>
-<p style="margin:0;color:#8a7f73;font:12px/1.55 ${sans};">The button opens your private order page. Please don’t forward this email.</p>
+<p style="margin:0;color:#8a7f73;font:12px/1.55 ${sans};">${esc(c.footer||'The button opens your private order page. Please don’t forward this email.')}</p>
 </td></tr></table></td></tr></table></body></html>`;
+}
+
+// Sent when a shopper asks to have their free preview emailed, before any order exists.
+// Same short shape as the 'book is ready' email: no pictures, one button back to their preview.
+export function savedPreviewEmail(names,url){
+  const name=String(names||'').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,60),book=name?possessive(name)+' book':'your book',Book=name?book:'Your book';
+  const lines=[`Here is ${book}, saved for 7 days.`,'Tap the button to see the cover, the first painted pages and the whole story.'];
+  const after='You see the whole finished book before we print it. When you’re ready, you can order the A4 or A5 hardback from that page.';
+  const c={simple:true,subject:`${Book} is saved`,preheader:'Your free preview, saved for 7 days.',kicker:'',heading:'',
+    intro:['Hello,',...lines].map(esc),after:[esc(after),'Thank you,<br>The Craven &amp; Quill team'],steps:[],note:'',button:`See ${name?possessive(name):'your'} book`,
+    footer:'The button opens your private preview. Anyone with the link can see the story and character, so please don’t forward this email.'};
+  const text=['Hello,',...lines,`${c.button}: ${url}`,after,'Thank you,\nThe Craven & Quill team',c.footer].join('\n\n');
+  return {subject:'Craven & Quill: '+c.subject,text,html:html({size:'a4',amount:0,id:'',data:{names:name}},c,url)};
 }
 
 export function orderEmail(o,kind,url){

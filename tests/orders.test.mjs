@@ -201,8 +201,10 @@ test('owner launch switch enables checkout without falsely attesting tax status;
 test('draft return links encrypt large artwork, require the secret, send only to the requested email, and cannot print',async()=>{
  const env=environment();connected(env);const {body}=await create(env);const id=crypto.randomUUID();let mail;
  env.fetch=async(url,opts)=>{assert.equal(url,'https://api.resend.com/emails');mail=JSON.parse(opts.body);return Response.json({id:'draft-email'});};
- const draft={state:{storyDraft:story,characterImages:[dataUrl],photos:['must be removed'],photoChecks:[true]},values:{names:'Jamie'},orderRequest:{secret:'remove'}};
+ const draft={state:{names:'Jamie',storyDraft:story,characterImages:[dataUrl],photos:['must be removed'],photoChecks:[true]},values:{names:'Jamie'},orderRequest:{secret:'remove'}};
  const r=await request(env,'/drafts/'+id,{draft,previewId:body.previewId,email:'qa-draft@example.test'},{method:'PUT'});assert.equal(r.status,200);assert.equal((await r.json()).sent,true);assert.deepEqual(mail.to,['qa-draft@example.test']);assert.match(mail.text,/#draft=/);
+ // Short branded email, one button back to the preview, named after the child, no pictures of the book.
+ assert.equal(mail.subject,'Craven & Quill: Jamie’s book is saved');assert.match(mail.html,/See Jamie’s book<\/a>/);assert.match(mail.html,/create\?utm_source=email[^"]*#draft=/);assert.equal((mail.html.match(/<img /g)||[]).length,1);assert.match(mail.text,/whole finished book before we print/);
  const recovered=await request(env,'/drafts/'+id);assert.equal(recovered.status,200);const d=await recovered.json();assert.equal(d.state.storyDraft.title,story.title);assert.deepEqual(d.state.photos,[]);assert.equal(d.orderRequest,null);
  assert.equal((await request(env,'/drafts/'+id,null,{auth:false})).status,404);
  assert.equal((await request(env,'/drafts/'+id,null,{headers:{Authorization:'Bearer '+crypto.randomUUID()+crypto.randomUUID()}})).status,404);

@@ -298,6 +298,24 @@ function recordQuote(){
   saveQueue=saveQueue.then(()=>postQuote('quote-view',body)).catch(()=>{if(lastQuoteKey===key)lastQuoteKey='';});
 }
 $('#email').addEventListener('change',()=>{void saveEmailOnce();});
+// Character page: a no-commitment way out. Saves the preview for 7 days, emails a private link back
+// to it, and gives us an address for the reminders. Without this, people who are not ready to pay vanish.
+async function emailPreview(){
+  const field=$('#save-email'),button=$('#save-send'),note=$('#save-note'),email=field.value.trim().toLowerCase();
+  if(button.disabled)return;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254){note.textContent='Enter your email address, then tap the button.';note.classList.add('bad');field.focus();return;}
+  if(!state.previewId||!previewReady()){note.textContent='Their book is nearly ready. Try again in a moment.';note.classList.add('bad');return;}
+  note.classList.remove('bad','good');note.textContent='Sending…';button.disabled=true;$('#email').value=email;
+  try{
+    if(email!==savedEmail){await capturePreviewEmail();savedEmail=email;recordQuote();}
+    const sent=await window.cqEmailDraft();
+    note.textContent=sent?`Sent to ${email}. The link brings you back to this preview for 7 days.`:'Saved, but the email did not send. Please try again in a minute.';
+    note.classList.add(sent?'good':'bad');if(sent)button.textContent='Sent';
+  }catch(error){note.textContent=error.message||'We could not send that. Please try again.';note.classList.add('bad');}
+  if(note.classList.contains('good'))setTimeout(()=>{button.disabled=false;button.textContent='Email me this preview';},61000);else button.disabled=false;
+}
+$('#save-send').addEventListener('click',()=>void emailPreview());
+$('#save-email').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();void emailPreview();}});
 $('#email').addEventListener('blur',()=>{void saveEmailOnce();});
 $('#edit-words').addEventListener('click',()=>{$('#story-editor').open=true;showStep(4);});
 $('#revise-story').addEventListener('click',()=>{void writeStory(true);});
@@ -483,6 +501,7 @@ function ensurePreview(){
 function updateReveal(){
   const ready=previewReady();
   $('#making-state').hidden=ready;$('#result-state').hidden=!ready;$('#choose-book').disabled=!ready;
+  if(ready&&state.step===5)window.cqMeasurement?.record('price_visible');
   if(state.storyError){$('#generation-error-copy').textContent=state.storyError;$('#generation-error').hidden=false;$('#retry-generation').hidden=false;}
   if(!ready&&!generationBusy&&!state.characterImages[0]&&!photosReady()&&$('#generation-error').hidden&&state.step===5){$('#generation-error-copy').textContent='Add their photo again to see the book. Everything else is saved.';$('#generation-error').hidden=false;$('#retry-generation').hidden=true;$('#blocked-actions').hidden=false;}
 }
