@@ -52957,7 +52957,7 @@ function wishes(w) {
 }
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, previewId: d.previewId || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
 }
 var editable = (o) => o.payment_status === "paid" && ["awaiting_review", "building", "proof_ready", "awaiting_approval"].includes(o.status);
 function archiveContent(o, kind, actor) {
@@ -53617,7 +53617,7 @@ You can stop offer emails here: ${unsubscribe}`;
         requireThat(bytes[0] === 255 && bytes[1] === 216, "Invalid character image.");
         characters.push(await assetPut(env2, o2, bytes, "image/jpeg", "character"));
       }
-      const data2 = { measurement: measurementContext(b2.measurement, req), privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, names: safeText(b2.names, 85), age: safeText(b2.age, 20), story, recipient: recipient(b2.recipient), dedication: safeText(b2.dedication, 300), senderName: safeText(b2.senderName, 80), wishes: wishes(b2.wishes), characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now2(), storyApprovedAt: now2() };
+      const data2 = { measurement: measurementContext(b2.measurement, req), privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, names: safeText(b2.names, 85), age: safeText(b2.age, 20), story, recipient: recipient(b2.recipient), dedication: safeText(b2.dedication, 300), senderName: safeText(b2.senderName, 80), wishes: wishes(b2.wishes), previewId: preview.id, characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now2(), storyApprovedAt: now2() };
       requireThat(data2.names, "Add the main character name.");
       const date = now2();
       await q(env2, "INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,'saved','unpaid',1,?6,?7,?7)", o2.id, await sha(token), b2.email.toLowerCase(), b2.size, orderTotal(b2.size), JSON.stringify(data2), date).run();
@@ -53676,6 +53676,14 @@ You can stop offer emails here: ${unsubscribe}`;
       o.data.adminApproved = null;
       await audit(env2, id, "proof_uploaded", "cravenluke@gmail.com");
       return reply(publicOrder(await save(env2, o, o.data, "proof_ready"), true));
+    }
+    if (action === "photo" && req.method === "GET") {
+      requireThat(isAdmin, "Owner access required.", 403);
+      const n = Number(url.searchParams.get("n") || 1);
+      requireThat(o.data.previewId && Number.isInteger(n) && n >= 1 && n <= 3, "Photo not found.", 404);
+      const a = await env2.BOOK_ASSETS.get(`photos/${o.data.previewId}/${n}`);
+      requireThat(a, "Photo not found.", 404);
+      return new Response(a.body, { headers: { "Content-Type": a.httpMetadata?.contentType || "image/jpeg", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
     }
     if (action === "activity" && req.method === "GET") {
       requireThat(isAdmin, "Owner access required.", 403);

@@ -72,6 +72,11 @@ async function previewPage(request,env){
   return json({image:`data:image/jpeg;base64,${image}`,page});
 }
 
+// Keep the customer's original photo(s) privately so the owner can check the likeness before printing (owner's call, 19 Nov 2026).
+// Stored under photos/<previewId>/<n>; only the order desk can open them; deleted automatically after PHOTO_KEEP_DAYS.
+const PHOTO_KEEP_DAYS=90;
+async function keepPhotos(env,previewId,photos){if(!env.BOOK_ASSETS||!previewId)return;try{for(let i=0;i<photos.length;i++)await env.BOOK_ASSETS.put(`photos/${previewId}/${i+1}`,await photos[i].arrayBuffer(),{httpMetadata:{contentType:photos[i].type},customMetadata:{kind:'customer-photo'}});}catch(error){console.error('Customer photo not kept',error?.message||error);}}
+async function deleteOldPhotos(env){if(!env.BOOK_ASSETS)return;const cutoff=Date.now()-PHOTO_KEEP_DAYS*86400000;let cursor;do{const page=await env.BOOK_ASSETS.list({prefix:'photos/',cursor,limit:500});const old=page.objects.filter(x=>new Date(x.uploaded).getTime()<cutoff).map(x=>x.key);if(old.length)await env.BOOK_ASSETS.delete(old);cursor=page.truncated?page.cursor:undefined;}while(cursor);}
 async function generateCharacter(request,env){
   if(request.method!=='POST')return json({error:'Use the character form to create a preview.'},405,{Allow:'POST'});
   if(!allowedOrigin(request))return json({error:'Please reload the page and try again.'},403);
@@ -100,6 +105,7 @@ async function generateCharacter(request,env){
     return json({error:response.status===429?'The drawing service is busy. Please try again shortly.':'The character could not be drawn this time. Please try again.',requestId},status);
   }
   try{await finishPreview(env,previewId,'succeeded');}catch{return json({error:'Your preview could not be saved. Please try again shortly.'},503);}
+  await keepPhotos(env,previewId,photos);
   return json({image:`data:image/jpeg;base64,${image}`,requestId,previewId});
 }
 
@@ -180,7 +186,7 @@ async function followupMcp(request,env){
 let lastReminderCheck=0;
 function kickReminders(env,ctx){
   if(Date.now()-lastReminderCheck<10*60*1000)return;lastReminderCheck=Date.now();
-  const run=reminderTick(env).catch(()=>{});
+  const run=Promise.all([reminderTick(env).catch(()=>{}),deleteOldPhotos(env).catch(()=>{})]);
   if(ctx&&typeof ctx.waitUntil==='function')ctx.waitUntil(run);
 }
 export default {async fetch(request,env,ctx){

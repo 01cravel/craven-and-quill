@@ -126,3 +126,15 @@ test('rejects too many references and invalid extra photos before drawing',async
   const response=await worker.fetch(new Request('https://example.com/api/generate-character',{method:'POST',headers:{'CF-Connecting-IP':`203.0.113.${80+count}`},body:form}),{DB:testDb(),OPENAI_API_KEY:'test'});assert.equal(response.status,400);
  }assert.equal(calls,0);}finally{globalThis.fetch=original;}
 });
+
+test('keeps the original photo privately after drawing the character',async()=>{
+  const originalFetch=globalThis.fetch;const stored=new Map();
+  const BOOK_ASSETS={async put(key,bytes,opts){stored.set(key,{bytes:Buffer.from(bytes),opts});},async list(){return {objects:[],truncated:false};},async delete(){}};
+  globalThis.fetch=async()=>new Response(JSON.stringify({data:[{b64_json:'dGVzdA=='}]}),{status:200,headers:{'Content-Type':'application/json'}});
+  try{
+    const form=new FormData();form.append('photo',new File(['photo-bytes'],'child.jpg',{type:'image/jpeg'}));form.append('name','Ophelia');form.append('age','3-5');form.append('mood','classic');
+    const response=await worker.fetch(new Request('https://example.com/api/generate-character',{method:'POST',headers:{Origin:'https://example.com','CF-Connecting-IP':'203.0.113.30'},body:form}),{OPENAI_API_KEY:'test-secret',DB:testDb(),BOOK_ASSETS});
+    assert.equal(response.status,200);const {previewId}=await response.json();
+    const kept=stored.get(`photos/${previewId}/1`);assert.ok(kept);assert.equal(kept.bytes.toString(),'photo-bytes');assert.equal(kept.opts.httpMetadata.contentType,'image/jpeg');
+  }finally{globalThis.fetch=originalFetch;}
+});
