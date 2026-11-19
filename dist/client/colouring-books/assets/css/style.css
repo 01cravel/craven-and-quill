@@ -94,7 +94,7 @@ html { scroll-behavior: smooth; }
 
 section { padding: clamp(2.5rem, 2rem + 2vw, 5rem) 0; }
 .section-alt { background: var(--cream-deep); }
-.section-head { max-width: 640px; margin: 0 0 2.5rem; }
+.section-head { margin: 0 0 2.5rem; }
 .section-head.center { margin-inline: auto; text-align: center; }
 .section-head p:last-child { margin-bottom: 0; }
 
@@ -210,7 +210,7 @@ hr.rule {
   .hero-grid { grid-template-columns: 1.05fr 0.95fr; gap: 3rem; }
 }
 .hero h1 { margin-bottom: 0.45em; }
-.hero-lede { font-size: 1.15rem; max-width: 46ch; }
+.hero-lede { font-size: 1.15rem; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 1.6rem; }
 
 .hero-form { margin-top: 1.6rem; max-width: 460px; }
@@ -426,7 +426,6 @@ hr.rule {
 @media (min-width: 640px) { .related-grid { grid-template-columns: repeat(2, 1fr); } }
 
 /* Content pages (about / shipping) */
-.prose { max-width: 72ch; }
 .prose h2 { margin-top: 1.8em; }
 .prose h2:first-child { margin-top: 0; }
 

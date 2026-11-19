@@ -1,0 +1,37 @@
+/* The same cloth boards and paper edges surround both public book readers. */
+.story-spread,
+.page-stage[data-kind="story"] {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  overflow: visible;
+  padding: clamp(5px, 1vw, 11px) clamp(7px, 1.4vw, 16px) clamp(9px, 1.65vw, 19px);
+  border: 1px solid #183f37;
+  border-radius: 3% 3% 2% 2% / 1.2% 1.2% 2% 2%;
+  background: linear-gradient(90deg, #244f45, #365f51 48%, #153c34 49.6%, #153c34 50.4%, #365f51 52%, #244f45);
+  box-shadow: inset 0 0 0 2px #ffffff18, 0 3px 0 #15382e, 0 14px 23px -12px #1a302b73;
+}
+.story-spread .art-frame,
+.page-stage[data-kind="story"] .art-frame,
+.story-spread .words,
+.page-stage[data-kind="story"] .page-copy {
+  position: relative;
+  min-width: 0;
+  background: #fffcf4;
+  border-radius: 1.3% 0 0 1%;
+  box-shadow: -1px 1px #ddd7ca, -2px 2px #f4eee1, -3px 3px #bcb8a8, -4px 4px #ece7d9;
+}
+.story-spread .words,
+.page-stage[data-kind="story"] .page-copy {
+  border-radius: 0 1.3% 1% 0;
+  background: linear-gradient(to right, #d6d0c3, #f5f0e4 5%, #fffdf7 14%, #fffcf4 96%, #f2eddf);
+  box-shadow: 1px 1px #ddd7ca, 2px 2px #f4eee1, 3px 3px #bcb8a8, 4px 4px #ece7d9;
+}
+.story-spread .art-frame::after,
+.page-stage[data-kind="story"] .art-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to left, #39332540, #514b4214 5%, transparent 13%);
+}

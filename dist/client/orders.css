@@ -45,3 +45,5 @@
 .peek-words small{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:#8a8574;font-size:12px}
 .peek-pay{text-align:center;margin:18px 0 4px}
 @media (max-width:640px){.peek-book{grid-template-columns:1fr}.peek-book img{border-radius:4px 4px 0 0}.peek-words{border-radius:0 0 4px 4px;min-height:200px}.peek-left::after,.peek-words::before{display:none}}
+
+.ordering-guide p{max-width:none}

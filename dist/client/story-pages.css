@@ -23,7 +23,6 @@
 }
 .story-page h2 { max-width: none; font-size: clamp(2.1rem, 4.2vw, 3.4rem); }
 .story-page h3 { margin: 0; font: 400 clamp(1.45rem, 2.6vw, 2.1rem)/1.12 var(--serif); }
-.story-page p { max-width: 64ch; }
 .story-hero {
   display: grid;
   grid-template-columns: 1fr 1.02fr;
@@ -31,7 +30,7 @@
   gap: clamp(1.5rem, 6vw, 5.5rem);
   padding-block: clamp(2rem, 6vw, 5.5rem);
 }
-.story-kicker, .story-folio {
+.story-kicker {
   font-size: .88rem;
   font-weight: 600;
   color: var(--muted);
@@ -63,23 +62,13 @@
 .story-reader > h2 { margin-bottom: 1.4rem; }
 .story-spread {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  margin-bottom: clamp(1.75rem, 5vw, 4rem);
-  background: var(--paper);
-  border-radius: 4px 14px 14px 4px;
-  overflow: hidden;
-  box-shadow: var(--shadow-book);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: clamp(2rem, 6vw, 4rem);
 }
-.story-spread img { width: 100%; height: 100%; object-fit: contain; background: #e8e4da; }
-.story-spread .words {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  padding: clamp(1.25rem, 4vw, 3.1rem);
-  box-shadow: inset 12px 0 18px -18px rgba(48,40,23,.55);
-}
-.story-spread .words > p:last-child { font: 400 clamp(1.07rem, 1.8vw, 1.35rem)/1.56 var(--serif); margin: .9rem 0 0; }
+.story-spread .art-frame { display: grid; align-items: center; padding: clamp(5px, 1.4vw, 16px); }
+.story-spread img { width: 100%; height: auto; }
+.story-spread .words { display: flex; flex-direction: column; justify-content: center; padding: clamp(.65rem, 3.6vw, 2.8rem); }
+.story-spread .words p { font: 400 clamp(1rem, 1.65vw, 1.35rem)/1.5 var(--serif); margin: .8em 0 0; }
 .story-page footer nav a { text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 700px) {
   .story-nav { display: none; }
@@ -91,7 +80,7 @@
   .story-actions .text-link { white-space: normal; }
 }
 @media (max-width: 560px) {
-  .story-spread { grid-template-columns: 1fr; border-radius: 12px; }
-  .story-spread img { height: auto; }
-  .story-spread .words { box-shadow: none; padding: 1.3rem 1.5rem 1.65rem; }
+  .story-spread .words { padding: .85rem clamp(.55rem, 2.5vw, .9rem); }
+  .story-spread h3 { font-size: clamp(1.12rem, 4.8vw, 1.4rem); text-wrap: wrap; }
+  .story-spread .words p { line-height: 1.35; }
 }
