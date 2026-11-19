@@ -53303,7 +53303,33 @@ async function drawPage2(env2, o, index, cutout = index === "back") {
   requireThat(r.ok && d.data?.[0]?.b64_json, "This illustration did not finish (drawing service " + r.status + (d?.error?.code || d?.error?.type ? ", " + String(d.error.code || d.error.type).replace(/[^a-z0-9_]/gi, "").slice(0, 60) : "") + "). Previously saved artwork is safe.", 502);
   return { bytes: Uint8Array.from(atob(d.data[0].b64_json), (x) => x.charCodeAt(0)), usage: d.usage || null, type: "image/jpeg" };
 }
-async function createIllustration(env2, o, index, actor, replace = false) {
+async function editPage(env2, o, index, fix) {
+  requireThat(env2.OPENAI_API_KEY, "Artwork generation is unavailable.", 503);
+  const cur = index === "cover" ? o.data.art.cover : index === "back" ? o.data.art.back : o.data.art.scenes[index];
+  requireThat(cur, "Draw this picture first.", 409);
+  const m = fix.match;
+  const matchKey = m === void 0 || m === null || m === "" ? null : m === "cover" ? o.data.art.cover : m === "back" ? o.data.art.back : o.data.art.scenes[Number(m)];
+  requireThat(m === void 0 || m === null || m === "" || matchKey, "The picture to match is not drawn.", 409);
+  const a = await assetRead(env2, o, cur), cut = index === "back" && a.type === "image/png", f = new FormData();
+  f.append("model", cut ? "gpt-image-2.5-sunburst" : "gpt-image-2");
+  f.append("image[]", new Blob([a.bytes], { type: a.type }), cut ? "current.png" : "current.jpg");
+  if (matchKey) {
+    const r2 = await assetRead(env2, o, matchKey);
+    f.append("image[]", new Blob([r2.bytes], { type: r2.type }), "match.jpg");
+  }
+  f.append("prompt", `Edit the first image. Keep everything else exactly as it is: the same character, face, hair, outfit, pose, camera angle, composition, background, lighting, colours and hand-painted cartoon style. Change only this: ${fix.instruction}${matchKey ? " The second image is another page of the same book; copy the drawing shown in it exactly (same animals, same layout, same colours), only adjusted for perspective and size." : ""}${cut ? " Keep the fully transparent background around the figure." : ""} No text, lettering, logos or watermark.`);
+  f.append("size", cut ? "1536x2176" : o.size === "a4" ? "2304x3264" : "1536x2176");
+  f.append("quality", "medium");
+  f.append("output_format", cut ? "png" : "jpeg");
+  if (cut) f.append("background", "transparent");
+  const r = await (env2.fetch || fetch)("https://api.openai.com/v1/images/edits", { method: "POST", headers: { Authorization: `Bearer ${env2.OPENAI_API_KEY}` }, body: f, signal: AbortSignal.timeout(12e4) });
+  const d = await r.json().catch(() => ({}));
+  requireThat(r.ok && d.data?.[0]?.b64_json, "This picture fix did not finish (drawing service " + r.status + "). The current picture is safe.", 502);
+  const bytes = Uint8Array.from(atob(d.data[0].b64_json), (x) => x.charCodeAt(0));
+  if (cut) requireThat(bytes[0] === 137 && (bytes[25] === 6 || bytes[25] === 4), "The cut-out lost its see-through background. The current picture is safe.", 502);
+  return { bytes, usage: d.usage || null, type: cut ? "image/png" : "image/jpeg" };
+}
+async function createIllustration(env2, o, index, actor, replace = false, fix = null) {
   requireThat(editable(o), "Artwork generation requires a paid book under review.", 409);
   requireThat(index === "cover" || index === "back" || Number.isInteger(index) && index >= 0 && index < 10, "Choose a valid illustration.");
   requireThat((o.data.artAttempts || 0) < (o.data.artBudget || 22), "This book reached its illustration request limit. Review the budget before retrying.", 429);
@@ -53314,7 +53340,7 @@ async function createIllustration(env2, o, index, actor, replace = false) {
   const claim = await q(env2, "UPDATE customer_orders SET state=?1,status='generating',revision=revision+1,updated_at=?2 WHERE id=?3 AND revision=?4 RETURNING id", JSON.stringify(o.data), now2(), o.id, o.revision).first();
   requireThat(claim, "Another action is running.", 409);
   try {
-    const drawing = await drawPage2(env2, o, index), key2 = await assetPut(env2, o, drawing.bytes, drawing.type || "image/jpeg", "art");
+    const drawing = fix ? await editPage(env2, o, index, fix) : await drawPage2(env2, o, index), key2 = await assetPut(env2, o, drawing.bytes, drawing.type || "image/jpeg", "art");
     o = await get(env2, o.id);
     if (slot || o.data.proof) archiveContent(o, "image_replaced", actor);
     o.data.artUsage = [...o.data.artUsage || [], { at: now2(), page: index, usage: drawing.usage }];
@@ -53323,7 +53349,7 @@ async function createIllustration(env2, o, index, actor, replace = false) {
     else o.data.art.scenes[index] = key2;
     invalidateProof(o.data);
     o.data.generationError = null;
-    await audit(env2, o.id, slot ? "image_replaced" : "image_created", actor, { page: index, version: o.data.contentVersion || 1 });
+    await audit(env2, o.id, fix ? "image_fixed" : slot ? "image_replaced" : "image_created", actor, { page: index, version: o.data.contentVersion || 1, ...fix ? { fix: fix.instruction.slice(0, 200), match: fix.match ?? null } : {} });
     return save(env2, o, o.data, "building");
   } catch (e) {
     const current = await get(env2, o.id);
@@ -53999,6 +54025,15 @@ You can stop offer emails here: ${unsubscribe}`;
     if (action === "illustrate") {
       const index = b.page === "cover" || b.page === "back" ? b.page : Number(b.page);
       return reply(publicOrder(await createIllustration(env2, o, index, actor, b.replace === true), true));
+    }
+    if (action === "fix-picture") {
+      requireThat(isAdmin, "Owner access required.", 403);
+      const index = b.page === "cover" || b.page === "back" ? b.page : Number(b.page);
+      const instruction = safeText(b.instruction, 600);
+      requireThat(instruction.length >= 10, "Say what to change in the picture.");
+      const match = b.match === "cover" || b.match === "back" ? b.match : b.match === void 0 || b.match === null || b.match === "" ? null : Number(b.match);
+      requireThat(match === null || match === "cover" || match === "back" || Number.isInteger(match) && match >= 0 && match < 10, "Choose a valid picture to match.");
+      return reply(publicOrder(await createIllustration(env2, o, index, actor, true, { instruction, match }), true));
     }
     if (action === "make-proof") return reply(publicOrder(await createProof(env2, o, actor, url.origin), true));
     if (action === "notify-proof") {
