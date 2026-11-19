@@ -868,6 +868,6 @@ body[data-step="5"] .maker-shell,body[data-step="4"] .maker-shell{grid-template-
 .save-row button{min-height:50px;padding:0 18px;border-radius:999px;border:1.5px solid var(--ink);background:#fff;color:var(--ink);font-weight:600;white-space:nowrap;cursor:pointer}
 .save-row button:hover:not(:disabled){background:var(--mint)}
 .save-row button:disabled{opacity:.55;cursor:default}
-.save-note{margin:10px 0 0;font-size:.8rem;line-height:1.5;color:var(--muted)}
+.save-preview .save-note{background:none;padding:0;border-radius:0;margin:10px 0 0;font-size:.8rem;line-height:1.5;color:var(--muted)}
 .save-note.bad{color:var(--danger)}.save-note.good{color:var(--ink);font-weight:600}
 @media(max-width:480px){.save-row{grid-template-columns:1fr}.save-row button{width:100%}}
