@@ -11,7 +11,9 @@ export async function printBook(order,read,fontBytes,logoBytes,coverLogoBytes=nu
  pdf.setTitle(order.story.title);pdf.setAuthor('Craven & Quill');
  const page=()=>{const p=pdf.addPage([W,H]);p.drawRectangle({x:0,y:0,width:W,height:H,color:cream});return p;};
  function lines(text,size,width){const out=[];for(const para of text.split('\n')){let line='';for(const word of para.split(/\s+/)){requireThat(font.widthOfTextAtSize(word,size)<=width,'A word is too long for this page. Edit the story before printing.');const next=line?line+' '+word:word;if(font.widthOfTextAtSize(next,size)>width){out.push(line);line=word;}else line=next;}out.push(line);}return out;}
- function words(p,text,{size=spec.id==='a5'?14:19,y=H-M,center=false,color=ink}={}){const ls=lines(text,size,W-2*M);requireThat(y-ls.length*size*1.45>=mm(15),'Story text overflows this size. Shorten it before making a print file.');for(const line of ls){p.drawText(line,{x:center?(W-font.widthOfTextAtSize(line,size))/2:M,y,size,font,color});y-=size*1.45;}return y;}
+ function words(p,text,{size=spec.id==='a5'?14:19,y=H-M,center=false,color=ink,side=M}={}){const ls=lines(text,size,W-2*side);requireThat(y-ls.length*size*1.45>=mm(15),'Story text overflows this size. Shorten it before making a print file.');const left=(W-Math.max(...ls.map(l=>font.widthOfTextAtSize(l,size))))/2;for(const line of ls){p.drawText(line,{x:center?(W-font.widthOfTextAtSize(line,size))/2:left,y,size,font,color});y-=size*1.45;}return y;}
+ // Story pages: words sit in a narrower, centred block, well clear of the spine crease (owner's call, 19 Nov 2026).
+ const STORY_SIDE=mm(spec.id==='a5'?18:24);
  async function art(p,key,top=H-M,bottom=M,fullPage=false){const {bytes,type}=await read(key);const image=type==='image/png'?await pdf.embedPng(bytes):await pdf.embedJpg(bytes);const scale=fullPage?Math.max(W/image.width,H/image.height):Math.min((W-M*2)/image.width,(top-bottom)/image.height,72/300);const w=image.width*scale,h=image.height*scale;p.drawImage(image,{x:(W-w)/2,y:fullPage?(H-h)/2:bottom+(top-bottom-h)/2,width:w,height:h});images.push({dpi:Math.floor(72/scale),widthPx:image.width,heightPx:image.height,fullPage,cropPercent:fullPage?Math.round((1-W*H/(w*h))*10000)/100:0});}
  function brand(p){const w=mm(12),h=w*logo.height/logo.width;p.drawImage(logo,{x:M,y:M,width:w,height:h});p.drawText('Craven & Quill',{x:M+w+mm(2),y:M+mm(3),size:spec.id==='a5'?8:11,font,color:ink});}
  // Front cover in the same design as the example books: full-page art, a dark fade at the foot,
@@ -43,7 +45,7 @@ export async function printBook(order,read,fontBytes,logoBytes,coverLogoBytes=nu
  // Words pages carry the book title at the top and a page number at the foot, like the site preview.
  // Numbering counts the opening page as 1, so the first words page (PDF page 4) is page 3.
  const muted=rgb(.45,.52,.49),headSize=spec.id==='a5'?8:10,folioSize=spec.id==='a5'?8:10;
- for(let i=0;i<BOOK.spreads;i++){await art(page(),order.art.scenes[i],H,0,true);const textPage=page(),size=spec.id==='a5'?14:19,count=lines(order.story.spreads[i].text,size,W-M*2).length;words(textPage,order.story.spreads[i].text,{size,y:Math.min(H-mm(30),H/2+(count-1)*size*1.45/2-size*.35)});
+ for(let i=0;i<BOOK.spreads;i++){await art(page(),order.art.scenes[i],H,0,true);const textPage=page(),size=spec.id==='a5'?14:19,count=lines(order.story.spreads[i].text,size,W-STORY_SIDE*2).length;words(textPage,order.story.spreads[i].text,{size,side:STORY_SIDE,y:Math.min(H-mm(30),H/2+(count-1)*size*1.45/2-size*.35)});
   const head=lines(order.story.title,headSize,W-2*M-mm(20))[0];textPage.drawText(head,{x:(W-font.widthOfTextAtSize(head,headSize))/2,y:H-mm(16),size:headSize,font,color:muted});
   const folio=String(3+i*2);textPage.drawText(folio,{x:(W-font.widthOfTextAtSize(folio,folioSize))/2,y:mm(12),size:folioSize,font,color:muted});}
  words(page(),'The End',{size:spec.id==='a5'?26:34,y:H*.55,center:true});

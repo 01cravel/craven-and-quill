@@ -52486,15 +52486,17 @@ async function printBook(order, read3, fontBytes, logoBytes, coverLogoBytes = nu
     }
     return out;
   }
-  function words(p, text, { size = spec.id === "a5" ? 14 : 19, y: y2 = H - M2, center = false, color = ink } = {}) {
-    const ls = lines(text, size, W - 2 * M2);
+  function words(p, text, { size = spec.id === "a5" ? 14 : 19, y: y2 = H - M2, center = false, color = ink, side = M2 } = {}) {
+    const ls = lines(text, size, W - 2 * side);
     requireThat(y2 - ls.length * size * 1.45 >= mm(15), "Story text overflows this size. Shorten it before making a print file.");
+    const left = (W - Math.max(...ls.map((l) => font.widthOfTextAtSize(l, size)))) / 2;
     for (const line of ls) {
-      p.drawText(line, { x: center ? (W - font.widthOfTextAtSize(line, size)) / 2 : M2, y: y2, size, font, color });
+      p.drawText(line, { x: center ? (W - font.widthOfTextAtSize(line, size)) / 2 : left, y: y2, size, font, color });
       y2 -= size * 1.45;
     }
     return y2;
   }
+  const STORY_SIDE = mm(spec.id === "a5" ? 18 : 24);
   async function art(p, key2, top = H - M2, bottom = M2, fullPage = false) {
     const { bytes, type } = await read3(key2);
     const image = type === "image/png" ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
@@ -52540,8 +52542,8 @@ async function printBook(order, read3, fontBytes, logoBytes, coverLogoBytes = nu
   const muted = rgb(0.45, 0.52, 0.49), headSize = spec.id === "a5" ? 8 : 10, folioSize = spec.id === "a5" ? 8 : 10;
   for (let i4 = 0; i4 < BOOK.spreads; i4++) {
     await art(page(), order.art.scenes[i4], H, 0, true);
-    const textPage = page(), size = spec.id === "a5" ? 14 : 19, count = lines(order.story.spreads[i4].text, size, W - M2 * 2).length;
-    words(textPage, order.story.spreads[i4].text, { size, y: Math.min(H - mm(30), H / 2 + (count - 1) * size * 1.45 / 2 - size * 0.35) });
+    const textPage = page(), size = spec.id === "a5" ? 14 : 19, count = lines(order.story.spreads[i4].text, size, W - STORY_SIDE * 2).length;
+    words(textPage, order.story.spreads[i4].text, { size, side: STORY_SIDE, y: Math.min(H - mm(30), H / 2 + (count - 1) * size * 1.45 / 2 - size * 0.35) });
     const head2 = lines(order.story.title, headSize, W - 2 * M2 - mm(20))[0];
     textPage.drawText(head2, { x: (W - font.widthOfTextAtSize(head2, headSize)) / 2, y: H - mm(16), size: headSize, font, color: muted });
     const folio = String(3 + i4 * 2);
