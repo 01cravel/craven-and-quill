@@ -47,14 +47,19 @@ export async function printBook(order,read,fontBytes,logoBytes,coverLogoBytes=nu
   const head=lines(order.story.title,headSize,W-2*M-mm(20))[0];textPage.drawText(head,{x:(W-font.widthOfTextAtSize(head,headSize))/2,y:H-mm(16),size:headSize,font,color:muted});
   const folio=String(3+i*2);textPage.drawText(folio,{x:(W-font.widthOfTextAtSize(folio,folioSize))/2,y:mm(12),size:folioSize,font,color:muted});}
  words(page(),'The End',{size:spec.id==='a5'?26:34,y:H*.55,center:true});
- // Back cover: brand green, the blurb centred in cream, "made especially for", logo and web address at the foot.
- // (Replaced two near-empty pages, "One story. Entirely theirs." and "Made especially for …", on 19 Nov 2026.)
+ // Back cover: brand green, a framed portrait of the child (art.back) when drawn, then "Made especially for …",
+ // "With love from …", and the logo and web address at the foot. (Summary blurb removed 19 Nov 2026, owner's call.)
  const back=pdf.addPage([W,H]),green=rgb(.06,.2,.16),light=rgb(.99,.97,.91),soft=rgb(.85,.82,.74);back.drawRectangle({x:0,y:0,width:W,height:H,color:green});
- const blurbSize=spec.id==='a5'?12:16,blurb=lines(order.story.synopsis,blurbSize,W-2*M-mm(16)),madeSize=spec.id==='a5'?9:12;
- const blockH=blurb.length*blurbSize*1.5+mm(10)+madeSize;let by=H*.52+blockH/2;
- for(const line of blurb){back.drawText(line,{x:(W-font.widthOfTextAtSize(line,blurbSize))/2,y:by,size:blurbSize,font,color:light});by-=blurbSize*1.5;}
- const made='Made especially for '+order.names;back.drawText(made,{x:(W-font.widthOfTextAtSize(made,madeSize))/2,y:by-mm(10)+blurbSize*1.5-madeSize,size:madeSize,font,color:soft});
- const site='cravenandquill.com',siteSize=spec.id==='a5'?8:10;back.drawText(site,{x:(W-font.widthOfTextAtSize(site,siteSize))/2,y:mm(14),size:siteSize,font,color:soft});
+ const madeSize=spec.id==='a5'?13:18,fromSize=spec.id==='a5'?10:13,site='cravenandquill.com',siteSize=spec.id==='a5'?8:10;
+ const centre=(t,size,y,color)=>back.drawText(t,{x:(W-font.widthOfTextAtSize(t,size))/2,y,size,font,color});
+ let textTop=H*.42;
+ if(order.art.back){const {bytes,type}=await read(order.art.back);const image=type==='image/png'?await pdf.embedPng(bytes):await pdf.embedJpg(bytes);
+  const fw=W*.56,fh=fw*image.height/image.width,fx=(W-fw)/2,fy=H-mm(spec.id==='a5'?22:30)-fh,border=mm(2.5);
+  back.drawRectangle({x:fx-border,y:fy-border,width:fw+2*border,height:fh+2*border,color:light});back.drawImage(image,{x:fx,y:fy,width:fw,height:fh});
+  images.push({dpi:Math.round(image.width/(fw/72)),widthPx:image.width,heightPx:image.height,fullPage:false,cropPercent:0});textTop=fy-border-mm(14);}
+ centre('Made especially for '+order.names,madeSize,textTop,light);
+ if(order.senderName)centre('With love from '+order.senderName,fromSize,textTop-madeSize*1.9,soft);
+ centre(site,siteSize,mm(14),soft);
  if(coverLogo){const lw=mm(spec.id==='a5'?14:18),lh=lw*coverLogo.height/coverLogo.width;back.drawImage(coverLogo,{x:(W-lw)/2,y:mm(14)+siteSize+mm(4),width:lw,height:lh});}
  requireThat(pdf.getPageCount()===BOOK.pdfPages,'Unexpected print page count.');
  return {bytes:await pdf.save(),preflight:{pageCount:BOOK.pdfPages,interiorPages:BOOK.interiorPages,widthMm:spec.widthMm,heightMm:spec.heightMm,safeMm:12,fontsEmbedded:true,images,allImages300dpi:images.every(x=>x.dpi>=300),pdfX4:false,notes:['The cover and story illustrations fill the page; proportional centre-cropping may trim edges. Check the cover title sits clear of the board wrap and every page before approval.','Effective image resolution is reported at its printed size; low-resolution artwork must be replaced.','These are existing trim-size proof pages; supplier bleed requirements still require print review.','PDF/X-4 certification is not performed. Human inspection of every page remains required.']}};

@@ -8,7 +8,7 @@ Read before changing the print layout (src/print-book.js) or releasing an order.
 - One vertically centred opening page: title, "A story just for", name, "Given with love by …", dedication. No separate dedication or "Let the story begin" pages.
 - Craven & Quill logo (white and gold, assets/logo-on-dark.png) at the foot of the front cover, under the title.
 - Words pages carry the book title at the top and a page number at the foot (opening page counts as 1, so the first words page is 3). The site preview uses the same numbers.
-- Back cover: brand green, blurb centred in cream, "Made especially for …", logo and cravenandquill.com.
+- Back cover: brand green, a framed portrait of the child holding a keepsake from the story (the 12th picture, art.back), "Made especially for …", "With love from …", logo and cravenandquill.com. No story summary.
 - 24 pages: front cover, opening page, 10 picture/words spreads, The End, back cover. No filler pages ("One story. Entirely theirs." and "Made especially for …" were removed).
 - Pictures on the left, words on the right. PDF page 2 prints on a right-hand page.
 
