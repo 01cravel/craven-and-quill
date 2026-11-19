@@ -734,7 +734,6 @@ function renderPreviewBook(){
  pictures.forEach((src,i)=>{const img=make('img');img.src=src;img.alt=i?`${state.secondName} as a character`:`${state.names} as a character`;board.append(img);});
  const ages={'3-5':'age 3–5','6-8':'age 6–8','9-12':'age 9–12','teen-adult':'an adult'};
  const copy=make('div','pbook-cover-copy');copy.append(make('p',null,`A personalised story for ${fullNames()||state.names||'them'}`));if(title)copy.append(make('h3',null,title));
- if(ages[state.age])copy.append(make('span',null,`Written for ${ages[state.age]}`));
  board.append(copy);cover.append(board);slides.push(cover);
  spreads.forEach((spread,i)=>{
   const slide=make('article','pbook-slide pbook-spread');slide.setAttribute('aria-label',`Page ${i+1} of ${spreads.length}`);

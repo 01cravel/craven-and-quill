@@ -52455,6 +52455,7 @@ fontkit.registerFormat(DFont);
 var fontkit_es_default = fontkit;
 
 // src/print-book.js
+var COVER_FADE_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAIACAYAAABD1gYFAAAAN0lEQVR42mPgk5FgYGJgYGCEEwxYWLSTGLVy1MpRK0ethLGI4JKuYwQZP+qZUc+MemY0rIjkAgDF0AUmQGsSpwAAAABJRU5ErkJggg==";
 var mm = (n) => n * 72 / 25.4;
 async function printBook(order, read3, fontBytes, logoBytes) {
   const spec = PRODUCTS[order.size], pdf = await PDFDocument_default.create();
@@ -52509,20 +52510,11 @@ async function printBook(order, read3, fontBytes, logoBytes) {
   }
   const cover = page();
   await art(cover, order.art.cover, H, 0, true);
-  const shade = rgb(14 / 255, 28 / 255, 24 / 255), white = rgb(1, 1, 1), fadeTop = H * 0.56, bands = 160, band = fadeTop / bands;
-  for (let i4 = 0; i4 < bands; i4++) {
-    const t2 = (i4 + 0.5) / bands, opacity = t2 < 0.55 ? 0.9 - 0.35 * t2 / 0.55 : 0.55 * (1 - (t2 - 0.55) / 0.45);
-    cover.drawRectangle({ x: 0, y: i4 * band, width: W, height: band, color: shade, opacity });
-  }
+  const white = rgb(1, 1, 1), fadeTop = H * 0.56;
+  cover.drawImage(await pdf.embedPng(Uint8Array.from(atob(COVER_FADE_PNG), (c) => c.charCodeAt(0))), { x: 0, y: 0, width: W, height: fadeTop });
   const coverText = (text, size, y2, opacity = 1) => cover.drawText(text, { x: (W - font.widthOfTextAtSize(text, size)) / 2, y: y2, size, font, color: white, opacity });
-  const ages = { "3-5": "age 3\u20135", "6-8": "age 6\u20138", "9-12": "age 9\u201312", "teen-adult": "an adult" }, tagText = ages[order.age] ? "Written for " + ages[order.age] : "", tagSize = spec.id === "a5" ? 8 : 11, titleSize = spec.id === "a5" ? 30 : 42, forSize = spec.id === "a5" ? 10 : 14;
+  const titleSize = spec.id === "a5" ? 30 : 42, forSize = spec.id === "a5" ? 10 : 14;
   let y = mm(20);
-  if (tagText) {
-    const tw = font.widthOfTextAtSize(tagText, tagSize) + tagSize * 2.2, th = tagSize * 2.1, r = th / 2;
-    cover.drawSvgPath(`M ${r} 0 H ${tw - r} A ${r} ${r} 0 0 1 ${tw} ${r} A ${r} ${r} 0 0 1 ${tw - r} ${th} H ${r} A ${r} ${r} 0 0 1 0 ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`, { x: (W - tw) / 2, y: y + th, color: white, opacity: 0.18 });
-    coverText(tagText, tagSize, y + th / 2 - tagSize * 0.34);
-    y += th + mm(5);
-  }
   let titleWidth = W - 2 * M2 - mm(6);
   const titleCount = lines(order.story.title, titleSize, titleWidth).length;
   while (titleCount > 1 && titleWidth > mm(40) && lines(order.story.title, titleSize, titleWidth - mm(2)).length === titleCount) titleWidth -= mm(2);

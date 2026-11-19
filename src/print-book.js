@@ -1,6 +1,8 @@
 import {PDFDocument,rgb} from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import {BOOK,PRODUCTS,requireThat} from './catalog.js';
+// 1x512 dark-green fade (strongest at the foot), stretched over the lower 56% of the front cover.
+const COVER_FADE_PNG='iVBORw0KGgoAAAANSUhEUgAAAAEAAAIACAYAAABD1gYFAAAAN0lEQVR42mPgk5FgYGJgYGCEEwxYWLSTGLVy1MpRK0ethLGI4JKuYwQZP+qZUc+MemY0rIjkAgDF0AUmQGsSpwAAAABJRU5ErkJggg==';
 const mm=n=>n*72/25.4;
 export async function printBook(order,read,fontBytes,logoBytes){
  const spec=PRODUCTS[order.size],pdf=await PDFDocument.create();pdf.registerFontkit(fontkit);
@@ -13,15 +15,15 @@ export async function printBook(order,read,fontBytes,logoBytes){
  async function art(p,key,top=H-M,bottom=M,fullPage=false){const {bytes,type}=await read(key);const image=type==='image/png'?await pdf.embedPng(bytes):await pdf.embedJpg(bytes);const scale=fullPage?Math.max(W/image.width,H/image.height):Math.min((W-M*2)/image.width,(top-bottom)/image.height,72/300);const w=image.width*scale,h=image.height*scale;p.drawImage(image,{x:(W-w)/2,y:fullPage?(H-h)/2:bottom+(top-bottom-h)/2,width:w,height:h});images.push({dpi:Math.floor(72/scale),widthPx:image.width,heightPx:image.height,fullPage,cropPercent:fullPage?Math.round((1-W*H/(w*h))*10000)/100:0});}
  function brand(p){const w=mm(12),h=w*logo.height/logo.width;p.drawImage(logo,{x:M,y:M,width:w,height:h});p.drawText('Craven & Quill',{x:M+w+mm(2),y:M+mm(3),size:spec.id==='a5'?8:11,font,color:ink});}
  // Front cover in the same design as the example books: full-page art, a dark fade at the foot,
- // "A personalised story for …", the title and a reading-age tag, all inside the board wrap margin.
+ // "A personalised story for …" and the title (no reading-age tag), all inside the board wrap margin.
  const cover=page();await art(cover,order.art.cover,H,0,true);
- const shade=rgb(14/255,28/255,24/255),white=rgb(1,1,1),fadeTop=H*.56,bands=160,band=fadeTop/bands;
- // Bands do not overlap, so the fade stays smooth instead of striped.
- for(let i=0;i<bands;i++){const t=(i+.5)/bands,opacity=t<.55?.9-(.35*t/.55):.55*(1-(t-.55)/.45);cover.drawRectangle({x:0,y:i*band,width:W,height:band,color:shade,opacity});}
+ const white=rgb(1,1,1),fadeTop=H*.56;
+ // One see-through image for the fade. Stacked strips showed hairline stripes in PDF viewers and some printers.
+ cover.drawImage(await pdf.embedPng(Uint8Array.from(atob(COVER_FADE_PNG),c=>c.charCodeAt(0))),{x:0,y:0,width:W,height:fadeTop});
  const coverText=(text,size,y,opacity=1)=>cover.drawText(text,{x:(W-font.widthOfTextAtSize(text,size))/2,y,size,font,color:white,opacity});
- const ages={'3-5':'age 3–5','6-8':'age 6–8','9-12':'age 9–12','teen-adult':'an adult'},tagText=ages[order.age]?'Written for '+ages[order.age]:'',tagSize=spec.id==='a5'?8:11,titleSize=spec.id==='a5'?30:42,forSize=spec.id==='a5'?10:14;
+ const titleSize=spec.id==='a5'?30:42,forSize=spec.id==='a5'?10:14;
  let y=mm(20);
- if(tagText){const tw=font.widthOfTextAtSize(tagText,tagSize)+tagSize*2.2,th=tagSize*2.1,r=th/2;cover.drawSvgPath(`M ${r} 0 H ${tw-r} A ${r} ${r} 0 0 1 ${tw} ${r} A ${r} ${r} 0 0 1 ${tw-r} ${th} H ${r} A ${r} ${r} 0 0 1 0 ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`,{x:(W-tw)/2,y:y+th,color:white,opacity:.18});coverText(tagText,tagSize,y+th/2-tagSize*.34);y+=th+mm(5);}
+
  // Balance the title: the narrowest width that keeps the same number of lines, so no lone last word.
  let titleWidth=W-2*M-mm(6);const titleCount=lines(order.story.title,titleSize,titleWidth).length;
  while(titleCount>1&&titleWidth>mm(40)&&lines(order.story.title,titleSize,titleWidth-mm(2)).length===titleCount)titleWidth-=mm(2);
