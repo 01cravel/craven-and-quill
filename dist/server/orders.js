@@ -4311,7 +4311,7 @@ var PRODUCTS = {
   a5: { id: "a5", label: "A5 hardback", widthMm: 148, heightMm: 210, sku: "BOOK-FE-A5-P-HARD-G", pricePence: 2499, regularPricePence: 3499, discountPercent: 28, estimatedSupplierPence: 1600 }
 };
 var OWNER_TEST = { codeHash: "4494c8d03100dff3c9560ca54ada85bc13cacb7852092bb59fbc8166b0578cdb", email: "cravenluke@gmail.com", pricePence: 200, expiresAt: "2026-12-01T00:00:00Z" };
-var BOOK = { pdfPages: 28, interiorPages: 26, spreads: 10, paper: "200gsm gloss", cover: "Matte hardback", safeMm: 10 };
+var BOOK = { pdfPages: 26, interiorPages: 24, spreads: 10, paper: "200gsm gloss", cover: "Matte hardback", safeMm: 10 };
 function catalogue(enabled = false) {
   return { version: CATALOG_VERSION, products: Object.values(PRODUCTS).map(({ estimatedSupplierPence, ...p }) => p), book: BOOK, currency: "GBP", shippingPence: SHIPPING_PENCE, country: "GB", includes: ["Human print review"], offerEndsAt: "2026-12-01T23:59:59Z", checkoutEnabled: enabled, proofPreparationDays: 7, delivery: "First complete illustrated proof within 7 calendar days of payment. Usually 7\u201312 working days after final proof approval. An estimate, not a guaranteed arrival date." };
 }
@@ -52525,19 +52525,13 @@ async function printBook(order, read3, fontBytes, logoBytes) {
   }
   coverText("A personalised story for " + order.names, forSize, y + mm(1), 0.9);
   requireThat(y + forSize + mm(1) <= fadeTop, "The title is too long for the cover. Shorten it before printing.");
-  const title2 = page();
-  words(title2, order.story.title, { size: spec.id === "a5" ? 22 : 30, y: H * 0.69, center: true });
-  words(title2, "A story for " + order.names, { y: H * 0.4, center: true });
-  const dedication = page();
-  const giftSize = spec.id === "a5" ? 13 : 18;
-  const giftParts = [{ text: "A story just for", size: giftSize }, { text: order.names, size: spec.id === "a5" ? 23 : 32 }, ...order.senderName ? [{ text: "Given with love by " + order.senderName, size: giftSize }] : [], ...order.dedication ? [{ text: order.dedication, size: giftSize }] : []];
-  const giftGap = mm(6), giftHeight = giftParts.reduce((h, p) => h + lines(p.text, p.size, W - 2 * M2).length * p.size * 1.45, 0) + (giftParts.length - 1) * giftGap;
-  let giftY = H / 2 + giftHeight / 2 - giftSize;
-  for (const part of giftParts) {
-    giftY = words(dedication, part.text, { size: part.size, y: giftY, center: true }) - giftGap;
+  const opening = page(), giftSize = spec.id === "a5" ? 13 : 18;
+  const openParts = [{ text: order.story.title, size: spec.id === "a5" ? 22 : 30, gap: mm(16) }, { text: "A story just for", size: giftSize }, { text: order.names, size: spec.id === "a5" ? 23 : 32 }, ...order.senderName ? [{ text: "Given with love by " + order.senderName, size: giftSize }] : [], ...order.dedication ? [{ text: order.dedication, size: giftSize }] : []];
+  const openGap = mm(5), openHeight = openParts.reduce((h, p, i4) => h + lines(p.text, p.size, W - 2 * M2).length * p.size * 1.45 + (i4 < openParts.length - 1 ? p.gap || openGap : 0), 0);
+  let openY = H / 2 + openHeight / 2 - openParts[0].size;
+  for (const part of openParts) {
+    openY = words(opening, part.text, { size: part.size, y: openY, center: true }) - (part.gap || openGap);
   }
-  const opening = page();
-  words(opening, "Let the story begin", { y: H * 0.55, center: true });
   for (let i4 = 0; i4 < BOOK.spreads; i4++) {
     await art(page(), order.art.scenes[i4], H, 0, true);
     const textPage = page(), size = spec.id === "a5" ? 14 : 19, count = lines(order.story.spreads[i4].text, size, W - M2 * 2).length;

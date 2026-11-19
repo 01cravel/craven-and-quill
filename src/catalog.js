@@ -8,7 +8,7 @@ export const PRODUCTS={
 };
 // Owner-only test price: the code itself is never stored, only its SHA-256.
 export const OWNER_TEST={codeHash:'4494c8d03100dff3c9560ca54ada85bc13cacb7852092bb59fbc8166b0578cdb',email:'cravenluke@gmail.com',pricePence:200,expiresAt:'2026-12-01T00:00:00Z'};
-export const BOOK={pdfPages:28,interiorPages:26,spreads:10,paper:'200gsm gloss',cover:'Matte hardback',safeMm:10};
+export const BOOK={pdfPages:26,interiorPages:24,spreads:10,paper:'200gsm gloss',cover:'Matte hardback',safeMm:10};
 export function catalogue(enabled=false){return {version:CATALOG_VERSION,products:Object.values(PRODUCTS).map(({estimatedSupplierPence,...p})=>p),book:BOOK,currency:'GBP',shippingPence:SHIPPING_PENCE,country:'GB',includes:['Human print review'],offerEndsAt:'2026-12-01T23:59:59Z',checkoutEnabled:enabled,proofPreparationDays:7,delivery:'First complete illustrated proof within 7 calendar days of payment. Usually 7–12 working days after final proof approval. An estimate, not a guaranteed arrival date.'};}
 export class OrderError extends Error{constructor(message,status=400){super(message);this.status=status;}}
 export function requireThat(ok,message,status=400){if(!ok)throw new OrderError(message,status);}
