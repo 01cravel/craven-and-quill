@@ -111,8 +111,8 @@ function fail(text){$('stage').hidden=true;$('bar').hidden=true;$('where').textC
 async function api(path,body){const r=await fetch('/api/orders/'+encodeURIComponent(id)+path,body?{method:'POST',headers:{...auth,'Content-Type':'application/json'},body:JSON.stringify(body)}:{headers:auth});let d={};try{d=await r.json();}catch{}if(!r.ok)throw Error(d.error||'Something went wrong.');return d;}
 function poss(n){return n?n+(/s$/i.test(n)?'’':'’s'):'Your';}
 // Page pictures load with the private key, then show from memory.
-function pic(i){if(!pics[i])pics[i]=fetch('/api/orders/'+encodeURIComponent(id)+'/file?file='+encodeURIComponent(order.bookPages[i]),{headers:auth}).then(r=>{if(!r.ok)throw Error();return r.blob();}).then(b=>URL.createObjectURL(b));return pics[i];}
-function img(el,i){el.replaceChildren();const im=new Image();im.alt='Page '+(i+1);im.decoding='async';im.onload=()=>im.classList.add('in');pic(i).then(u=>{im.src=u;}).catch(()=>{});el.append(im);}
+const ready=[];function pic(i){if(!pics[i])pics[i]=fetch('/api/orders/'+encodeURIComponent(id)+'/file?file='+encodeURIComponent(order.bookPages[i]),{headers:auth}).then(r=>{if(!r.ok)throw Error();return r.blob();}).then(b=>ready[i]=URL.createObjectURL(b));return pics[i];}
+function img(el,i){el.replaceChildren();const im=new Image();im.alt='Page '+(i+1);im.decoding='async';if(ready[i]){im.src=ready[i];im.className='in';el.append(im);return;}im.onload=()=>im.classList.add('in');pic(i).then(u=>{im.src=u;}).catch(()=>{});el.append(im);}
 // Load every page quietly in the background, three at a time, so turning is instant.
 async function preload(){const n=order.bookPages.length;let next=0;const worker=async()=>{while(next<n){const i=next++;await pic(i).catch(()=>{});}};await Promise.all([worker(),worker(),worker()]);}
 function fill(el,src,cover){el.className=el.className.split(' ').slice(0,2).join(' ');el.replaceChildren();if(src===null){el.classList.add('none');return;}if(src===END){el.classList.add('end');return;}if(cover)el.classList.add('cover');img(el,src);}
