@@ -57,6 +57,10 @@ const slug=query.get('book')||'luke';
 document.body.classList.toggle('sample-mode',query.has('sample'));
 document.body.classList.toggle('embed-mode',query.has('embed'));
 if(query.has('embed'))document.querySelectorAll('.book-switcher a').forEach(link=>link.href+='&embed=1');
+if(query.get('sample')==='1'&&!query.has('embed')&&!query.has('order')&&Object.hasOwn(books,slug)){
+  document.querySelector('#sample-start').href='/create?like='+slug;
+  document.querySelector('#sample-choices').hidden=false;
+}
 const baseBook=books[slug]||books.luke;
 let saved={};try{saved=JSON.parse(localStorage.getItem('craven-quill-story-idea')||'{}');}catch{}
 const useSaved=query.get('order')==='1'&&saved.book===slug&&saved.paymentStatus==='test-paid';

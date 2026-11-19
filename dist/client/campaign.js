@@ -6,7 +6,15 @@
   const pathName=path=>path.replace(/\.html$/,'').replace(/\/$/,'')||'/';
   const landingPages=new Map([
     ['/','home'],['/index','home'],['/create','maker'],['/ordering','ordering'],
-    ['/personalised-birthday-book','birthday'],['/examples/the-map-beneath-the-moon','amara']
+    ['/personalised-birthday-book','birthday'],['/examples/the-map-beneath-the-moon','amara'],
+    ['/personalised-childrens-books','kids'],
+    ['/personalised-books-for-adults','adults'],
+    ['/personalised-christmas-book','christmas'],
+    ['/example-books','shelf'],
+    ['/examples/the-last-christmas-lantern','lantern'],
+    ['/examples/oliver-and-the-cake-that-wouldnt-wait','oliver'],
+    ['/examples/the-cake-that-quit','luke'],
+    ['/examples/noah-and-the-little-cloud','noah']
   ]);
   function publicPage(url){
     const path=pathName(url.pathname);
@@ -19,7 +27,7 @@
   }
   const page=publicPage(new URL(location.href));
   if(pathName(location.pathname)==='/test-book'&&!page)return;
-  const infoPage=['ordering','birthday','amara','sample'].includes(page);
+  const infoPage=Boolean(page && !['home','maker'].includes(page));
   // Store only a known engine and a public page code. Search terms and referrer URLs never leave the page.
   const searchHosts=new Map([
     ['google.co.uk','google'],['google.com','google'],['google.ie','google'],['google.fr','google'],
@@ -195,7 +203,8 @@
     if(!href||href.startsWith('#'))return;
     const target=new URL(href,location.href);
     if(target.origin!==location.origin||!publicPage(target))return;
-    if([...target.searchParams.keys()].some(key=>!['sample','book'].includes(key))||target.hash.includes('='))return;
+    const validStoryChoice=pathName(target.pathname)==='/create' && ['kids','adults','birthday','christmas','noah','amara','oliver','luke'].includes(target.searchParams.get('like')) && target.searchParams.getAll('like').length===1;
+    if([...target.searchParams.keys()].some(key=>!['sample','book'].includes(key)&&!(key==='like'&&validStoryChoice))||target.hash.includes('='))return;
     const keys={source:'utm_source',medium:'utm_medium',campaign:'utm_campaign',creative:'utm_content'};
     const carry=()=>{
       const url=new URL(target);

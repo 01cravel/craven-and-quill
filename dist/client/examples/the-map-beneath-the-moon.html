@@ -33,7 +33,13 @@
       {
         "@type": "ListItem",
         "position": 2,
-        "name": "The Map Beneath the Moon, a Personalised Storybook Example",
+        "name": "Example books",
+        "item": "https://cravenandquill.com/example-books"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "The Map Beneath the Moon",
         "item": "https://cravenandquill.com/examples/the-map-beneath-the-moon"
       }
     ]
@@ -58,24 +64,37 @@
     "isAccessibleForFree": true
   }
 ]</script>
-  <script src="/campaign.js?v=9" defer></script>
+  <script src="/campaign.js?v=10" defer></script>
+  <link rel="stylesheet" href="/book-navigation.css?v=1">
+  <script src="/book-navigation.js?v=1" defer></script>
 </head>
 <body class="story-page">
   <a class="skip" href="#main">Skip to main content</a>
   <header class="site-header">
-    <div class="header-bar">
-      <a class="brand" href="/" aria-label="Craven and Quill home"><img src="/assets/logo-mark-on-white.png?v=gold-alpha-20261026" width="420" height="401" alt=""><span>Craven &amp; Quill</span></a>
-      <nav class="story-nav" aria-label="Main navigation"><a href="/personalised-birthday-book">Birthday books</a><a href="/examples/the-map-beneath-the-moon">Example book</a></nav>
-      <a class="button button-small" href="/create">Free preview</a>
-    </div>
-  </header>
+  <div class="header-bar">
+    <a class="brand" href="/" aria-label="Craven and Quill home"><img src="/assets/logo-mark-on-white.png" width="42" height="40" alt=""><span>Craven &amp; Quill</span></a>
+    <nav class="book-navigation" aria-label="Book navigation">
+      <details class="book-menu">
+        <summary>Browse books</summary>
+        <div class="book-menu-panel">
+          <section><h2>Who’s it for?</h2><a href="/personalised-childrens-books">Children’s books</a><a href="/personalised-books-for-adults">Books for adults</a></section>
+          <section><h2>By occasion</h2><a href="/personalised-birthday-book">Birthday books</a><a href="/personalised-christmas-book">Christmas books</a></section>
+          <section><h2>Story style</h2><a href="/personalised-books-for-adults#funny">Funny stories</a><a href="/personalised-childrens-books#adventure">Adventures</a><a href="/personalised-childrens-books#bedtime">Bedtime stories</a></section>
+          <div class="book-menu-bottom"><a href="/example-books">See all example books →</a><a href="/#how">How it works</a><a href="/#pricing">Prices</a></div>
+        </div>
+      </details>
+      <a class="book-shelf-link" href="/example-books">Example books</a>
+    </nav>
+    <a class="button button-small" href="/create">Free preview</a>
+  </div>
+</header>
   <main id="main">
     <section class="story-hero" aria-labelledby="book-title">
       <div>
-        <p class="story-kicker">Example personalised storybook · ages 6 to 8</p>
+        <p class="story-kicker"><a href="/example-books">Example books</a> · Adventure · ages 6 to 8</p>
         <h1 id="book-title">The Map Beneath the Moon</h1>
         <p class="story-intro">Amara finds a silver map beneath her bedroom rug. By sunrise, she and a blue heron must find their way through a library in the clouds and bring home a missing star.</p>
-        <div class="story-actions"><a class="button" href="#read">Read the whole story</a><a class="text-link" href="/create">Make your free preview</a></div>
+        <div class="story-actions"><a class="button" href="#read">Read the whole story</a><a class="text-link" href="/create?like=amara">Make one like this</a></div>
       </div>
       <figure><img src="/assets/book-covers/amara-wide.webp" width="1619" height="971" fetchpriority="high" alt="Amara uncovers a glowing map as a blue heron waits at the bedroom window"></figure>
     </section>
@@ -156,12 +175,12 @@
     <section class="story-invitation" aria-labelledby="own-title">
       <h2 id="own-title">Who would you put in the story?</h2>
       <p>Make someone you love the hero of their own illustrated adventure. Choose the reading level, share a photo and see their character and opening pages free.</p>
-      <div class="story-actions"><a class="button" href="/create">Start their free preview</a><a class="text-link" href="/personalised-birthday-book">Explore birthday books</a></div>
+      <div class="story-actions"><a class="button" href="/create?like=amara">Make one like this</a><a class="text-link" href="/personalised-childrens-books#adventure">More adventure books</a></div>
     </section>
   </main>
   <footer>
     <a class="footer-brand" href="/">Craven &amp; Quill</a>
-    <nav aria-label="More from Craven and Quill"><a href="/personalised-birthday-book">Personalised birthday books</a><a href="/examples/the-map-beneath-the-moon">Read Amara’s book</a><a href="/ordering">Ordering and delivery</a><a href="/privacy">Privacy</a></nav>
+    <nav aria-label="More from Craven and Quill"><a href="/example-books">Example books</a><a href="/personalised-childrens-books">Children’s books</a><a href="/personalised-books-for-adults">Adult books</a><a href="/ordering">Ordering and delivery</a><a href="/privacy">Privacy</a></nav>
   </footer>
 </body>
 </html>

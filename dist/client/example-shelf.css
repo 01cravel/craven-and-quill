@@ -1,0 +1,20 @@
+.example-shelf { padding-top: clamp(2rem, 5vw, 4rem); }
+.shelf-books {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(2.2rem, 5vw, 4rem) clamp(1.4rem, 4vw, 3rem);
+  margin-top: clamp(1.8rem, 4vw, 3rem);
+}
+.shelf-book { min-width: 0; }
+.shelf-cover { display: block; margin-bottom: 1.25rem; }
+.shelf-cover img { width: 100%; height: auto; aspect-ratio: 5/3; object-fit: cover; border-radius: 10px; }
+.shelf-book .story-kicker { margin-bottom: .35rem; }
+.shelf-book h2 { font-size: clamp(1.65rem, 3.2vw, 2.6rem); }
+.shelf-book h2 a { text-decoration: none; }
+.shelf-book h2 a:is(:hover, :focus-visible) { text-decoration: underline; }
+.shelf-book > p:not(.story-kicker) { margin: .75rem 0; }
+.shelf-actions { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 1.4rem; }
+.shelf-actions a { padding: .55rem 0; text-underline-offset: 4px; }
+@media (max-width: 620px) {
+  .shelf-books { grid-template-columns: minmax(0, 1fr); }
+}

@@ -661,7 +661,7 @@ void loadOrderCatalog();
 const context=document.modelContext;
 if(context?.registerTool){const lifecycle=new AbortController();try{void Promise.resolve(context.registerTool({name:'read_story_maker_state',title:'Read story maker',description:'Read the visible step and non-photo choices. Uploaded images are never exposed.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute:()=>({step:state.step,names:fullNames(),age:state.age,mood:state.mood,selectedIdea:selectedStory()?.[0]||null,product:state.product})},{signal:lifecycle.signal})).catch(()=>{});}catch{}}
 
-buildIdeas();updateLive();updateProduct();updatePhotoGate();
+applyStoryStart();buildIdeas();updateLive();updateProduct();updatePhotoGate();
 
 const characterTest=new URLSearchParams(window.location.search).get('character-test');
 if(characterTest&&['127.0.0.1','localhost'].includes(window.location.hostname)){

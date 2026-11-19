@@ -149,3 +149,18 @@ test('public sample handoff preserves sample selectors, excludes embedded and pr
     assert.equal(privateViewer.calls.length,0);assert.equal(privateViewer.replaced.length,0);
   }
 });
+
+test('a Christmas search carries the selected book and the original visit into the maker',async()=>{
+  const site='cravenandquill.com';
+  const page=harness({},'',googleConfig,site,'/personalised-christmas-book','https://www.google.co.uk/',['/create?like=christmas','/create?like=private','/create?like=christmas&email=private']);
+  const arrival=measured(page)[0];
+  page.links[0].click();
+  const destination=new URL(page.links[0].href,'https://'+site);
+  assert.equal(destination.searchParams.get('like'),'christmas');
+  assert.equal(destination.searchParams.get('v'),arrival.visitId);
+  assert.equal(destination.searchParams.get('cq_entry'),'christmas');
+  assert.ok(page.links.slice(1).every(link=>!link.click));
+  const maker=harness({},destination.search,googleConfig,site,'/create','https://'+site+'/personalised-christmas-book');
+  assert.equal(maker.window.cqMeasurement.context().creative,'seo_christmas');
+  await page.flush();assert.equal(page.scripts.length,0);
+});

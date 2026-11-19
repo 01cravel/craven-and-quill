@@ -853,3 +853,8 @@ body[data-step="5"] .maker-shell,body[data-step="4"] .maker-shell{grid-template-
 .step[data-step="5"] .product .offer-label{display:block;font-size:.72rem;color:#9a3b26;font-weight:700}
 .step[data-step="5"] .product strong del{font-size:.75em;margin-right:.35em}
 .examples-cta p del{color:var(--muted);text-decoration-thickness:1.5px}
+
+#starting-story {padding:.7rem 1rem;background:#ecf1e8;border-radius:.6rem;color:#19382d}
+#choose-saved-book {box-sizing:border-box;width:min(90vw,28rem);padding:1.5rem;border:1px solid #abb6aa;border-radius:1rem;color:#19382d;background:#fffdf7}
+#choose-saved-book::backdrop {background:rgb(21 39 32 / .55)}
+#choose-saved-book button {padding:.65rem .85rem;border-radius:1rem;background:#19382d;color:white;cursor:pointer}

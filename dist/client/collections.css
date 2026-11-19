@@ -1,0 +1,44 @@
+/* Shared layouts for the public gift collections. */
+.collection-page .story-examples article,
+.collection-page .story-hero > *,
+.collection-feature > * {
+  min-width: 0;
+}
+.collection-page .story-examples .story-actions {
+  margin-top: 1rem;
+}
+.collection-feature {
+  display: grid;
+  grid-template-columns: minmax(0, .88fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(1.25rem, 5vw, 4rem);
+  margin: clamp(1.75rem, 4vw, 3rem) 0;
+}
+.collection-page [id] { scroll-margin-top: 6rem; }
+.collection-page .collection-art img { display: block; width: 100%; height: auto; border-radius: 14px; }
+.collection-feature .story-kicker { margin-bottom: .4rem; }
+.collection-page .adult-extract blockquote {
+  margin: 0;
+  padding: 0 0 0 1rem;
+  border-inline-start: 3px solid var(--line);
+  font: 400 clamp(1.4rem, 3vw, 2rem)/1.25 var(--serif);
+}
+.collection-page .christmas-reading > div > p:first-child { margin-top: 0; }
+.collection-page .birthday-portrait { position: relative; padding: 0 0 1rem 8%; }
+.collection-page .birthday-portrait > img:first-child { display: block; }
+.collection-page .birthday-portrait .original-photo {
+  position: absolute;
+  width: 23%;
+  height: auto;
+  left: 1%;
+  bottom: 0;
+  border: 5px solid #fffdf8;
+  border-bottom-width: 13px;
+  border-radius: 2px;
+  box-shadow: 0 3px 9px #1d2b2338;
+  transform: rotate(-6deg);
+}
+@media (max-width: 700px) {
+  .collection-feature { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .collection-page .story-actions .button { white-space: normal; }
+}

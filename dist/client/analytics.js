@@ -8,7 +8,7 @@ const ukDay=t=>new Intl.DateTimeFormat('en-CA',{timeZone:ZONE}).format(t);
 const addDays=(day,n)=>new Date(Date.parse(day+'T00:00:00Z')+n*86400000).toISOString().slice(0,10);
 const shortDay=day=>new Date(day+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
 const pct=(a,b)=>b?Math.round(a/b*100)+'%':'—';
-const searchLandings={seo_home:'Homepage',seo_maker:'Book maker',seo_ordering:'Ordering',seo_birthday:'Birthday books',seo_amara:'The Map Beneath the Moon',seo_sample:'Example book reader'};
+const searchLandings={seo_home:'Homepage',seo_maker:'Book maker',seo_ordering:'Ordering',seo_birthday:'Birthday books',seo_amara:'The Map Beneath the Moon',seo_sample:'Example book reader',seo_kids:"Children’s books",seo_adults:"Books for adults",seo_christmas:"Christmas books",seo_shelf:"Example book shelf",seo_lantern:"The Last Christmas Lantern",seo_oliver:"Oliver and the Cake That Wouldn’t Wait",seo_luke:"The Cake That Quit",seo_noah:"Noah and the Little Cloud"};
 const sourceName=s=>s==='organic_search'?'Organic search':s;
 const adName=c=>Object.hasOwn(searchLandings,c)?'Search · '+searchLandings[c]:!c||c==='none'?'No ad recorded':c;
 const countryName=c=>{try{return !c||c==='unknown'?'Unknown':new Intl.DisplayNames(['en-GB'],{type:'region'}).of(c);}catch{return c;}};

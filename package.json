@@ -5,7 +5,7 @@
   "scripts": {
     "check": "npm run build && node --check dist/server/index.js && node --check dist/server/campaign.js && node --check dist/server/analytics.js && node --check dist/client/analytics.js && node --check dist/server/story.js && node --check dist/server/address.js && node --check dist/client/create.js && node --check dist/client/campaign.js && node --check dist/client/campaign-results.js && node --check dist/client/unsubscribe.js && node --test tests/*.test.mjs",
     "check:release": "npm run check && node scripts/check-launch-ready.mjs",
-    "build": "node scripts/build-orders.mjs"
+    "build": "node scripts/build-orders.mjs && node scripts/build-book-navigation.mjs"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.11",

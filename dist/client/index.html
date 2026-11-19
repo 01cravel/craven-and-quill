@@ -19,26 +19,30 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="styles.css?v=61">
+  <link rel="stylesheet" href="/book-navigation.css?v=1">
+  <script src="/book-navigation.js?v=1" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to main content</a>
 
   <header class="site-header">
-    <div class="header-bar">
-      <a class="brand" href="#top" aria-label="Craven and Quill home">
-        <img src="assets/logo-mark-on-white.png?v=gold-alpha-20261026" width="420" height="401" alt="">
-        <span>Craven &amp; Quill</span>
-      </a>
-      <nav id="site-nav" aria-label="Main navigation">
-        <a href="#how">How it works</a>
-        <a href="#examples">Example books</a>
-        <a href="#pricing">Pricing</a>
-        <a href="#questions">Questions</a>
-      </nav>
-      <a class="button button-small header-cta" href="create.html">Start</a>
-      <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav"><span></span><span></span><em>Menu</em></button>
-    </div>
-  </header>
+  <div class="header-bar">
+    <a class="brand" href="/" aria-label="Craven and Quill home"><img src="/assets/logo-mark-on-white.png" width="42" height="40" alt=""><span>Craven &amp; Quill</span></a>
+    <nav class="book-navigation" aria-label="Book navigation">
+      <details class="book-menu">
+        <summary>Browse books</summary>
+        <div class="book-menu-panel">
+          <section><h2>Who’s it for?</h2><a href="/personalised-childrens-books">Children’s books</a><a href="/personalised-books-for-adults">Books for adults</a></section>
+          <section><h2>By occasion</h2><a href="/personalised-birthday-book">Birthday books</a><a href="/personalised-christmas-book">Christmas books</a></section>
+          <section><h2>Story style</h2><a href="/personalised-books-for-adults#funny">Funny stories</a><a href="/personalised-childrens-books#adventure">Adventures</a><a href="/personalised-childrens-books#bedtime">Bedtime stories</a></section>
+          <div class="book-menu-bottom"><a href="/example-books">See all example books →</a><a href="/#how">How it works</a><a href="/#pricing">Prices</a></div>
+        </div>
+      </details>
+      <a class="book-shelf-link" href="/example-books">Example books</a>
+    </nav>
+    <a class="button button-small" href="/create">Free preview</a>
+  </div>
+</header>
 
   <main id="main">
     <section class="hero" id="top">
@@ -115,7 +119,7 @@
     <section class="examples" id="examples" aria-labelledby="examples-title">
       <div class="section-intro">
         <h2 id="examples-title">Books we’ve made.</h2>
-        <p>Read a finished story below, or explore <a href="/personalised-birthday-book">personalised birthday books</a> for a gift idea.</p>
+        <p>Browse <a href="/example-books">all five example books</a>, or explore <a href="/personalised-birthday-book">personalised birthday books</a> for a gift idea.</p>
       </div>
       <div class="book-row">
         <a class="book-card" href="/examples/the-map-beneath-the-moon">
@@ -124,13 +128,13 @@
           <strong>The Map Beneath the Moon</strong>
           <span class="book-blurb">A map under her rug leads Amara to a library in the clouds, where the North Star has gone missing.</span>
         </a>
-        <a class="book-card" href="test-book.html?book=noah&amp;sample=1">
+        <a class="book-card" href="/examples/noah-and-the-little-cloud">
           <img src="assets/book-covers/noah-wide.jpg" width="1619" height="971" loading="lazy" alt="">
           <span class="book-meta">Gentle, ages 3 to 5</span>
           <strong>Noah and the Little Cloud</strong>
           <span class="book-blurb">A little cloud helps Noah water the flowers, wash a muddy duck and find its family.</span>
         </a>
-        <a class="book-card" href="test-book.html?book=luke&amp;sample=1">
+        <a class="book-card" href="/examples/the-cake-that-quit">
           <img src="assets/book-covers/luke-wide.jpg" width="1619" height="971" loading="lazy" alt="">
           <span class="book-meta">Funny, for adults</span>
           <strong>The Cake That Quit</strong>
@@ -204,8 +208,8 @@
 
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Craven & Quill","url":"https://cravenandquill.com"}</script>
   <script>(()=>{const card=document.querySelector(".stage-photo");if(!card)return;let runs=0;card.addEventListener("animationiteration",()=>{if(++runs>=3)card.closest(".hero-stage").classList.add("settled");});})();</script>
-  <script src="campaign.js?v=9" defer></script>
-  <script src="app.js?v=5" defer></script>
+  <script src="campaign.js?v=10" defer></script>
+  <script src="app.js?v=books-5" defer></script>
 <script>if(Date.now()>Date.parse('2026-12-01T23:59:59Z')){document.querySelectorAll('[data-offer]').forEach(e=>e.remove());const h=document.getElementById('pricing-title');if(h)h.textContent='Simple prices.';}</script>
 </body>
 </html>
