@@ -147,7 +147,8 @@ function approved(){$('bar').hidden=false;$('bar').replaceChildren();const p=doc
 function controls(){if(order.customerApproved||['awaiting_approval','approved','submitting','submitted','supplier_unknown'].includes(order.status))return approved();
   if(order.status!=='proof_ready'){$('bar').hidden=false;$('approve').hidden=true;$('barText').textContent='We’re making a few final changes. We’ll email you when it’s ready.';return;}
   $('bar').hidden=false;}
-$('approve').onclick=()=>$('confirm').showModal();$('cancel').onclick=()=>$('confirm').close();
+const testCopy=new URLSearchParams(location.search).get('test')==='1';
+$('approve').onclick=()=>{if(testCopy){$('barText').textContent='Test copy: Approve is switched off here. The customer’s button works.';return;}$('confirm').showModal();};$('cancel').onclick=()=>$('confirm').close();
 $('yes').onclick=async()=>{$('yes').disabled=true;try{order=await api('/approve-proof',{revision:order.revision,proofHash:order.proof.hash,confirm:true});$('confirm').close();approved();}catch(e){$('confirm').close();$('barText').textContent=e.message.includes('changed')?'This book was just updated. Reloading…':e.message;if(e.message.includes('changed'))setTimeout(()=>location.reload(),1500);}finally{$('yes').disabled=false;}};
 (async()=>{if(!id||key.length<32)return fail('This link isn’t complete. Please open the link from our email again.');
   try{order=await api('');}catch(e){return fail('We couldn’t open this book. Please open the link from our email again, or reply to that email and we’ll help.');}

@@ -4593,11 +4593,11 @@ function orderEmail(o, kind, url) {
   ].filter(Boolean).join("\n\n");
   return { subject: "Craven & Quill: " + c.subject, text, html: html(o, c, url), key: `${o.id}:${kind}:${kind === "proof" ? o.data.proof?.hash : "1"}` };
 }
-async function sendOrderEmail(env2, o, kind, url) {
+async function sendOrderEmail(env2, o, kind, url, test = null) {
   if (!env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { sent: false, message: "Order email is not connected. Use your private order link." };
   const message2 = orderEmail(o, kind, url);
   try {
-    const r = await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${env2.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": message2.key }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, reply_to: env2.ORDER_EMAIL_REPLY_TO || "cravenluke@gmail.com", to: [o.email], subject: message2.subject, html: message2.html, text: message2.text }), signal: AbortSignal.timeout(15e3) });
+    const r = await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${env2.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": test ? message2.key + "-test-" + Date.now() : message2.key }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, reply_to: env2.ORDER_EMAIL_REPLY_TO || "cravenluke@gmail.com", to: [test ? test.to : o.email], subject: (test ? "[Test] " : "") + message2.subject, html: message2.html, text: message2.text }), signal: AbortSignal.timeout(15e3) });
     const d = await r.json();
     return { sent: !!(r.ok && d.id), providerId: r.ok ? d.id : null, kind, proofHash: kind === "proof" ? o.data.proof?.hash : null, message: r.ok && d.id ? "Email accepted by provider; inbox delivery not yet confirmed." : "Email was not accepted. Retry from the order desk." };
   } catch {
@@ -54052,6 +54052,13 @@ You can stop offer emails here: ${unsubscribe}`;
       return reply(publicOrder(await createIllustration(env2, o, index, actor, true, { instruction, match }), true));
     }
     if (action === "make-proof") return reply(publicOrder(await createProof(env2, o, actor, url.origin), true));
+    if (action === "test-book-email") {
+      requireThat(o.data.proof && o.data.proofWeb?.hash === o.data.proof.hash, "Make the phone pages first.", 409);
+      const token = await privateKey(env2, o.data.privateKey, true), link = `${url.origin}/book.html?id=${id}&test=1#key=${token}`;
+      const r = await notify(env2, o, "proof", link, { to: actor });
+      await audit(env2, id, "test_email_sent", actor, { sent: r.sent });
+      return reply({ sent: r.sent, message: r.message, to: actor });
+    }
     if (action === "notify-proof") {
       requireThat(o.data.proof && o.status === "proof_ready", "Build a proof first.", 409);
       const token = await privateKey(env2, o.data.privateKey, true), link = `${url.origin}/book.html?id=${id}#key=${token}`;
