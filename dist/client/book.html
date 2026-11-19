@@ -152,8 +152,8 @@ let wasPhone=phone();addEventListener('resize',()=>{if(phone()===wasPhone||!orde
 function approved(){$('bar').hidden=false;$('bar').replaceChildren();const p=document.createElement('p');p.className='done';p.innerHTML='<b>Approved.</b> Thank you, we’re getting '+(order.names?order.names.replace(/[<&>]/g,'')+'’s':'your')+' book ready to print.';$('bar').append(p);}
 // Before payment: two buy buttons that go straight to the payment page. (19 Nov 2026)
 let cat=null;const money=p=>'£'+(p/100).toFixed(2);
-async function buyControls(){$('bar').hidden=false;$('approve').hidden=true;$('buy').hidden=false;$('barText').textContent='Happy with it? UK delivery is included.';
-  try{cat=await fetch('/api/orders/catalog').then(r=>r.json());for(const b of [$('buyA4'),$('buyA5')]){const p=cat.products.find(x=>x.id===b.dataset.size);if(p)b.textContent='Buy the '+b.dataset.size.toUpperCase()+' hardback, '+money(p.pricePence+cat.shippingPence);}}catch{}}
+async function buyControls(){$('bar').hidden=false;$('approve').hidden=true;$('buy').hidden=false;$('barText').textContent=order.discount?.ownerGift?'Happy with it? '+money(order.discount.amountPence)+' off is already taken off, and UK delivery is included.':'Happy with it? UK delivery is included.';
+  try{cat=await fetch('/api/orders/catalog').then(r=>r.json());for(const b of [$('buyA4'),$('buyA5')]){const p=cat.products.find(x=>x.id===b.dataset.size);const off=order.discount?.ownerGift?order.discount.amountPence:0;if(p)b.textContent='Buy the '+b.dataset.size.toUpperCase()+' hardback, '+money(p.pricePence+cat.shippingPence-off);}}catch{}}
 async function buy(size){if(testCopy){$('barText').textContent='Test copy: the buy buttons are switched off here. The customer’s buttons go straight to payment.';return;}
   for(const b of [$('buyA4'),$('buyA5')])b.disabled=true;$('barText').textContent='Opening the secure payment page…';
   try{await api('/session',{revision:order.revision,token:key}).catch(()=>{});order=await api('');const d=await api('/checkout',{revision:order.revision,size});location.href=d.url;}

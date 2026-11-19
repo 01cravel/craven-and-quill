@@ -447,3 +447,16 @@ test('before payment: owner builds a whole-book preview, customer flips it and b
  ziinaStatus='pending';o=await state(env,id);assert.equal((await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a5'})).status,409);o=await state(env,id);assert.equal(o.size,'a4','a payment in progress keeps its size');
 });
 test('gift sender wording is not doubled in the book',()=>{for(const [i,o] of [['With love from Nanny and Grandad','Nanny and Grandad'],['love from Mum','Mum'],['From Auntie Sue','Auntie Sue'],['With lots of love from Dad','Dad'],['Nanny and Grandad','Nanny and Grandad'],['Love','Love']])assert.equal(giver(i),o);});
+test('owner thank-you discount: £5 off applied at checkout, kept when switching size, open card page at old price retired',async()=>{
+ const env=environment(),{id,order}=await create(env);ziinaConnected(env);let made=0,amount=order.amount,status='requires_payment_instrument';
+ env.fetch=async(url,init)=>{if(url.includes('/payment_intent')&&init?.method==='POST'){made++;amount=JSON.parse(init.body).amount;return Response.json({...intent(env,amount),id:'ziina-intent-'+made});}return Response.json({...intent(env,amount,status),id:'ziina-intent-'+made});};
+ assert.equal((await request(env,'/'+id+'/checkout',{revision:order.revision})).status,200);
+ let o=await state(env,id);assert.equal((await request(env,'/'+id+'/gift-discount',{revision:o.revision,amountPence:500,confirm:true})).status,403);
+ let r=await request(env,'/'+id+'/gift-discount',{revision:o.revision,amountPence:500,confirm:true},{admin:true});assert.equal(r.status,200);
+ o=await state(env,id);assert.equal(o.amount,PRODUCTS[o.size].pricePence+399-500);assert.equal(o.session_id,null);assert.equal(o.data.discount.ownerGift,true);
+ assert.equal((await request(env,'/'+id+'/gift-discount',{revision:o.revision,amountPence:500,confirm:true},{admin:true})).status,409,'only once');
+ r=await request(env,'/'+id+'/checkout',{revision:o.revision});assert.equal(r.status,200);assert.equal(made,2);assert.equal(amount,PRODUCTS[o.size].pricePence+399-500,'Ziina charges the discounted price');
+ o=await state(env,id);const other=o.size==='a4'?'a5':'a4';r=await request(env,'/'+id+'/checkout',{revision:o.revision,size:other});assert.equal(r.status,200);assert.equal(made,3);
+ o=await state(env,id);assert.equal(o.size,other);assert.equal(o.amount,PRODUCTS[other].pricePence+399-500);assert.equal(amount,o.amount);
+ const pub=await (await request(env,'/'+id)).json();assert.equal(pub.discount.amountPence,500);
+});

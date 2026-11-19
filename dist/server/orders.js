@@ -53796,7 +53796,7 @@ You can stop offer emails here: ${unsubscribe}`;
     }
     if (action === "checkout" && b.size && b.size !== o.size) {
       requireThat(PRODUCTS[b.size], "Choose A4 or A5.");
-      requireThat(o.payment_status === "unpaid" && ["saved", "awaiting_payment"].includes(o.status) && !o.data.discount, "This book\u2019s size can\u2019t be changed here. Reply to our email and we\u2019ll help.", 409);
+      requireThat(o.payment_status === "unpaid" && ["saved", "awaiting_payment"].includes(o.status) && (!o.data.discount || o.data.discount.ownerGift), "This book\u2019s size can\u2019t be changed here. Reply to our email and we\u2019ll help.", 409);
       if (o.session_id) {
         requireThat(o.data.payment?.provider === "ziina", "Reply to our email and we\u2019ll help with this order.", 409);
         const p = await ziinaSync(env2, o);
@@ -53804,7 +53804,7 @@ You can stop offer emails here: ${unsubscribe}`;
         o.data.failedPayments = [...o.data.failedPayments || [], { ...o.data.payment, sessionId: o.session_id, endedStatus: p.status, replacedForSize: b.size, clearedAt: now2() }];
         o.data.payment = null;
       }
-      const changed = await q(env2, "UPDATE customer_orders SET size=?1,amount=?2,session_id=NULL,status='saved',state=?3,revision=revision+1,updated_at=?4 WHERE id=?5 AND revision=?6 AND payment_status='unpaid' RETURNING id", b.size, orderTotal(b.size), JSON.stringify(o.data), now2(), id, o.revision).first();
+      const changed = await q(env2, "UPDATE customer_orders SET size=?1,amount=?2,session_id=NULL,status='saved',state=?3,revision=revision+1,updated_at=?4 WHERE id=?5 AND revision=?6 AND payment_status='unpaid' RETURNING id", b.size, orderTotal(b.size) - (o.data.discount?.ownerGift ? o.data.discount.amountPence : 0), JSON.stringify(o.data), now2(), id, o.revision).first();
       requireThat(changed, "This order changed. Reload before checkout.", 409);
       await audit(env2, id, "size_changed", isAdmin ? "owner" : "customer", { size: b.size });
       o = await get(env2, id);
@@ -53812,7 +53812,7 @@ You can stop offer emails here: ${unsubscribe}`;
     if (action === "checkout") {
       requireThat(checkoutReady(env2), "Payments are not open yet. Your book is saved and nothing has been charged.", 503);
       requireThat(o.payment_status === "unpaid" && ["saved", "awaiting_payment"].includes(o.status), "This book is already paid or on hold.", 409);
-      if (o.data.discount && !o.data.discount.ownerTest && !o.session_id) {
+      if (o.data.discount && !o.data.discount.ownerTest && !o.data.discount.ownerGift && !o.session_id) {
         const table9 = o.data.discount.previewReminder ? "reminder_offers" : "customer_quotes";
         const offer = await q(env2, `SELECT code_expires_at,redeemed_order_id FROM ${table9} WHERE discount_code=?1 AND email=?2`, o.data.discount.code, o.email).first();
         if (!offer || offer.redeemed_order_id !== id || Date.parse(offer.code_expires_at) <= Date.now()) {
@@ -53920,6 +53920,23 @@ You can stop offer emails here: ${unsubscribe}`;
       if (index === "cover") fresh.data.peekWeb.cover = key2;
       else fresh.data.peekWeb.scenes[index] = key2;
       return reply(publicOrder(await save(env2, fresh, fresh.data), true));
+    }
+    if (action === "gift-discount") {
+      const pence = Number(b.amountPence);
+      requireThat(b.confirm === true && Number.isInteger(pence) && pence >= 100 && pence <= 1e3, "Choose an amount between \xA31 and \xA310.");
+      requireThat(o.payment_status === "unpaid" && ["saved", "awaiting_payment"].includes(o.status) && !o.data.discount, "Only an unpaid book with no other offer can be given this.", 409);
+      if (o.session_id) {
+        requireThat(o.data.payment?.provider === "ziina", "Check this order\u2019s payment first.", 409);
+        const p = await ziinaSync(env2, o);
+        requireThat(["requires_payment_instrument", "requires_user_action", "failed", "canceled"].includes(p.status), "A payment is in progress. Try again shortly.", 409);
+        o.data.failedPayments = [...o.data.failedPayments || [], { ...o.data.payment, sessionId: o.session_id, endedStatus: p.status, replacedForDiscount: pence, clearedAt: now2() }];
+        o.data.payment = null;
+      }
+      o.data.discount = { code: "THANKYOU" + Math.round(pence / 100), amountPence: pence, ownerGift: true, at: now2() };
+      const changed = await q(env2, "UPDATE customer_orders SET amount=?1,session_id=NULL,status='saved',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' RETURNING id", orderTotal(o.size) - pence, JSON.stringify(o.data), now2(), id, o.revision).first();
+      requireThat(changed, "This order changed. Reload.", 409);
+      await audit(env2, id, "gift_discount", actor, { amountPence: pence });
+      return reply(publicOrder(await get(env2, id), true));
     }
     if (action === "preview-book") {
       const unpaidOk = o.payment_status === "unpaid" && o.data.prebuilt && (o.status === "saved" && !o.session_id || o.status === "awaiting_payment" && o.data.payment?.provider === "ziina");
