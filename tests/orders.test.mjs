@@ -361,6 +361,7 @@ test('owner can reopen a failed checkout, draw the whole book early, and the cus
  env.fetch=async()=>Response.json({data:[{b64_json:jpeg.toString('base64')}],usage:{total_tokens:1}});
  for(const page of ['cover',0]){o=await state(env,id);r=await request(env,'/'+id+'/prebuild',{revision:o.revision,page,confirm:true},{admin:true});assert.equal(r.status,200);}
  o=await state(env,id);assert.equal(o.status,'saved');assert.ok(o.data.art.cover&&o.data.art.scenes[0]);assert.equal(o.data.prebuilt,true);
+{const before=o.data.art.scenes[0],tries=o.data.artAttempts;const f=await request(env,'/'+id+'/fix-picture',{revision:o.revision,page:0,instruction:'Remove the toy unicorn from the floor.'},{admin:true});assert.equal(f.status,200);const after=await state(env,id);assert.equal(after.status,'saved');assert.equal(after.payment_status,'unpaid');assert.notEqual(after.data.art.scenes[0],before);assert.equal(after.data.artAttempts,tries+1);o=after;}
  const pub=await (await request(env,'/'+id)).json();assert.equal(pub.peek.cover,o.data.art.cover);assert.equal(pub.peek.scenes[0],o.data.art.scenes[0]);
  assert.equal((await request(env,'/'+id+'/file?file='+o.data.art.scenes[0])).status,200);
  // Watermarked web copy: owner only, then the customer sees it instead of the full-size original.

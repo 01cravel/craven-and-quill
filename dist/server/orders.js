@@ -54057,6 +54057,26 @@ You can stop offer emails here: ${unsubscribe}`;
       requireThat(instruction.length >= 10, "Say what to change in the picture.");
       const match = b.match === "cover" || b.match === "back" ? b.match : b.match === void 0 || b.match === null || b.match === "" ? null : Number(b.match);
       requireThat(match === null || match === "cover" || match === "back" || Number.isInteger(match) && match >= 0 && match < 10, "Choose a valid picture to match.");
+      if (o.payment_status === "unpaid" && o.data.prebuilt) {
+        requireThat(index !== "back" && match !== "back", "Drawn-early books have no back cover yet.");
+        requireThat(o.status === "saved" && !o.session_id || o.status === "awaiting_payment" && o.data.payment?.provider === "ziina", "Only a saved, unpaid book can be fixed early.", 409);
+        requireThat((o.data.artAttempts || 0) < (o.data.artBudget || 22), "This book reached its illustration request limit.", 429);
+        requireThat(index === "cover" ? o.data.art.cover : o.data.art.scenes[index], "Draw this picture first.", 409);
+        const drawing = await editPage(env2, o, index, { instruction, match }), key2 = await assetPut(env2, o, drawing.bytes, drawing.type || "image/jpeg", "art");
+        const fresh = await get(env2, id);
+        requireThat(fresh.payment_status === "unpaid" && fresh.status === o.status && (fresh.session_id || null) === (o.session_id || null), "This book changed while drawing. Reload.", 409);
+        if (index === "cover") {
+          fresh.data.art.cover = key2;
+          if (fresh.data.peekWeb) fresh.data.peekWeb.cover = null;
+        } else {
+          fresh.data.art.scenes[index] = key2;
+          if (fresh.data.peekWeb) fresh.data.peekWeb.scenes[index] = null;
+        }
+        fresh.data.artAttempts = (fresh.data.artAttempts || 0) + 1;
+        fresh.data.artUsage = [...fresh.data.artUsage || [], { at: now2(), page: index, usage: drawing.usage, prebuild: true, fix: true }];
+        await audit(env2, id, "image_fixed", actor, { page: index, fix: instruction.slice(0, 200), match: match ?? null, prebuilt: true });
+        return reply(publicOrder(await save(env2, fresh, fresh.data), true));
+      }
       return reply(publicOrder(await createIllustration(env2, o, index, actor, true, { instruction, match }), true));
     }
     if (action === "make-proof") return reply(publicOrder(await createProof(env2, o, actor, url.origin), true));
