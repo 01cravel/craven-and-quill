@@ -23,14 +23,15 @@ function copy(o,kind){
     introText:[`Thank you. Your payment is in and our team has started on ${f.title||'their story'}. We can’t wait for ${f.them} to see it.`],
     steps:[['Now',`We draw ${f.them} into every page.`],['Within 7 days','We email you the finished proof to check.'],['Then 7–12 working days',`Printed and posted${f.to?' to '+f.to:''}.`]],
     note:'Nothing prints until you’ve approved the proof.',button:'See your order'};
+  // Owner wording, 19 Nov 2026: sound like the company, let them flick through, one Approve button, one round of changes by reply.
   if(kind==='proof')return {
-    subject:`Your proof is ready, check ${f.poss} book`,
-    preheader:'Check every page, then approve it for printing.',
-    kicker:'Your proof is ready',heading:`${f.name?f.poss[0].toUpperCase()+f.poss.slice(1):'Your'} book is ready to check.`,
-    intro:['Open your book and check every page: the names, the words and the pictures. Printing stays on hold until you approve this version.'],
-    introText:['Open your book and check every page: the names, the words and the pictures. Printing stays on hold until you approve this version.'],
-    steps:[['Now','Check every page and approve it.'],['Next','We do a final check and send it to print.'],['Then 7–12 working days',`Printed and posted${f.to?' to '+f.to:''}.`]],
-    note:'Spotted something? Reply to this email before approving and we’ll fix it.',button:'Check the proof'};
+    subject:`${f.name?f.poss[0].toUpperCase()+f.poss.slice(1):'Your'} book is ready`,
+    preheader:'Have a flick through, then press Approve and we’ll print it.',
+    kicker:'Your book is ready',heading:`${f.name?f.poss[0].toUpperCase()+f.poss.slice(1):'Your'} book is ready.`,
+    intro:[`Thank you for your order. ${f.title?`<i>${esc(f.title)}</i>`:'Your book'} is finished and we hope you love it.`,'Have a flick through every page. If everything looks right, press Approve and we’ll send it to print.'],
+    introText:[`Thank you for your order. ${f.title||'Your book'} is finished and we hope you love it.`,'Have a flick through every page. If everything looks right, press Approve and we’ll send it to print.'],
+    steps:[['Now','Flick through and press Approve.'],['Next','Printed and bound in the UK.'],['Then 7–12 working days',`Posted${f.to?' to '+f.to:''}.`]],
+    note:'Want something changed? Every book includes one round of changes. Just reply to this email and tell us what you’d like.',button:`See ${f.name?f.poss:'your'} book`};
   if(kind==='shipped')return {
     subject:`${f.name?f.poss:'Your'} book has gone to the printer`,
     preheader:'Tracking will appear on your order page.',

@@ -4509,15 +4509,15 @@ function copy(o, kind) {
     button: "See your order"
   };
   if (kind === "proof") return {
-    subject: `Your proof is ready, check ${f.poss} book`,
-    preheader: "Check every page, then approve it for printing.",
-    kicker: "Your proof is ready",
-    heading: `${f.name ? f.poss[0].toUpperCase() + f.poss.slice(1) : "Your"} book is ready to check.`,
-    intro: ["Open your book and check every page: the names, the words and the pictures. Printing stays on hold until you approve this version."],
-    introText: ["Open your book and check every page: the names, the words and the pictures. Printing stays on hold until you approve this version."],
-    steps: [["Now", "Check every page and approve it."], ["Next", "We do a final check and send it to print."], ["Then 7\u201312 working days", `Printed and posted${f.to ? " to " + f.to : ""}.`]],
-    note: "Spotted something? Reply to this email before approving and we\u2019ll fix it.",
-    button: "Check the proof"
+    subject: `${f.name ? f.poss[0].toUpperCase() + f.poss.slice(1) : "Your"} book is ready`,
+    preheader: "Have a flick through, then press Approve and we\u2019ll print it.",
+    kicker: "Your book is ready",
+    heading: `${f.name ? f.poss[0].toUpperCase() + f.poss.slice(1) : "Your"} book is ready.`,
+    intro: [`Thank you for your order. ${f.title ? `<i>${esc(f.title)}</i>` : "Your book"} is finished and we hope you love it.`, "Have a flick through every page. If everything looks right, press Approve and we\u2019ll send it to print."],
+    introText: [`Thank you for your order. ${f.title || "Your book"} is finished and we hope you love it.`, "Have a flick through every page. If everything looks right, press Approve and we\u2019ll send it to print."],
+    steps: [["Now", "Flick through and press Approve."], ["Next", "Printed and bound in the UK."], ["Then 7\u201312 working days", `Posted${f.to ? " to " + f.to : ""}.`]],
+    note: "Want something changed? Every book includes one round of changes. Just reply to this email and tell us what you\u2019d like.",
+    button: `See ${f.name ? f.poss : "your"} book`
   };
   if (kind === "shipped") return {
     subject: `${f.name ? f.poss : "Your"} book has gone to the printer`,
@@ -52959,7 +52959,7 @@ function wishes(w) {
 }
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, previewId: d.previewId || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, bookPages: d.proof && d.proofWeb?.hash === d.proof.hash && d.proofWeb.pages.every(Boolean) ? d.proofWeb.pages : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, previewId: d.previewId || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
 }
 var editable = (o) => o.payment_status === "paid" && ["awaiting_review", "building", "proof_ready", "awaiting_approval"].includes(o.status);
 function archiveContent(o, kind, actor) {
@@ -53683,7 +53683,7 @@ You can stop offer emails here: ${unsubscribe}`;
     }
     if (action === "file" && req.method === "GET") {
       const key2 = url.searchParams.get("proof") === o.data.proof?.hash ? o.data.proof?.key : url.searchParams.get("file");
-      const permitted = [o.data.proof?.key, ...o.data.prebuilt && o.payment_status === "unpaid" ? [o.data.peekWeb?.cover || o.data.art.cover, ...o.data.art.scenes.map((x, i4) => o.data.peekWeb?.scenes?.[i4] || x)] : [], ...isAdmin ? [...o.data.characters, ...o.data.art.scenes, o.data.art.cover, o.data.art.back, o.data.spine?.key] : []];
+      const permitted = [o.data.proof?.key, ...o.data.proof && o.data.proofWeb?.hash === o.data.proof.hash ? o.data.proofWeb.pages : [], ...o.data.prebuilt && o.payment_status === "unpaid" ? [o.data.peekWeb?.cover || o.data.art.cover, ...o.data.art.scenes.map((x, i4) => o.data.peekWeb?.scenes?.[i4] || x)] : [], ...isAdmin ? [...o.data.characters, ...o.data.art.scenes, o.data.art.cover, o.data.art.back, o.data.spine?.key] : []];
       requireThat(permitted.filter(Boolean).includes(key2), "File not found.", 404);
       const a = await assetRead(env2, o, key2);
       const peekKey = o.data.prebuilt && a.type === "image/jpeg" && [o.data.art.cover, ...o.data.art.scenes, o.data.peekWeb?.cover, ...o.data.peekWeb?.scenes || []].includes(key2);
@@ -53721,7 +53721,7 @@ You can stop offer emails here: ${unsubscribe}`;
     if (action === "return-link" && req.method === "POST") {
       return reply({ url: `${url.origin}/order.html?id=${id}#key=${await privateKey(env2, o.data.privateKey, true)}` });
     }
-    const b = await input(req, action === "peek-web" && isAdmin ? 12e5 : 65536);
+    const b = await input(req, (action === "peek-web" || action === "proof-web") && isAdmin ? 12e5 : 65536);
     requireThat(b.revision === o.revision, "This order changed. Reload before continuing.", 409);
     if (action === "apply-offer") {
       requireThat(o.payment_status === "unpaid" && o.status === "saved" && !o.session_id, "This checkout needs owner review before its price can change.", 409);
@@ -53842,6 +53842,20 @@ You can stop offer emails here: ${unsubscribe}`;
       }
       requireThat(ok, "The email service did not accept this email (HTTP " + r.status + ").", 502);
       return reply({ ...publicOrder(o, true), emailSent: { to: b.to, subject } });
+    }
+    if (action === "proof-web") {
+      requireThat(o.data.proof && b.hash === o.data.proof.hash, "The book changed. Reload and make the phone pages again.", 409);
+      const total = Number(b.total), page = Number(b.page);
+      requireThat(Number.isInteger(total) && total >= 24 && total <= 60 && Number.isInteger(page) && page >= 0 && page < total, "Choose a valid page.");
+      const m2 = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(b.image || ""));
+      requireThat(m2 && m2[1].length < 9e5, "Send a JPEG under 650 KB.");
+      const bytes = Uint8Array.from(atob(m2[1]), (c) => c.charCodeAt(0));
+      requireThat(bytes[0] === 255 && bytes[1] === 216, "Send a JPEG.");
+      const key2 = await assetPut(env2, o, bytes, "image/jpeg", "web");
+      const fresh = await get(env2, id);
+      if (fresh.data.proofWeb?.hash !== fresh.data.proof?.hash || fresh.data.proofWeb.pages.length !== total) fresh.data.proofWeb = { hash: fresh.data.proof.hash, pages: Array(total).fill(null) };
+      fresh.data.proofWeb.pages[page] = key2;
+      return reply(publicOrder(await save(env2, fresh, fresh.data), true));
     }
     if (action === "peek-web") {
       requireThat(o.data.prebuilt && o.payment_status === "unpaid", "Only drawn-early books use web copies.", 409);
@@ -54040,7 +54054,7 @@ You can stop offer emails here: ${unsubscribe}`;
     if (action === "make-proof") return reply(publicOrder(await createProof(env2, o, actor, url.origin), true));
     if (action === "notify-proof") {
       requireThat(o.data.proof && o.status === "proof_ready", "Build a proof first.", 409);
-      const token = await privateKey(env2, o.data.privateKey, true), link = `${url.origin}/order.html?id=${id}#key=${token}`;
+      const token = await privateKey(env2, o.data.privateKey, true), link = `${url.origin}/book.html?id=${id}#key=${token}`;
       o.data.emailStatus = await notify(env2, o, "proof", link);
       return reply(publicOrder(await save(env2, o, o.data), true));
     }
