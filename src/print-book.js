@@ -4,6 +4,8 @@ import {BOOK,PRODUCTS,requireThat} from './catalog.js';
 // 1x512 dark-green fade (strongest at the foot), stretched over the lower 56% of the front cover.
 const COVER_FADE_PNG='iVBORw0KGgoAAAANSUhEUgAAAAEAAAIACAYAAABD1gYFAAAAN0lEQVR42mPgk5FgYGJgYGCEEwxYWLSTGLVy1MpRK0ethLGI4JKuYwQZP+qZUc+MemY0rIjkAgDF0AUmQGsSpwAAAABJRU5ErkJggg==';
 const mm=n=>n*72/25.4;
+// Customers often type "With love from Nanny and Grandad"; the book adds its own "with love", so drop theirs. (19 Nov 2026)
+export const giver=t=>{const v=String(t||'').trim(),cut=v.replace(/^(?:given\s+)?(?:with\s+)?(?:(?:lots\s+of|all\s+(?:our|my))\s+)?love,?\s+(?:from|by)\s+|^(?:from|by)\s+/i,'').trim();return cut||v;};
 export async function printBook(order,read,fontBytes,logoBytes,coverLogoBytes=null){
  const spec=PRODUCTS[order.size],pdf=await PDFDocument.create();pdf.registerFontkit(fontkit);
  const font=await pdf.embedFont(fontBytes,{subset:true});const logo=await pdf.embedPng(logoBytes),coverLogo=coverLogoBytes?await pdf.embedPng(coverLogoBytes):null;
@@ -37,7 +39,7 @@ export async function printBook(order,read,fontBytes,logoBytes,coverLogoBytes=nu
  // One opening page (title, who it is for, who it is from), vertically centred as a single block.
  // It replaced three near-empty pages (title, dedication, "Let the story begin") on 19 Nov 2026.
  const opening=page(),giftSize=spec.id==='a5'?13:18;
- const openParts=[{text:order.story.title,size:spec.id==='a5'?22:30,gap:mm(16)},{text:'A story just for',size:giftSize},{text:order.names,size:spec.id==='a5'?23:32},...(order.senderName?[{text:'Given with love by '+order.senderName,size:giftSize}]:[]),...(order.dedication?[{text:order.dedication,size:giftSize}]:[])];
+ const openParts=[{text:order.story.title,size:spec.id==='a5'?22:30,gap:mm(16)},{text:'A story just for',size:giftSize},{text:order.names,size:spec.id==='a5'?23:32},...(order.senderName?[{text:'Given with love by '+giver(order.senderName),size:giftSize}]:[]),...(order.dedication?[{text:order.dedication,size:giftSize}]:[])];
  const openGap=mm(5),openHeight=openParts.reduce((h,p,i)=>h+lines(p.text,p.size,W-2*M).length*p.size*1.45+(i<openParts.length-1?(p.gap||openGap):0),0);
  let openY=H/2+openHeight/2-openParts[0].size;
  for(const part of openParts){openY=words(opening,part.text,{size:part.size,y:openY,center:true})-(part.gap||openGap);}
@@ -62,7 +64,7 @@ export async function printBook(order,read,fontBytes,logoBytes,coverLogoBytes=nu
   if(!cut)back.drawRectangle({x:fx-border,y:fy-border,width:fw+2*border,height:fh+2*border,color:light});back.drawImage(image,{x:fx,y:fy,width:fw,height:fh});
   images.push({dpi:Math.round(image.width/(fw/72)),widthPx:image.width,heightPx:image.height,fullPage:false,cropPercent:0});textTop=fy-border-mm(cut?8:14);}
  centre('Made especially for '+order.names,madeSize,textTop,light);
- if(order.senderName)centre('With love from '+order.senderName,fromSize,textTop-madeSize*1.9,soft);
+ if(order.senderName)centre('With love from '+giver(order.senderName),fromSize,textTop-madeSize*1.9,soft);
  centre(site,siteSize,mm(14),soft);
  if(coverLogo){const lw=mm(spec.id==='a5'?14:18),lh=lw*coverLogo.height/coverLogo.width;back.drawImage(coverLogo,{x:(W-lw)/2,y:mm(14)+siteSize+mm(4),width:lw,height:lh});}
  requireThat(pdf.getPageCount()===BOOK.pdfPages,'Unexpected print page count.');

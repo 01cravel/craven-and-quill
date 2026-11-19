@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {PDFDocument} from 'pdf-lib';
 import {ordersApi,quoteOrder,runArtworkJobs,claimBookSoldAlerts} from '../src/orders.js';
 import {PRODUCTS,OWNER_TEST,sha,checkoutReady,BOOK} from '../src/catalog.js';
-import {printBook,validatePdf} from '../src/print-book.js';
+import {printBook,validatePdf,giver} from '../src/print-book.js';
 import {testDb} from './sqlite-d1.mjs';
 import worker from '../dist/server/index.js';
 const ownerToken='a'.repeat(64),origin='https://cq.test',owner={Cookie:'__Host-cq_owner='+ownerToken},token=crypto.randomUUID()+crypto.randomUUID();
@@ -446,3 +446,4 @@ test('before payment: owner builds a whole-book preview, customer flips it and b
  r=await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a4'});assert.equal(r.status,200);assert.equal(made,2,'same size reuses the open card page');
  ziinaStatus='pending';o=await state(env,id);assert.equal((await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a5'})).status,409);o=await state(env,id);assert.equal(o.size,'a4','a payment in progress keeps its size');
 });
+test('gift sender wording is not doubled in the book',()=>{for(const [i,o] of [['With love from Nanny and Grandad','Nanny and Grandad'],['love from Mum','Mum'],['From Auntie Sue','Auntie Sue'],['With lots of love from Dad','Dad'],['Nanny and Grandad','Nanny and Grandad'],['Love','Love']])assert.equal(giver(i),o);});
