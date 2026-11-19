@@ -4311,7 +4311,7 @@ var PRODUCTS = {
   a5: { id: "a5", label: "A5 hardback", widthMm: 148, heightMm: 210, sku: "BOOK-FE-A5-P-HARD-G", pricePence: 2499, regularPricePence: 3499, discountPercent: 28, estimatedSupplierPence: 1600 }
 };
 var OWNER_TEST = { codeHash: "4494c8d03100dff3c9560ca54ada85bc13cacb7852092bb59fbc8166b0578cdb", email: "cravenluke@gmail.com", pricePence: 200, expiresAt: "2026-12-01T00:00:00Z" };
-var BOOK = { pdfPages: 26, interiorPages: 24, spreads: 10, paper: "200gsm gloss", cover: "Matte hardback", safeMm: 10 };
+var BOOK = { pdfPages: 24, interiorPages: 22, spreads: 10, paper: "200gsm gloss", cover: "Matte hardback", safeMm: 10 };
 function catalogue(enabled = false) {
   return { version: CATALOG_VERSION, products: Object.values(PRODUCTS).map(({ estimatedSupplierPence, ...p }) => p), book: BOOK, currency: "GBP", shippingPence: SHIPPING_PENCE, country: "GB", includes: ["Human print review"], offerEndsAt: "2026-12-01T23:59:59Z", checkoutEnabled: enabled, proofPreparationDays: 7, delivery: "First complete illustrated proof within 7 calendar days of payment. Usually 7\u201312 working days after final proof approval. An estimate, not a guaranteed arrival date." };
 }
@@ -52457,11 +52457,11 @@ var fontkit_es_default = fontkit;
 // src/print-book.js
 var COVER_FADE_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAIACAYAAABD1gYFAAAAN0lEQVR42mPgk5FgYGJgYGCEEwxYWLSTGLVy1MpRK0ethLGI4JKuYwQZP+qZUc+MemY0rIjkAgDF0AUmQGsSpwAAAABJRU5ErkJggg==";
 var mm = (n) => n * 72 / 25.4;
-async function printBook(order, read3, fontBytes, logoBytes) {
+async function printBook(order, read3, fontBytes, logoBytes, coverLogoBytes = null) {
   const spec = PRODUCTS[order.size], pdf = await PDFDocument_default.create();
   pdf.registerFontkit(fontkit_es_default);
   const font = await pdf.embedFont(fontBytes, { subset: true });
-  const logo = await pdf.embedPng(logoBytes);
+  const logo = await pdf.embedPng(logoBytes), coverLogo = coverLogoBytes ? await pdf.embedPng(coverLogoBytes) : null;
   const W = mm(spec.widthMm), H = mm(spec.heightMm), M2 = mm(12), ink = rgb(0.04, 0.22, 0.18), cream = rgb(0.99, 0.97, 0.91), images = [];
   pdf.setTitle(order.story.title);
   pdf.setAuthor("Craven & Quill");
@@ -52486,11 +52486,11 @@ async function printBook(order, read3, fontBytes, logoBytes) {
     }
     return out;
   }
-  function words(p, text, { size = spec.id === "a5" ? 14 : 19, y: y2 = H - M2, center = false } = {}) {
+  function words(p, text, { size = spec.id === "a5" ? 14 : 19, y: y2 = H - M2, center = false, color = ink } = {}) {
     const ls = lines(text, size, W - 2 * M2);
     requireThat(y2 - ls.length * size * 1.45 >= mm(15), "Story text overflows this size. Shorten it before making a print file.");
     for (const line of ls) {
-      p.drawText(line, { x: center ? (W - font.widthOfTextAtSize(line, size)) / 2 : M2, y: y2, size, font, color: ink });
+      p.drawText(line, { x: center ? (W - font.widthOfTextAtSize(line, size)) / 2 : M2, y: y2, size, font, color });
       y2 -= size * 1.45;
     }
     return y2;
@@ -52515,6 +52515,11 @@ async function printBook(order, read3, fontBytes, logoBytes) {
   const coverText = (text, size, y2, opacity = 1) => cover.drawText(text, { x: (W - font.widthOfTextAtSize(text, size)) / 2, y: y2, size, font, color: white, opacity });
   const titleSize = spec.id === "a5" ? 30 : 42, forSize = spec.id === "a5" ? 10 : 14;
   let y = mm(20);
+  if (coverLogo) {
+    const lw = mm(spec.id === "a5" ? 16 : 22), lh = lw * coverLogo.height / coverLogo.width;
+    cover.drawImage(coverLogo, { x: (W - lw) / 2, y: mm(11), width: lw, height: lh });
+    y = mm(11) + lh + mm(7);
+  }
   let titleWidth = W - 2 * M2 - mm(6);
   const titleCount = lines(order.story.title, titleSize, titleWidth).length;
   while (titleCount > 1 && titleWidth > mm(40) && lines(order.story.title, titleSize, titleWidth - mm(2)).length === titleCount) titleWidth -= mm(2);
@@ -52532,21 +52537,34 @@ async function printBook(order, read3, fontBytes, logoBytes) {
   for (const part of openParts) {
     openY = words(opening, part.text, { size: part.size, y: openY, center: true }) - (part.gap || openGap);
   }
+  const muted = rgb(0.45, 0.52, 0.49), headSize = spec.id === "a5" ? 8 : 10, folioSize = spec.id === "a5" ? 8 : 10;
   for (let i4 = 0; i4 < BOOK.spreads; i4++) {
     await art(page(), order.art.scenes[i4], H, 0, true);
     const textPage = page(), size = spec.id === "a5" ? 14 : 19, count = lines(order.story.spreads[i4].text, size, W - M2 * 2).length;
     words(textPage, order.story.spreads[i4].text, { size, y: Math.min(H - mm(30), H / 2 + (count - 1) * size * 1.45 / 2 - size * 0.35) });
+    const head2 = lines(order.story.title, headSize, W - 2 * M2 - mm(20))[0];
+    textPage.drawText(head2, { x: (W - font.widthOfTextAtSize(head2, headSize)) / 2, y: H - mm(16), size: headSize, font, color: muted });
+    const folio = String(3 + i4 * 2);
+    textPage.drawText(folio, { x: (W - font.widthOfTextAtSize(folio, folioSize)) / 2, y: mm(12), size: folioSize, font, color: muted });
   }
   words(page(), "The End", { size: spec.id === "a5" ? 26 : 34, y: H * 0.55, center: true });
-  const keepsake = page();
-  words(keepsake, "One story. Entirely theirs.", { y: H * 0.6, center: true });
-  brand(keepsake);
-  const end = page();
-  words(end, "Made especially for " + order.names, { y: H * 0.6, center: true });
-  brand(end);
-  const back = page();
-  words(back, order.story.synopsis, { y: H * 0.7 });
-  brand(back);
+  const back = pdf.addPage([W, H]), green = rgb(0.06, 0.2, 0.16), light = rgb(0.99, 0.97, 0.91), soft = rgb(0.85, 0.82, 0.74);
+  back.drawRectangle({ x: 0, y: 0, width: W, height: H, color: green });
+  const blurbSize = spec.id === "a5" ? 12 : 16, blurb = lines(order.story.synopsis, blurbSize, W - 2 * M2 - mm(16)), madeSize = spec.id === "a5" ? 9 : 12;
+  const blockH = blurb.length * blurbSize * 1.5 + mm(10) + madeSize;
+  let by = H * 0.52 + blockH / 2;
+  for (const line of blurb) {
+    back.drawText(line, { x: (W - font.widthOfTextAtSize(line, blurbSize)) / 2, y: by, size: blurbSize, font, color: light });
+    by -= blurbSize * 1.5;
+  }
+  const made = "Made especially for " + order.names;
+  back.drawText(made, { x: (W - font.widthOfTextAtSize(made, madeSize)) / 2, y: by - mm(10) + blurbSize * 1.5 - madeSize, size: madeSize, font, color: soft });
+  const site = "cravenandquill.com", siteSize = spec.id === "a5" ? 8 : 10;
+  back.drawText(site, { x: (W - font.widthOfTextAtSize(site, siteSize)) / 2, y: mm(14), size: siteSize, font, color: soft });
+  if (coverLogo) {
+    const lw = mm(spec.id === "a5" ? 14 : 18), lh = lw * coverLogo.height / coverLogo.width;
+    back.drawImage(coverLogo, { x: (W - lw) / 2, y: mm(14) + siteSize + mm(4), width: lw, height: lh });
+  }
   requireThat(pdf.getPageCount() === BOOK.pdfPages, "Unexpected print page count.");
   return { bytes: await pdf.save(), preflight: { pageCount: BOOK.pdfPages, interiorPages: BOOK.interiorPages, widthMm: spec.widthMm, heightMm: spec.heightMm, safeMm: 12, fontsEmbedded: true, images, allImages300dpi: images.every((x) => x.dpi >= 300), pdfX4: false, notes: ["The cover and story illustrations fill the page; proportional centre-cropping may trim edges. Check the cover title sits clear of the board wrap and every page before approval.", "Effective image resolution is reported at its printed size; low-resolution artwork must be replaced.", "These are existing trim-size proof pages; supplier bleed requirements still require print review.", "PDF/X-4 certification is not performed. Human inspection of every page remains required."] } };
 }
@@ -53307,12 +53325,12 @@ async function createIllustration(env2, o, index, actor, replace = false) {
 async function createProof(env2, o, actor, origin) {
   requireThat(editable(o), "This order cannot be rendered now.", 409);
   requireThat(o.data.art.cover && o.data.art.scenes.every(Boolean), "Generate the cover and all ten illustrations first.");
-  const [font, logo] = await Promise.all(["story-serif.ttf", "logo-mark-on-white.png"].map(async (name5) => {
+  const [font, logo, coverLogo] = await Promise.all(["story-serif.ttf", "logo-mark-on-white.png", "logo-on-dark.png"].map(async (name5) => {
     const r = await env2.ASSETS.fetch(new Request(origin + "/assets/" + name5));
     requireThat(r.ok, "Book design asset unavailable.", 503);
     return r.arrayBuffer();
   }));
-  const render = await printBook({ ...o.data, size: o.size }, (key3) => assetRead(env2, o, key3), font, logo);
+  const render = await printBook({ ...o.data, size: o.size }, (key3) => assetRead(env2, o, key3), font, logo, coverLogo);
   const key2 = await assetPut(env2, o, render.bytes, "application/pdf", "print-proof");
   const nextProofVersion = Math.max(o.data.proofSequence || 0, o.data.proof?.version || 0) + 1;
   if (o.data.proof) archiveContent(o, "proof_rebuilt", actor);

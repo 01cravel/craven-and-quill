@@ -738,7 +738,7 @@ function renderPreviewBook(){
  spreads.forEach((spread,i)=>{
   const slide=make('article','pbook-slide pbook-spread');slide.setAttribute('aria-label',`Page ${i+1} of ${spreads.length}`);
   const body=make('div','pbook-body');body.append(make('p','pbook-text',spread.text));
-  const words=make('div','pbook-page pbook-words');words.append(make('p','pbook-head',title),body,make('span','pbook-folio',String(i*2+5)));
+  const words=make('div','pbook-page pbook-words');words.append(make('p','pbook-head',title),body,make('span','pbook-folio',String(i*2+3)));
   const art=make('div','pbook-page pbook-art');art.dataset.page=i;const painted=state.pageArtFor===pageArtKey()&&state.pageArt[i];
   if(painted){const img=make('img','pbook-paint');img.src=painted;img.alt=`Page ${i+1}, illustrated`;art.append(img);slide.append(art,words);slides.push(slide);return;}
   const sketch=make('div','pbook-sketch');

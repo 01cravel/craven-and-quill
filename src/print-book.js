@@ -4,14 +4,14 @@ import {BOOK,PRODUCTS,requireThat} from './catalog.js';
 // 1x512 dark-green fade (strongest at the foot), stretched over the lower 56% of the front cover.
 const COVER_FADE_PNG='iVBORw0KGgoAAAANSUhEUgAAAAEAAAIACAYAAABD1gYFAAAAN0lEQVR42mPgk5FgYGJgYGCEEwxYWLSTGLVy1MpRK0ethLGI4JKuYwQZP+qZUc+MemY0rIjkAgDF0AUmQGsSpwAAAABJRU5ErkJggg==';
 const mm=n=>n*72/25.4;
-export async function printBook(order,read,fontBytes,logoBytes){
+export async function printBook(order,read,fontBytes,logoBytes,coverLogoBytes=null){
  const spec=PRODUCTS[order.size],pdf=await PDFDocument.create();pdf.registerFontkit(fontkit);
- const font=await pdf.embedFont(fontBytes,{subset:true});const logo=await pdf.embedPng(logoBytes);
+ const font=await pdf.embedFont(fontBytes,{subset:true});const logo=await pdf.embedPng(logoBytes),coverLogo=coverLogoBytes?await pdf.embedPng(coverLogoBytes):null;
  const W=mm(spec.widthMm),H=mm(spec.heightMm),M=mm(12),ink=rgb(.04,.22,.18),cream=rgb(.99,.97,.91),images=[];
  pdf.setTitle(order.story.title);pdf.setAuthor('Craven & Quill');
  const page=()=>{const p=pdf.addPage([W,H]);p.drawRectangle({x:0,y:0,width:W,height:H,color:cream});return p;};
  function lines(text,size,width){const out=[];for(const para of text.split('\n')){let line='';for(const word of para.split(/\s+/)){requireThat(font.widthOfTextAtSize(word,size)<=width,'A word is too long for this page. Edit the story before printing.');const next=line?line+' '+word:word;if(font.widthOfTextAtSize(next,size)>width){out.push(line);line=word;}else line=next;}out.push(line);}return out;}
- function words(p,text,{size=spec.id==='a5'?14:19,y=H-M,center=false}={}){const ls=lines(text,size,W-2*M);requireThat(y-ls.length*size*1.45>=mm(15),'Story text overflows this size. Shorten it before making a print file.');for(const line of ls){p.drawText(line,{x:center?(W-font.widthOfTextAtSize(line,size))/2:M,y,size,font,color:ink});y-=size*1.45;}return y;}
+ function words(p,text,{size=spec.id==='a5'?14:19,y=H-M,center=false,color=ink}={}){const ls=lines(text,size,W-2*M);requireThat(y-ls.length*size*1.45>=mm(15),'Story text overflows this size. Shorten it before making a print file.');for(const line of ls){p.drawText(line,{x:center?(W-font.widthOfTextAtSize(line,size))/2:M,y,size,font,color});y-=size*1.45;}return y;}
  async function art(p,key,top=H-M,bottom=M,fullPage=false){const {bytes,type}=await read(key);const image=type==='image/png'?await pdf.embedPng(bytes):await pdf.embedJpg(bytes);const scale=fullPage?Math.max(W/image.width,H/image.height):Math.min((W-M*2)/image.width,(top-bottom)/image.height,72/300);const w=image.width*scale,h=image.height*scale;p.drawImage(image,{x:(W-w)/2,y:fullPage?(H-h)/2:bottom+(top-bottom-h)/2,width:w,height:h});images.push({dpi:Math.floor(72/scale),widthPx:image.width,heightPx:image.height,fullPage,cropPercent:fullPage?Math.round((1-W*H/(w*h))*10000)/100:0});}
  function brand(p){const w=mm(12),h=w*logo.height/logo.width;p.drawImage(logo,{x:M,y:M,width:w,height:h});p.drawText('Craven & Quill',{x:M+w+mm(2),y:M+mm(3),size:spec.id==='a5'?8:11,font,color:ink});}
  // Front cover in the same design as the example books: full-page art, a dark fade at the foot,
@@ -22,7 +22,8 @@ export async function printBook(order,read,fontBytes,logoBytes){
  cover.drawImage(await pdf.embedPng(Uint8Array.from(atob(COVER_FADE_PNG),c=>c.charCodeAt(0))),{x:0,y:0,width:W,height:fadeTop});
  const coverText=(text,size,y,opacity=1)=>cover.drawText(text,{x:(W-font.widthOfTextAtSize(text,size))/2,y,size,font,color:white,opacity});
  const titleSize=spec.id==='a5'?30:42,forSize=spec.id==='a5'?10:14;
- let y=mm(20);
+ // Craven & Quill logo (white and gold) at the foot of the front cover, title block above it.
+ let y=mm(20);if(coverLogo){const lw=mm(spec.id==='a5'?16:22),lh=lw*coverLogo.height/coverLogo.width;cover.drawImage(coverLogo,{x:(W-lw)/2,y:mm(11),width:lw,height:lh});y=mm(11)+lh+mm(7);}
 
  // Balance the title: the narrowest width that keeps the same number of lines, so no lone last word.
  let titleWidth=W-2*M-mm(6);const titleCount=lines(order.story.title,titleSize,titleWidth).length;
@@ -39,11 +40,22 @@ export async function printBook(order,read,fontBytes,logoBytes){
  let openY=H/2+openHeight/2-openParts[0].size;
  for(const part of openParts){openY=words(opening,part.text,{size:part.size,y:openY,center:true})-(part.gap||openGap);}
  // Interior page 2 is left, so art on the left faces its matching text on the right.
- for(let i=0;i<BOOK.spreads;i++){await art(page(),order.art.scenes[i],H,0,true);const textPage=page(),size=spec.id==='a5'?14:19,count=lines(order.story.spreads[i].text,size,W-M*2).length;words(textPage,order.story.spreads[i].text,{size,y:Math.min(H-mm(30),H/2+(count-1)*size*1.45/2-size*.35)});}
+ // Words pages carry the book title at the top and a page number at the foot, like the site preview.
+ // Numbering counts the opening page as 1, so the first words page (PDF page 4) is page 3.
+ const muted=rgb(.45,.52,.49),headSize=spec.id==='a5'?8:10,folioSize=spec.id==='a5'?8:10;
+ for(let i=0;i<BOOK.spreads;i++){await art(page(),order.art.scenes[i],H,0,true);const textPage=page(),size=spec.id==='a5'?14:19,count=lines(order.story.spreads[i].text,size,W-M*2).length;words(textPage,order.story.spreads[i].text,{size,y:Math.min(H-mm(30),H/2+(count-1)*size*1.45/2-size*.35)});
+  const head=lines(order.story.title,headSize,W-2*M-mm(20))[0];textPage.drawText(head,{x:(W-font.widthOfTextAtSize(head,headSize))/2,y:H-mm(16),size:headSize,font,color:muted});
+  const folio=String(3+i*2);textPage.drawText(folio,{x:(W-font.widthOfTextAtSize(folio,folioSize))/2,y:mm(12),size:folioSize,font,color:muted});}
  words(page(),'The End',{size:spec.id==='a5'?26:34,y:H*.55,center:true});
- const keepsake=page();words(keepsake,'One story. Entirely theirs.',{y:H*.60,center:true});brand(keepsake);
- const end=page();words(end,'Made especially for '+order.names,{y:H*.60,center:true});brand(end);
- const back=page();words(back,order.story.synopsis,{y:H*.70});brand(back);
+ // Back cover: brand green, the blurb centred in cream, "made especially for", logo and web address at the foot.
+ // (Replaced two near-empty pages, "One story. Entirely theirs." and "Made especially for …", on 19 Nov 2026.)
+ const back=pdf.addPage([W,H]),green=rgb(.06,.2,.16),light=rgb(.99,.97,.91),soft=rgb(.85,.82,.74);back.drawRectangle({x:0,y:0,width:W,height:H,color:green});
+ const blurbSize=spec.id==='a5'?12:16,blurb=lines(order.story.synopsis,blurbSize,W-2*M-mm(16)),madeSize=spec.id==='a5'?9:12;
+ const blockH=blurb.length*blurbSize*1.5+mm(10)+madeSize;let by=H*.52+blockH/2;
+ for(const line of blurb){back.drawText(line,{x:(W-font.widthOfTextAtSize(line,blurbSize))/2,y:by,size:blurbSize,font,color:light});by-=blurbSize*1.5;}
+ const made='Made especially for '+order.names;back.drawText(made,{x:(W-font.widthOfTextAtSize(made,madeSize))/2,y:by-mm(10)+blurbSize*1.5-madeSize,size:madeSize,font,color:soft});
+ const site='cravenandquill.com',siteSize=spec.id==='a5'?8:10;back.drawText(site,{x:(W-font.widthOfTextAtSize(site,siteSize))/2,y:mm(14),size:siteSize,font,color:soft});
+ if(coverLogo){const lw=mm(spec.id==='a5'?14:18),lh=lw*coverLogo.height/coverLogo.width;back.drawImage(coverLogo,{x:(W-lw)/2,y:mm(14)+siteSize+mm(4),width:lw,height:lh});}
  requireThat(pdf.getPageCount()===BOOK.pdfPages,'Unexpected print page count.');
  return {bytes:await pdf.save(),preflight:{pageCount:BOOK.pdfPages,interiorPages:BOOK.interiorPages,widthMm:spec.widthMm,heightMm:spec.heightMm,safeMm:12,fontsEmbedded:true,images,allImages300dpi:images.every(x=>x.dpi>=300),pdfX4:false,notes:['The cover and story illustrations fill the page; proportional centre-cropping may trim edges. Check the cover title sits clear of the board wrap and every page before approval.','Effective image resolution is reported at its printed size; low-resolution artwork must be replaced.','These are existing trim-size proof pages; supplier bleed requirements still require print review.','PDF/X-4 certification is not performed. Human inspection of every page remains required.']}};
 }
