@@ -18,4 +18,4 @@ Read before changing the print layout (src/print-book.js) or releasing an order.
 ## Known gaps
 - Paid orders are not drawn automatically: nothing calls the `run_artwork_jobs` site tool. Until fixed, draw from the order desk (all 11 images, then make the proof).
 - The first customer's receipt email was rejected by the email provider.
-- The story writer can invent details (pets, family). The customer's typed wishes are not stored on the order, so they cannot be checked later.
+- The story writer can invent details (pets, family). Since 19 Nov 2026 the customer's typed wishes are saved on the order and shown at the top of the order desk's book review, so check the book against them.
