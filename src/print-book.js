@@ -54,9 +54,11 @@ export async function printBook(order,read,fontBytes,logoBytes,coverLogoBytes=nu
  const centre=(t,size,y,color)=>back.drawText(t,{x:(W-font.widthOfTextAtSize(t,size))/2,y,size,font,color});
  let textTop=H*.42;
  if(order.art.back){const {bytes,type}=await read(order.art.back);const image=type==='image/png'?await pdf.embedPng(bytes):await pdf.embedJpg(bytes);
-  const fw=W*.56,fh=fw*image.height/image.width,fx=(W-fw)/2,fy=H-mm(spec.id==='a5'?22:30)-fh,border=mm(2.5);
-  back.drawRectangle({x:fx-border,y:fy-border,width:fw+2*border,height:fh+2*border,color:light});back.drawImage(image,{x:fx,y:fy,width:fw,height:fh});
-  images.push({dpi:Math.round(image.width/(fw/72)),widthPx:image.width,heightPx:image.height,fullPage:false,cropPercent:0});textTop=fy-border-mm(14);}
+  // A see-through PNG is a cut-out of the child: it sits straight on the green, larger, with no frame (owner's call, 19 Nov 2026).
+  // A JPEG (older books, or if the cut-out drawing failed) keeps the cream frame.
+  const cut=type==='image/png',fw=W*(cut?.68:.56),fh=fw*image.height/image.width,fx=(W-fw)/2,fy=H-mm(spec.id==='a5'?(cut?16:22):(cut?20:30))-fh,border=cut?0:mm(2.5);
+  if(!cut)back.drawRectangle({x:fx-border,y:fy-border,width:fw+2*border,height:fh+2*border,color:light});back.drawImage(image,{x:fx,y:fy,width:fw,height:fh});
+  images.push({dpi:Math.round(image.width/(fw/72)),widthPx:image.width,heightPx:image.height,fullPage:false,cropPercent:0});textTop=fy-border-mm(cut?8:14);}
  centre('Made especially for '+order.names,madeSize,textTop,light);
  if(order.senderName)centre('With love from '+order.senderName,fromSize,textTop-madeSize*1.9,soft);
  centre(site,siteSize,mm(14),soft);
