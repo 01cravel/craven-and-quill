@@ -52989,7 +52989,7 @@ function wishes(w) {
 var shownBook = (o) => o.data.proof || o.payment_status === "unpaid" && o.data.preview || null;
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, bookPages: shownBook(o) && d.proofWeb?.hash === shownBook(o).hash && d.proofWeb.pages.every(Boolean) ? d.proofWeb.pages : null, previewBook: !d.proof && o.payment_status === "unpaid" && d.preview ? { hash: d.preview.hash, createdAt: d.preview.createdAt } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, previewId: d.previewId || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, bookPages: shownBook(o) && d.proofWeb?.hash === shownBook(o).hash && d.proofWeb.pages.every(Boolean) ? d.proofWeb.pages : null, previewBook: !d.proof && o.payment_status === "unpaid" && d.preview ? { hash: d.preview.hash, createdAt: d.preview.createdAt } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, supplierError: isAdmin ? d.supplierError || null : void 0, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, previewId: d.previewId || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
 }
 var editable = (o) => o.payment_status === "paid" && ["awaiting_review", "building", "proof_ready", "awaiting_approval"].includes(o.status);
 function archiveContent(o, kind, actor) {
@@ -53074,7 +53074,10 @@ async function supplier(env2, path, data2) {
   } catch {
     throw new OrderError("The printer response was unreadable. The order remains on hold.", 502);
   }
-  requireThat(r.ok && !d.issues?.length, "Prodigi could not confirm this request. The order remains on hold.", 502);
+  if (!r.ok || d.issues?.length) {
+    const why = [r.status, d.outcome, d.statusText, ...(Array.isArray(d.failures) ? d.failures : Object.entries(d.failures || {}).map(([k, v2]) => k + ": " + JSON.stringify(v2))).map((x) => typeof x === "string" ? x : JSON.stringify(x)), ...(d.issues || []).map((x) => JSON.stringify(x)), d.traceParent ? "trace " + d.traceParent : ""].filter(Boolean).join(" | ").slice(0, 900);
+    throw new OrderError("Prodigi did not accept this: " + why, 502);
+  }
   return d;
 }
 async function quoteOrder(env2, size) {
@@ -54232,7 +54235,7 @@ You can stop offer emails here: ${unsubscribe}`;
         return `${url.origin}/api/orders/${id}/print-file?file=${key2}&expires=${exp}&signature=${await hmac(env2.PRODIGI_API_KEY, `${id}:${key2}:${exp}`)}`;
       };
       try {
-        const d = await supplier(env2, "/orders", { idempotencyKey: "cq-" + id, merchantReference: id, shippingMethod: "Standard", recipient: o.data.release.recipient, items: [{ sku: o.data.release.sku, copies: 1, sizing: "fitPrintArea", attributes: {}, assets: [{ printArea: "default", url: await fileUrl(o.data.release.proofKey), pageCount: BOOK.pdfPages }, { printArea: "spine", url: await fileUrl(o.data.release.spineKey) }] }] });
+        const d = await supplier(env2, "/orders", { idempotencyKey: "cq-" + id, merchantReference: id, shippingMethod: "Standard", recipient: { name: o.data.release.recipient.name, address: Object.fromEntries(Object.entries(o.data.release.recipient.address).filter(([, v2]) => String(v2 || "").trim())) }, items: [{ sku: o.data.release.sku, copies: 1, sizing: "fitPrintArea", attributes: {}, assets: [{ printArea: "default", url: await fileUrl(o.data.release.proofKey), pageCount: BOOK.pdfPages }, { printArea: "spine", url: await fileUrl(o.data.release.spineKey) }] }] });
         requireThat(d.order?.id && d.order.merchantReference === id, "Printer order could not be confirmed.", 502);
         o.data.supplierId = d.order.id;
         o.data.supplierStatus = d.order.status;
@@ -54244,8 +54247,11 @@ You can stop offer emails here: ${unsubscribe}`;
         }
         return reply(publicOrder(o, true));
       } catch (e) {
-        await save(env2, o, o.data, "supplier_unknown");
-        throw new OrderError("Prodigi\u2019s result is uncertain. Keep this order on hold and reconcile before retrying. The same order key will be reused.", 502);
+        const fresh = await get(env2, id);
+        fresh.data.supplierError = { message: String(e?.message || e).slice(0, 1e3), at: now2() };
+        await save(env2, fresh, fresh.data, "supplier_unknown");
+        await audit(env2, id, "supplier_error", actor, { message: fresh.data.supplierError.message });
+        throw new OrderError("Prodigi\u2019s result is uncertain: " + fresh.data.supplierError.message + " The same order key will be reused on retry.", 502);
       }
     }
     if (action === "refresh") {
