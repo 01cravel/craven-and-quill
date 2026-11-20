@@ -33,7 +33,7 @@ test('email is saved before their book shows, and re-linked once the character e
  ctx.fetch=async()=>({ok:false,json:async()=>({error:'Save failed'})});await assert.rejects(ctx.capturePreviewEmail(),/Save failed/);
  const prepare=source.slice(source.indexOf('async function preparePreview(){'),source.indexOf('for(let index=0;index<10;'));
  assert.equal(prepare.includes('await capturePreviewEmail'),false,'drawing does not wait for an email');
- assert.match(prepare,/state\.emailNeedsLink&&validPreviewEmail\(\)&&state\.previewId\)void capturePreviewEmail\(true\)/);
+ assert.ok(prepare.includes('void sendPreviewLink();'),'the link email goes once the character exists');
  const pay=source.slice(source.indexOf("$('#join-launch').addEventListener"),source.indexOf("void loadOrderCatalog();"));
  assert.ok(pay.indexOf('await saveEmailOnce()')>0&&pay.indexOf('await saveEmailOnce()')<pay.indexOf("fetch('/api/orders'"),'email is saved before the order');
  assert.match(source,/const order=\[1,9,2,5,11\]/);
@@ -46,4 +46,21 @@ test('multiple references create one character, not one character per photo',asy
  const ctx={state:{photos,names:'Leo',secondName:'',characterImages:[]},$:id=>nodes[id],drawingProgress:null,requestCharacter:async(files,name)=>{calls++;assert.equal(files.length,3);assert.equal(name,'Leo');return 'one-character';}};
  vm.runInNewContext(fn,ctx);await ctx.renderStoryArt();assert.equal(calls,1);assert.equal(ctx.state.characterImages.length,1);assert.equal(nodes['#preview-image-second'].hidden,true);
  await ctx.renderStoryArt();assert.equal(calls,1,'cached character is reused');
+});
+
+test('the photo page asks for an email before drawing, and the link is emailed once per character',async()=>{
+ const html=readFileSync(new URL('../dist/client/create.html',import.meta.url),'utf8');
+ const photo=html.slice(html.indexOf('data-step="2"'),html.indexOf('data-step="9"'));
+ assert.ok(photo.includes('id="early-email"')&&photo.indexOf('id="early-email"')<photo.indexOf('id="photo-continue"'),'email box sits above Continue on the photo page');
+ assert.equal(html.includes('id="save-email"'),false,'the old box on the character page is gone');
+ assert.match(source,/Add your email so we can send you their character\./);
+ const fn=source.slice(source.indexOf('async function sendPreviewLink(){'),source.indexOf("$('#email').addEventListener('blur'"));
+ const line={textContent:'',hidden:true};let captures=[],sent=0;
+ const ctx={state:{previewId:'p1',emailNeedsLink:true},savedEmail:'a@example.com',$:id=>id==='#email'?{value:'A@example.com'}:line,validPreviewEmail:()=>true,recordQuote(){},
+  capturePreviewEmail:async relink=>{captures.push(relink);ctx.state.emailNeedsLink=false;},window:{cqEmailDraft:async()=>{sent++;return true;}}};
+ vm.runInNewContext('let savedEmail="a@example.com";'+fn+';this.sendPreviewLink=sendPreviewLink;',ctx);
+ await ctx.sendPreviewLink();assert.deepEqual(captures,[true],'the early email is tied to the new character without a second signup');assert.equal(sent,1);
+ assert.equal(line.hidden,false);assert.match(line.textContent,/a@example\.com/);
+ await ctx.sendPreviewLink();assert.equal(sent,1,'never emailed twice for the same character');
+ ctx.state.previewId='p2';await ctx.sendPreviewLink();assert.equal(sent,2);assert.deepEqual(captures,[true],'already saved, so no extra save');
 });

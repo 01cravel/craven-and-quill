@@ -110,6 +110,7 @@ function showStep(number){
   number={8:1,3:9,12:9,6:5,7:11,10:5}[number]||number;
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
+  if(number===2)syncEarlyEmail();
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
   state.step=number;keepStepFields();
   if(number===2){updatePhotoGate();renderPhotoThumbnails(state.photos);}
@@ -166,7 +167,7 @@ function updateStoryGate(){
   $('#rewrite-label').textContent=state.rewritesRemaining>0?`Rewrite story · ${state.rewritesRemaining} left`:'No rewrites left · you can still edit';
   $('#generate-story').textContent=storyWriting?'Writing your story…':state.storyDraft?'Update my story':'Write their story';
 }
-function invalidatePreview(){state.characterImages=[];state.pageArt=[];state.previewId=null;$('#choose-book').disabled=true;}
+function invalidatePreview(){state.characterImages=[];state.pageArt=[];state.previewId=null;$('#sent-line').hidden=true;$('#choose-book').disabled=true;}
 function editDraft(){
   if(!state.storyDraft)return;
   state.storyDraft.title=$('#story-title').value;
@@ -300,24 +301,22 @@ function recordQuote(){
   saveQueue=saveQueue.then(()=>postQuote('quote-view',body)).catch(()=>{if(lastQuoteKey===key)lastQuoteKey='';});
 }
 $('#email').addEventListener('change',()=>{void saveEmailOnce();});
-// Character page: a no-commitment way out. Saves the preview for 7 days, emails a private link back
-// to it, and gives us an address for the reminders. Without this, people who are not ready to pay vanish.
-async function emailPreview(){
-  const field=$('#save-email'),button=$('#save-send'),note=$('#save-note'),email=field.value.trim().toLowerCase();
-  if(button.disabled)return;
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254){note.textContent='Enter your email address, then tap the button.';note.classList.add('bad');field.focus();return;}
-  if(!state.previewId||!previewReady()){note.textContent='Their book is nearly ready. Try again in a moment.';note.classList.add('bad');return;}
-  note.classList.remove('bad','good');note.textContent='Sending…';button.disabled=true;$('#email').value=email;
+// The email is asked for on the photo page, just before the character is drawn, so everyone who gets a
+// character can be sent a link back to it. It is copied into the pay screen's email box, which stays editable.
+const earlyEmail=$('#early-email');
+earlyEmail.addEventListener('input',()=>{$('#email').value=earlyEmail.value.trim().toLowerCase();$('#step-2-error').textContent='';});
+function syncEarlyEmail(){if($('#email').value&&earlyEmail.value.trim().toLowerCase()!==$('#email').value.trim().toLowerCase())earlyEmail.value=$('#email').value;$('#early-email-label').textContent=`Where shall we send ${state.names||'their'}${state.names?'’s':''} character?`;}
+// Once the character exists, email the link back to it. One email per character, never repeated.
+async function sendPreviewLink(){
+  const id=state.previewId,email=$('#email').value.trim().toLowerCase();
+  if(!id||!validPreviewEmail()||state.previewEmailed===id)return;
+  state.previewEmailed=id;
   try{
-    if(email!==savedEmail){await capturePreviewEmail();savedEmail=email;recordQuote();}
-    const sent=await window.cqEmailDraft();
-    note.textContent=sent?`Sent to ${email}. The link brings you back to this preview for 7 days.`:'Saved, but the email did not send. Please try again in a minute.';
-    note.classList.add(sent?'good':'bad');if(sent)button.textContent='Sent';
-  }catch(error){note.textContent=error.message||'We could not send that. Please try again.';note.classList.add('bad');}
-  if(note.classList.contains('good'))setTimeout(()=>{button.disabled=false;button.textContent='Email me this preview';},61000);else button.disabled=false;
+    if(state.emailNeedsLink||email!==savedEmail){await capturePreviewEmail(state.emailNeedsLink);savedEmail=email;}
+    recordQuote();
+    if(await window.cqEmailDraft()){$('#sent-line').textContent=`We’ve emailed a link to this book to ${email}.`;$('#sent-line').hidden=false;}
+  }catch{state.previewEmailed=null;}
 }
-$('#save-send').addEventListener('click',()=>void emailPreview());
-$('#save-email').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();void emailPreview();}});
 $('#email').addEventListener('blur',()=>{void saveEmailOnce();});
 $('#edit-words').addEventListener('click',()=>{$('#story-editor').open=true;showStep(4);});
 $('#revise-story').addEventListener('click',()=>{void writeStory(true);});
@@ -529,7 +528,7 @@ async function preparePreview(){
     await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
     drawingProgress.stop(true);
     updateCover();renderPreviewBook();updateReveal();void drawPages();window.dispatchEvent(new Event('cq-draft-change'));track('free_preview_created',{mood:state.mood,age:state.age,pages_generated:1});void window.cqMeasurement?.characterMade?.();
-    if(state.emailNeedsLink&&validPreviewEmail()&&state.previewId)void capturePreviewEmail(true).catch(()=>{});
+    void sendPreviewLink();
   }catch(error){
     drawingProgress.stop(false);
     $('#generation-error-copy').textContent=error.message||'The character could not be drawn. Please try again.';$('#generation-error').hidden=false;
@@ -585,6 +584,11 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(failedPhoto){$('#step-2-error').textContent=failedPhoto.message;$('#photo-check').scrollIntoView({behavior:'smooth',block:'center'});return;}
     
     if(!$('#photo-permission').checked){$('#step-2-error').textContent='Confirm that you have permission to use the photos.';$('#photo-permission').focus();return;}
+    if(state.step===2){
+      $('#email').value=earlyEmail.value.trim().toLowerCase()||$('#email').value;
+      if(!validPreviewEmail()){$('#step-2-error').textContent='Add your email so we can send you their character.';earlyEmail.focus();earlyEmail.scrollIntoView({block:'center'});return;}
+      void saveEmailOnce();
+    }
     $('#step-2-error').textContent='';void preparePreview();
   }
   if(state.step===4&&state.characterImages.length){$('#story-copy').textContent=previewText(selectedStory());}

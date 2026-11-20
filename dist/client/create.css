@@ -899,3 +899,10 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 .timer-label{color:#fff}
 .progress-bar.timer-bar{background:#3a3a3a}
 .timer-bar i,.progress-bar.timer-bar i{background:#fff}
+
+/* Email asked for on the photo page, just before the character is drawn. */
+.early-email{margin:14px 0 4px}
+.early-email .field-label{margin-top:0}
+.early-email input{margin:0}
+.early-email .privacy-line{font-size:.8rem;margin-top:6px}
+.sent-line{margin:14px 0 0;font-size:.86rem;color:var(--muted)}

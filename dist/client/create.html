@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=hold-4">
+  <link rel="stylesheet" href="create.css?v=early-email-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -98,6 +98,12 @@
           <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I have permission to use these photos</b><small>I’m an adult, with parent or guardian permission for a child.</small></span></label>
 
           <details class="optional-detail photo-privacy"><summary>How we use your photos</summary><p class="privacy-line">Your draft, including the photo, is saved on this device for up to 7 days so you can return. Your photo is sent to our drawing service to make this preview. <a href="privacy.html" target="_blank" rel="noopener">How we use your data</a></p></details>
+
+          <div class="early-email" id="early-email-wrap">
+            <label class="field-label" for="early-email" id="early-email-label">Where shall we send their character?</label>
+            <input id="early-email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" aria-describedby="early-email-note">
+            <p class="privacy-line" id="early-email-note">We email you a link back to their book, and may remind you once or twice. Unsubscribe any time.</p>
+          </div>
 
           <div class="error" id="step-2-error" role="alert"></div>
           <div class="step-actions"><button class="back" type="button" data-back="9">Back</button><button class="next" id="photo-continue" type="button" data-next="5" disabled>Continue <span>→</span></button></div>
@@ -197,11 +203,7 @@
               <p class="hold-clock" data-hold-clock role="timer" hidden></p>
               <p class="see-first">You see the whole finished book before we print it.</p>
               <p class="urgency" id="xmas-line" hidden></p>
-              <div class="save-preview" id="save-preview">
-                <label for="save-email">Not ready to order? Email yourself this preview.</label>
-                <div class="save-row"><input id="save-email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" aria-describedby="save-note"><button type="button" id="save-send">Email me this preview</button></div>
-                <p class="save-note" id="save-note" role="status">We keep it for 7 days and may email you once or twice about it. Unsubscribe any time.</p>
-              </div>
+              <p class="sent-line" id="sent-line" role="status" hidden></p>
               <div id="locked-dots" hidden></div>
             </section>
 <div class="error" id="step-5-error" role="alert"></div>
@@ -283,6 +285,6 @@
   <script src="preview-progress.js?v=retry-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=errors-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=early-email-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
 </body>
 </html>
