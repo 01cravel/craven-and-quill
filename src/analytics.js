@@ -244,8 +244,10 @@ export async function buildReport(env,url,req=null){
   const contactByEmail=new Map(contacts.map(c=>[c.email,c]));
   const ordersByEmail=new Map();for(const o of orders)if(!ordersByEmail.has(o.email))ordersByEmail.set(o.email,o);
   const limit=Number(env.PREVIEW_DAILY_LIMIT||50);
+  // The table appears with the first recorded error; until then there is nothing to show.
+  let pageErrors=new Map();try{pageErrors=new Map((await rows(q(`SELECT visit_id, message, browser FROM page_errors WHERE visit_id IN (${inRange})`,since,until))).map(r=>[r.visit_id,r]));}catch{}
   const errors=[
-    ...events.filter(e=>ERRORS[e.event]&&(!filtered||matches(e))).map(e=>({at:e.created_at,kind:ERRORS[e.event],detail:[e.creative!=='none'?'Ad '+e.creative:'Not from an ad',e.country].join(', ')})),
+    ...events.filter(e=>ERRORS[e.event]&&(!filtered||matches(e))).map(e=>{const why=e.event==='page_error'?pageErrors.get(e.visit_id):null;return {at:e.created_at,kind:ERRORS[e.event],detail:[e.creative!=='none'?'Ad '+e.creative:'Not from an ad',e.country,...(why?[why.browser,why.message]:[])].join(', ')};}),
     ...(filtered?[]:receipts.filter(r=>r.status==='failed'||(r.status==='started'&&Date.parse(r.created_at)<Date.now()-600000)).map(r=>({at:r.created_at,kind:r.status==='failed'?'Drawing service refused or failed':'Preview never finished',detail:r.email||'No email given'}))),
     ...(filtered?[]:usage.filter(u=>u.attempts>=limit).map(u=>({at:ukMidnight(u.day),kind:'Daily free preview limit reached',detail:`${u.attempts} of ${limit} previews used on ${u.day}`}))),
   ].sort((a,b)=>b.at.localeCompare(a.at));

@@ -1,19 +1,26 @@
 (()=>{
-  function request(form,onProgress=()=>{}){
+  // One drawing attempt. Most finish in under a minute; one that has not answered in 100 seconds is treated as stuck.
+  function attempt(form,onProgress){
     return new Promise((resolve,reject)=>{
-      const xhr=new XMLHttpRequest();xhr.open('POST','/api/generate-character');xhr.timeout=210000;
+      const xhr=new XMLHttpRequest();xhr.open('POST','/api/generate-character');xhr.timeout=100000;
       xhr.setRequestHeader('X-Craven-Preview','character');
       xhr.upload.onprogress=event=>onProgress({phase:'upload',percent:event.lengthComputable?Math.min(100,Math.round(event.loaded/event.total*100)):null});
       xhr.upload.onload=()=>onProgress({phase:'drawing'});
       xhr.onload=()=>{let data;try{data=JSON.parse(xhr.responseText);}catch{data={};}
-        if(xhr.status<200||xhr.status>=300||!data.image){reject(Object.assign(new Error(data.error||'The character could not be drawn. Please try again.'),{code:data.code}));return;}
+        if(xhr.status<200||xhr.status>=300||!data.image){reject(Object.assign(new Error(data.error||'The character could not be drawn. Please try again.'),{code:data.code,stuck:xhr.status>=502&&xhr.status<=504}));return;}
         onProgress({phase:'received'});resolve(data);
       };
-      xhr.onerror=()=>reject(new Error('The connection was interrupted. Check your internet connection, then try again.'));
-      xhr.ontimeout=()=>reject(new Error('The illustration is taking too long. Please try again in a few minutes.'));
+      xhr.onerror=()=>reject(Object.assign(new Error('The connection was interrupted. Check your internet connection, then tap Try again.'),{stuck:true}));
+      xhr.ontimeout=()=>reject(Object.assign(new Error('We could not finish the drawing this time. Tap Try again and we will have another go.'),{stuck:true}));
       xhr.onabort=()=>reject(new Error('The preview was interrupted. Please try again.'));
       xhr.send(form);
     });
+  }
+  // A stuck or dropped drawing gets one automatic second try, so the shopper is never left on a frozen screen.
+  // A refusal (for example a photo we cannot use) is not retried.
+  async function request(form,onProgress=()=>{}){
+    try{return await attempt(form,onProgress);}
+    catch(error){if(!error.stuck)throw error;onProgress({phase:'retry'});return attempt(form,onProgress);}
   }
 
   // Sketchpad: draws the character line by line with a moving pencil, then washes in colour, and repeats.
@@ -54,6 +61,7 @@
     const update=event=>{if(stopped)return;if(phase!==event.phase)phaseAt=Date.now();phase=event.phase;root.dataset.phase=phase;
       if(phase==='upload'){fill(10+index/total*72);words('Reading their photo','Usually under a minute.');}
       if(phase==='drawing'){fill(18+index/total*72);tick();}
+      if(phase==='retry'){words('Taking longer than usual','Trying again now. Stay on this page.');}
       if(phase==='received'){fill(18+(index+1)/total*72);words(index+1===total?'Nearly there':'One down, one to go','Putting the pages together.');}
     };
     const nameEl=document.getElementById('sketch-name');if(nameEl)nameEl.textContent=firstName()||'them';const pad=sketch();root.dataset.phase='saving';fill(4);words('Getting started','Usually under a minute.');const timer=setInterval(tick,1000);

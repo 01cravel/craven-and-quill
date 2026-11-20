@@ -100,10 +100,10 @@
     if(counted.has(event)||event.startsWith('device_'))return;counted.add(event);
     fetch('/api/visit-count',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...attribution,event}),keepalive:true}).catch(()=>{});
   }
-  function record(event){
+  function record(event,detail){
     count(event);
     if(sent.has(event))return;sent.add(event);
-    fetch('/api/campaign-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...context(),event}),keepalive:true}).then(response=>{if(!response.ok)sent.delete(event);}).catch(()=>sent.delete(event));
+    fetch('/api/campaign-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...context(),event,...(typeof detail==='string'&&detail?{detail:detail.slice(0,300)}:{})}),keepalive:true}).then(response=>{if(!response.ok)sent.delete(event);}).catch(()=>sent.delete(event));
   }
   async function startPixel(){
     if(preference!=='ads'||privatePage||infoPage)return false;

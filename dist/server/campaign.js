@@ -122,6 +122,16 @@ export async function campaignApi(request,env){
       if(result.success===false)throw new Error('Event write failed');
       await noteVisit(env,request,input.visitId);
       if(UUID.test(input.personId||''))await notePerson(env,input.visitId,input.personId.toLowerCase());
+      if(input.event==='page_error'&&typeof input.detail==='string'&&input.detail.trim()){
+        // What the error was and which browser showed it. First error per visit only.
+        try{
+          const ua=request.headers.get('User-Agent')||'';
+          const app=/FBAN|FBAV|FB_IAB/.test(ua)?'Facebook app':/Instagram/.test(ua)?'Instagram app':/TikTok|musical_ly/i.test(ua)?'TikTok app':/EdgA?\//.test(ua)?'Edge':/CriOS|Chrome\//.test(ua)?'Chrome':/Safari\//.test(ua)?'Safari':/Firefox|FxiOS/.test(ua)?'Firefox':'Other browser';
+          const device=/iPhone|iPad/.test(ua)?'iPhone':/Android/.test(ua)?'Android':'computer';
+          await env.DB.prepare('CREATE TABLE IF NOT EXISTS page_errors (visit_id TEXT PRIMARY KEY, message TEXT NOT NULL, browser TEXT NOT NULL, created_at TEXT NOT NULL)').run();
+          await env.DB.prepare('INSERT INTO page_errors (visit_id, message, browser, created_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(visit_id) DO NOTHING').bind(input.visitId,input.detail.replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,300),`${app}, ${device}`,new Date().toISOString()).run();
+        }catch{console.error('Page error detail not saved');}
+      }
       return reply({ok:true});
     }
     if(path==='/api/unsubscribe'){

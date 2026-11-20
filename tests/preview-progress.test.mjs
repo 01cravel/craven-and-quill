@@ -22,7 +22,13 @@ test('server refusals, disconnection and timeout reject instead of reporting com
  for(const mode of ['http','network','timeout']){
   const {api,xhrs,nodes}=setup();const progress=api.start();const promise=api.request({},progress.update);const xhr=xhrs[0];
   if(mode==='http'){xhr.status=422;xhr.responseText=JSON.stringify({error:'Different photo needed',code:'character_blocked'});xhr.onload();}
-  else if(mode==='network')xhr.onerror();else xhr.ontimeout();
+  else{
+   // A dropped or stuck drawing is tried once more on its own before the shopper sees an error.
+   if(mode==='network')xhr.onerror();else xhr.ontimeout();
+   await new Promise(r=>setTimeout(r,0));assert.equal(xhrs.length,2);assert.equal(nodes['drawing-stage'].textContent,'Taking longer than usual');
+   if(mode==='network')xhrs[1].onerror();else xhrs[1].ontimeout();
+  }
+  if(mode==='http')assert.equal(xhrs.length,1);
   await assert.rejects(promise);progress.stop(false);assert.equal(nodes['drawing-progress'].dataset.phase,'error');assert.equal(nodes['drawing-bar'].attrs['aria-valuenow'],undefined);
  }
 });
@@ -32,4 +38,11 @@ test('estimated fill advances without reversing and only completes on success',(
  const width=()=>parseFloat(nodes['drawing-progress'].style['--progress']);const initial=width();advance(30);assert.ok(width()>initial);advance(180);assert.ok(width()<54);
  p.update({phase:'received'});const first=width();p.person(1,2);p.update({phase:'drawing'});assert.ok(width()>=first);advance(200);assert.ok(width()<90);
  p.update({phase:'received'});assert.equal(width(),90);p.stop(true);assert.equal(width(),100);assert.equal(cleared(),1);
+});
+
+test('a stuck drawing is retried once and the second answer is used',async()=>{
+ const {api,xhrs,nodes}=setup();const progress=api.start();const promise=api.request({},progress.update);
+ xhrs[0].ontimeout();await new Promise(r=>setTimeout(r,0));assert.equal(xhrs.length,2);
+ xhrs[1].upload.onload();xhrs[1].status=200;xhrs[1].responseText=JSON.stringify({image:'data:image/jpeg;base64,test',previewId:'second'});xhrs[1].onload();
+ assert.equal((await promise).previewId,'second');assert.equal(nodes['drawing-progress'].dataset.phase,'received');
 });

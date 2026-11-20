@@ -13,8 +13,9 @@ window.cqMeasurement?.record('timer_on');
 setInterval(()=>{if(!onFirstScreen||document.visibilityState!=='visible')return;firstScreenSeconds++;if([5,15,30,60].includes(firstScreenSeconds))window.cqMeasurement?.record('stay_'+firstScreenSeconds+'s');},1000);
 $('#names').addEventListener('input',()=>window.cqMeasurement?.record('name_typed'),{once:true});
 $('.step[data-step="1"] [data-next="9"]').addEventListener('click',()=>window.cqMeasurement?.record('start_tapped'));
-addEventListener('error',()=>window.cqMeasurement?.record('page_error'));
-addEventListener('unhandledrejection',()=>window.cqMeasurement?.record('page_error'));
+// Record what went wrong, not just that something did, so the owner can tell a broken page from in-app browser noise.
+addEventListener('error',e=>window.cqMeasurement?.record('page_error',`${e.message||'Error'} at ${String(e.filename||'unknown').split('/').pop().split('?')[0]||'unknown'}:${e.lineno||0}`));
+addEventListener('unhandledrejection',e=>window.cqMeasurement?.record('page_error',`Promise: ${String(e.reason?.message||e.reason||'unknown')}`));
 
 const ideaBanks={
   funny:[

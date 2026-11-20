@@ -333,3 +333,17 @@ test('shopper traffic triggers the reminder run, no dashboard needed',async()=>{
   assert.equal(r.status,200);assert.equal(waits.length,1);await Promise.all(waits);
   assert.ok(env.DB.sqlite.prepare("SELECT ran_at FROM owner_jobs WHERE name='followups'").get());
 });
+
+test('a page error keeps what went wrong and which browser showed it, and the dashboard shows both',async()=>{
+  const env=environment(),visitId=crypto.randomUUID();
+  const r=post('campaign-event',{event:'page_error',visitId,creative:'mk_static',detail:'Script error. at unknown:0 <b>'});
+  r.headers.set('User-Agent','Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 [FBAN/FBIOS;FBAV/480.0]');
+  assert.equal((await campaignApi(r,env)).status,200);
+  const row=env.DB.sqlite.prepare('SELECT message, browser FROM page_errors').get();
+  assert.equal(row.browser,'Facebook app, iPhone');assert.equal(row.message,'Script error. at unknown:0  b');
+  const d=await(await get(env)).json();const e=d.errors.find(x=>x.kind==='Page error');
+  assert.match(e.detail,/Ad mk_static/);assert.match(e.detail,/Facebook app, iPhone, Script error\./);
+  // An error with no detail (older page versions) still counts and still shows.
+  const other=crypto.randomUUID();assert.equal((await campaignApi(post('campaign-event',{event:'page_error',visitId:other}),env)).status,200);
+  assert.equal(env.DB.sqlite.prepare('SELECT COUNT(*) n FROM page_errors').get().n,1);
+});
