@@ -140,3 +140,53 @@ test('owner-approved one-off: past preview contacts get both reminders, opt-outs
   assert.equal(await unsubscribeFollowup(env,token),true);
   assert.equal((await enrolPastContacts(env)).added,0);
 });
+
+test('five-email chase: right email at the right time, saved-book link, one 10% code from email 3, never two close together',async()=>{
+  const {CHASE_NOTICE,chaseDue,saveChaseLink}=await import('../dist/server/orders.js');
+  const DB=testDb(),sent=[],email='chaser@somewhere.invalid',id=crypto.randomUUID();
+  const env={DB,FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',ORDER_LINK_SECRET:'s'.repeat(40),
+    async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'sent'+sent.length});}};
+  DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,email,created_at) VALUES (?,'succeeded',?,?)").run(id,email,new Date().toISOString());
+  assert.equal(await recordPreviewChoice(env,email,id,false,CHASE_NOTICE),true);
+  DB.sqlite.exec("CREATE TABLE IF NOT EXISTS followup_details (email TEXT PRIMARY KEY, names TEXT, title TEXT, updated_at TEXT NOT NULL)");
+  DB.sqlite.prepare("INSERT INTO followup_details VALUES (?,?,?,?)").run(email,'Mia','Mia and the Dinosaur Dig','2026-11-21');
+  const draftId=crypto.randomUUID(),token=crypto.randomUUID()+crypto.randomUUID();
+  assert.equal(await saveChaseLink(env,email,draftId,token,Date.now()+7*86400000),true);
+  assert.equal(DB.sqlite.prepare('SELECT sealed FROM chase_links').get().sealed.includes(token),false,'the private link is stored sealed');
+  const age=hours=>DB.sqlite.prepare('UPDATE followup_sequences SET consent_at=? WHERE email=?').run(new Date(Date.now()-hours*3600000).toISOString(),email);
+  const rest=()=>DB.sqlite.exec("UPDATE chase_steps SET sent_at='2020-01-01T00:00:00.000Z'");
+  // Nothing in the first three hours, and the old two-email reminders never touch a chase shopper.
+  let r=await runFollowups(env);assert.equal(sent.length,0);assert.equal(r.first.accepted,0);
+  age(4);r=await runFollowups(env);assert.equal(r.chase.accepted,1);assert.equal(sent[0].subject,'Meet Mia, the hero');
+  assert.ok(sent[0].text.includes(`https://cravenandquill.com/create?utm_source=email&utm_medium=email&utm_campaign=chase&utm_content=chase_1#draft=${draftId}&key=${token}`),'opens their saved book');
+  assert.equal(/10% code/.test(sent[0].html),false);assert.ok(sent[0].headers['List-Unsubscribe']);
+  assert.ok(sent[0].html.indexOf('class="button"')<sent[0].html.indexOf('as we drew them')||!sent[0].html.includes('as we drew them'),'button comes before the picture');
+  // A day later but the last email went an hour ago: wait.
+  age(25);await runFollowups(env);assert.equal(sent.length,1);
+  rest();await runFollowups(env);assert.equal(sent[1].subject,'Imagine Mia’s face');
+  rest();age(73);await runFollowups(env);assert.equal(sent[2].subject,'Mia won’t be little for long');
+  const code=DB.sqlite.prepare('SELECT discount_code,email_status,code_expires_at FROM reminder_offers WHERE email=?').get(email);
+  assert.match(code.discount_code,/^CQ[A-Z0-9]{10}$/);assert.equal(code.email_status,'accepted');assert.ok(sent[2].html.includes(code.discount_code));
+  assert.ok(sent[2].text.includes(`create?offer=${code.discount_code}&utm_source=email`));
+  // Missed day 5 entirely: day 6 sends the last email, not a late bunch, with the same code.
+  rest();age(150);await runFollowups(env);assert.equal(sent.length,4);assert.equal(sent[3].subject,'We delete Mia’s book tomorrow');assert.ok(sent[3].html.includes(code.discount_code));
+  rest();await runFollowups(env);assert.equal(sent.length,4,'nothing after the last email');
+  assert.deepEqual((await followupStatus(env)).chase,{enrolled:1,sent:[1,1,1,0,1]});
+  assert.equal(chaseDue(170,[]),0,'nothing once the saved book has been deleted');assert.equal(chaseDue(2,[]),0);assert.equal(chaseDue(121,[]),4);
+});
+
+test('chase stops for buyers and unsubscribers, and falls back to the plain link without a saved book',async()=>{
+  const {CHASE_NOTICE}=await import('../dist/server/orders.js');
+  const DB=testDb(),sent=[],env={DB,FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
+    async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'sent'+sent.length});}};
+  const people=['plain@somewhere.invalid','gone@somewhere.invalid'];
+  for(const email of people){const id=crypto.randomUUID();
+    DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,email,created_at) VALUES (?,'succeeded',?,?)").run(id,email,new Date().toISOString());
+    await recordPreviewChoice(env,email,id,false,CHASE_NOTICE);}
+  DB.sqlite.prepare('UPDATE followup_sequences SET consent_at=?').run(new Date(Date.now()-30*3600000).toISOString());
+  const token=DB.sqlite.prepare('SELECT episode_id FROM followup_sequences WHERE email=?').get(people[1]).episode_id;
+  assert.equal(await unsubscribeFollowup(env,token),true);
+  await runFollowups(env);
+  assert.equal(sent.length,1);assert.deepEqual(sent[0].to,[people[0]]);assert.equal(sent[0].subject,'Imagine their face');
+  assert.ok(sent[0].text.includes('https://cravenandquill.com/create.html?utm_source=email&utm_medium=email&utm_campaign=chase&utm_content=chase_2'));
+});

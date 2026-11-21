@@ -1,4 +1,4 @@
-import {recordPreviewChoice} from './orders.js';
+import {recordPreviewChoice,CHASE_NOTICE} from './orders.js';
 import {adConfig,leadConversion,adFeed} from './ad-measurement.js';
 export const CONSENT_VERSION='storybook-validation-2026-09-29';
 export const CONSENT_TEXT='Email me when Craven & Quill storybooks are ready to order. I can unsubscribe at any time.';
@@ -149,7 +149,10 @@ export async function campaignApi(request,env){
       let reminderActive=false;
       if(UUID.test(input.previewId||'')){
         await env.DB.prepare("UPDATE preview_receipts SET email=?1 WHERE id=?2 AND email IS NULL AND status='succeeded'").bind(email,input.previewId).run();
-        if(input.reminderNotice==='preview-price-v2'||(input.reminderNotice==='preview-price-v1'&&typeof input.noReminders==='boolean')){
+        if(input.reminderNotice==='preview-chase-v1'){
+          // The photo page now says "a few reminders": these shoppers get the five-email chase.
+          reminderActive=await recordPreviewChoice(env,email,input.previewId,false,CHASE_NOTICE);
+        }else if(input.reminderNotice==='preview-price-v2'||(input.reminderNotice==='preview-price-v1'&&typeof input.noReminders==='boolean')){
           reminderActive=await recordPreviewChoice(env,email,input.previewId,input.noReminders===true);
         }
       }

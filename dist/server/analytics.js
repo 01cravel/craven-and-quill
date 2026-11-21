@@ -11,7 +11,8 @@ async function followupTick(env){
     await env.DB.prepare('CREATE TABLE IF NOT EXISTS owner_jobs (name TEXT PRIMARY KEY, ran_at TEXT NOT NULL)').run();
     let ran=null;
     if(env.FOLLOWUP_EMAILS_ENABLED==='true'){
-      const cutoff=new Date(Date.now()-6*3600000).toISOString(),stamp=new Date().toISOString();
+      // Hourly, so the first chase email (three hours after the preview) lands the same evening.
+      const cutoff=new Date(Date.now()-3600000).toISOString(),stamp=new Date().toISOString();
       const claimed=await env.DB.prepare("INSERT INTO owner_jobs (name,ran_at) VALUES ('followups',?1) ON CONFLICT(name) DO UPDATE SET ran_at=excluded.ran_at WHERE owner_jobs.ran_at<=?2 RETURNING name").bind(stamp,cutoff).first();
       // OWNER-APPROVED (Luke, 14 Nov 2026): send the 10% email to all past preview contacts now, in one go. Runs once.
       const now10=await env.DB.prepare("INSERT INTO owner_jobs (name,ran_at) VALUES ('past_contacts_discount_now_v1',?1) ON CONFLICT(name) DO NOTHING RETURNING name").bind(stamp).first();

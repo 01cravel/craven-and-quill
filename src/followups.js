@@ -124,7 +124,7 @@ async function detailsFor(env,email){
   try{const s=JSON.parse(o?.state||'{}');return {names:d?.names||s.names||'',title:d?.title||s.story?.title||''};}catch{return d||{};}
 }
 // This choice comes from the versioned notice on the submitted preview-and-price form.
-export async function recordPreviewChoice(env,email,previewId,declined){
+export async function recordPreviewChoice(env,email,previewId,declined,notice=PREVIEW_NOTICE){
   await ensureFollowupTable(env);
   const receipt=await db(env,"SELECT id FROM preview_receipts WHERE id=?1 AND status='succeeded' AND email=?2",previewId,email).first();
   if(!receipt)return false;
@@ -132,7 +132,7 @@ export async function recordPreviewChoice(env,email,previewId,declined){
   await db(env,`INSERT INTO followup_sequences (email,episode_id,consent_text,consent_at,created_at,updated_at)
     SELECT ?1,?2,?3,?4,?5,?5 WHERE NOT EXISTS (SELECT 1 FROM customer_quotes WHERE email=?1 AND offer_unsubscribed_at IS NOT NULL)
     ON CONFLICT(email) DO UPDATE SET consent_at=NULL,updated_at=excluded.updated_at WHERE excluded.consent_at IS NULL`,
-    email,crypto.randomUUID(),PREVIEW_NOTICE,declined?null:stamp,stamp).run();
+    email,crypto.randomUUID(),notice,declined?null:stamp,stamp).run();
   if(declined)await db(env,'UPDATE customer_quotes SET offer_consent_at=NULL,offer_unsubscribed_at=?2 WHERE email=?1',email,stamp).run();
   const f=await db(env,'SELECT consent_at FROM followup_sequences WHERE email=?1',email).first();
   return !!f?.consent_at;
@@ -209,7 +209,13 @@ export async function followupStatus(env){
     SUM(CASE WHEN second_status='accepted' THEN 1 ELSE 0 END) AS second_sent,
     SUM(CASE WHEN first_status IN ('sending','unknown') OR second_status IN ('sending','unknown') THEN 1 ELSE 0 END) AS needs_review
     FROM followup_sequences`).bind(FOLLOWUP_CONSENT,PREVIEW_NOTICE,PAST_CONTACTS).first();
-  return {enabled:env.FOLLOWUP_EMAILS_ENABLED==='true',enrolled:row.enrolled||0,firstSent:row.first_sent||0,secondSent:row.second_sent||0,needsReview:row.needs_review||0};
+  let chase={enrolled:0,sent:[0,0,0,0,0]};
+  try{
+    await ensureChaseTables(env);
+    chase.enrolled=(await db(env,'SELECT COUNT(*) n FROM followup_sequences WHERE consent_text=?1 AND consent_at IS NOT NULL',CHASE_NOTICE).first())?.n||0;
+    for(const r of (await env.DB.prepare("SELECT step,COUNT(*) n FROM chase_steps WHERE status='accepted' GROUP BY step").all()).results||[])chase.sent[r.step-1]=r.n;
+  }catch{}
+  return {enabled:env.FOLLOWUP_EMAILS_ENABLED==='true',enrolled:(row.enrolled||0)+chase.enrolled,firstSent:row.first_sent||0,secondSent:row.second_sent||0,needsReview:row.needs_review||0,chase};
 }
 
 export async function runFollowups(env){
@@ -234,7 +240,164 @@ export async function runFollowups(env){
     if(outcome in results.second)results.second[outcome]++;
     if(second.length>1)await new Promise(resolve=>setTimeout(resolve,600));
   }
+  try{results.chase=await runChase(env);}catch{console.error('Chase emails failed');results.chase={error:true};}
   return results;
 }
 
 export {message as followupMessage};
+
+// ---------------------------------------------------------------------------------------------------
+// Five-email chase (OWNER-APPROVED copy and timing, Luke, 21 Nov 2026). Short, one thought each, with the
+// button high enough to show without scrolling. The 10% code first appears in email 3 and is repeated in
+// 4 and 5. Email 5 is honest: saved previews really are deleted after 7 days.
+export const CHASE_NOTICE='If you leave your book unfinished, we’ll email you a few reminders about it over the next week, including a 10% offer. You can unsubscribe at any time.';
+// Hours after the email was given before each chase email is due.
+export const CHASE_HOURS=[3,24,72,120,144];
+const GOLD='#8f6a2a';
+export function chaseMessage(step,{names='',title='',image='',link,unsub,code='',expires=null,today=new Date()}){
+  const name=String(names).trim().slice(0,60),t=String(title).trim().slice(0,120);
+  const N=name||'them',Np=name?poss(name):'their',Cap=name?poss(name):'Their';
+  const when=expires?new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/London'}).format(new Date(expires)):'';
+  const xmas=today<new Date('2026-12-01T23:59:00Z');
+  const book=t?`<i style="font-family:${SERIF};">${escapeHtml(t)}</i>`:'their story';
+  const e=escapeHtml;
+  const c=[null,{
+    subject:name?`Meet ${name}, the hero`:'Meet the hero of the story',
+    heading:name?`Meet ${name}, the hero.`:'Meet the hero.',
+    lead:`We drew ${e(N)} today and wrote ${book}. It’s one tap from being a real hardback.`,
+    button:name?`See ${Np} book`:'See their book',
+    after:'You see every page before we print it.'
+  },{
+    subject:name?`Imagine ${Np} face`:'Imagine their face',
+    heading:name?`Imagine ${Np} face.`:'Imagine their face.',
+    lead:name?`${e(name)} opens a parcel, turns the page, and finds ${e(name)} looking back. The hero of the whole story.`:'They open a parcel, turn the page, and find themselves looking back. The hero of the whole story.',
+    button:name?`Make ${Np} book`:'Make their book',
+    after:'You check every page before we print a thing.'
+  },{
+    subject:name?`${name} won’t be little for long`:'They won’t be little for long',
+    heading:name?`${name} won’t be little for long.`:'They won’t be little for long.',
+    lead:`Toys get outgrown. A book where ${e(N)} is the hero stays on the shelf for good. Here’s 10% off to finish it.`,
+    button:'Finish it with 10% off',
+    after:`Your code works once, until ${when}.`
+  },{
+    subject:xmas?`${Cap} book, in time for Christmas`:`Still thinking about ${Np} book?`,
+    heading:xmas?'Under the tree, with their name on it.':`${Cap} book is still here.`,
+    lead:xmas?`Order by 1 December and ${Np} book arrives for Christmas. A hardback printed for one child only.`:`${Cap} character is drawn and ${book} is written. It only needs you to say go.`,
+    button:name?`Order ${Np} book`:'Order their book',
+    after:`Your 10% code still works, until ${when}.`
+  },{
+    subject:`We delete ${Np} book tomorrow`,
+    heading:`We delete ${Np} book tomorrow.`,
+    lead:`We only keep previews for 7 days. After tomorrow, ${Np} character and story are gone for good.`,
+    button:name?`Save ${Np} book`:'Save their book',
+    after:'Your 10% code ends tomorrow too.'
+  }][step];
+  const showCode=step>=3&&code;
+  const prices=`Hardbacks £${(PRODUCTS.a5.regularPricePence/100).toFixed(2)} (A5) and £${(PRODUCTS.a4.regularPricePence/100).toFixed(2)} (A4), plus £3.99 UK postage.`;
+  const codeBox=showCode?`<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 22px;"><tr><td align="center" style="padding:14px 18px;border:1.5px dashed ${GOLD};background:#f8f3e8;"><p style="margin:0 0 2px;color:#655a50;font:13px/1.4 ${SANS};">Your 10% code</p><p style="margin:0;color:#211d1a;font:700 21px/1.2 ${SERIF};letter-spacing:1.5px;">${e(code)}</p></td></tr></table>`:'';
+  const picture=image?`<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 20px;"><tr><td align="center" style="padding:14px;background:#f5f0e6;"><img src="${e(image)}" width="240" alt="${e(name?name+'’s character':'Your character')}" style="display:block;width:240px;max-width:100%;height:auto;border:0;border-radius:4px;"><p style="margin:10px 0 0;color:#846329;font:italic 14px/1.4 ${SERIF};">${e(name?`${name}, as we drew them`:'Your character, as we drew them')}</p></td></tr></table>`:'';
+  const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${e(c.subject)} | Craven &amp; Quill</title><style>@media only screen and (max-width:600px){.shell{width:100%!important}.content{padding:24px 22px 28px!important}.footer{padding:20px 22px 28px!important}.heading{font-size:28px!important}.button{display:block!important;text-align:center!important}}</style></head>
+<body style="margin:0;padding:0;background:#efeae0;color:#211d1a;-webkit-text-size-adjust:100%;">
+<div style="display:none;font-size:1px;color:#efeae0;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${e(c.after)}</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#efeae0;"><tr><td align="center" style="padding:16px 12px;">
+<table role="presentation" class="shell" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;max-width:520px;background:#fffdfa;">
+<tr><td align="center" style="padding:18px 24px 14px;border-bottom:1px solid #e9dec7;"><img src="${LOGO}" width="110" alt="Craven &amp; Quill" style="display:block;width:110px;height:auto;border:0;color:#211d1a;font:18px ${SERIF};"></td></tr>
+<tr><td class="content" style="padding:30px 40px 34px;">
+<h1 class="heading" style="margin:0 0 14px;color:#211d1a;font:normal 32px/1.14 ${SERIF};letter-spacing:-.4px;">${e(c.heading)}</h1>
+<p style="margin:0 0 20px;color:#3c352f;font:17px/1.55 ${SANS};">${c.lead}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 22px;"><tr><td bgcolor="${GOLD}" align="center" style="border-radius:4px;"><a class="button" href="${e(link)}" style="display:block;padding:17px 24px;color:#ffffff;text-decoration:none;font:700 17px/1.2 ${SANS};">${e(c.button)}</a></td></tr></table>
+${codeBox}${picture}<p style="margin:0 0 6px;color:#3c352f;font:15px/1.6 ${SANS};">${e(c.after)}</p>
+<p style="margin:0;color:#655a50;font:13px/1.6 ${SANS};">${e(prices)} Questions? Just reply.</p>
+</td></tr>
+<tr><td class="footer" style="padding:18px 40px 26px;border-top:1px solid #e9dec7;background:#faf7f0;">
+<p style="margin:0 0 10px;color:#8a7f73;font:12px/1.55 ${SANS};">You made a free book preview at Craven &amp; Quill. This is email ${step} of 5.</p>
+<p style="margin:0;"><a href="${e(unsub)}" style="color:#655a50;font:13px ${SANS};">Unsubscribe</a></p>
+</td></tr></table></td></tr></table></body></html>`;
+  const strip=x=>x.replace(/<[^>]+>/g,'');
+  const text=[c.heading,strip(c.lead),`${c.button}: ${link}`,showCode?`Your 10% code: ${code}`:'',c.after,prices,`Stop these emails: ${unsub}`,'Craven & Quill'].filter(Boolean).join('\n\n');
+  return {subject:c.subject,html,text};
+}
+
+
+// ----- Chase sending -----
+const CHASE_TABLES=[
+  'CREATE TABLE IF NOT EXISTS chase_steps (email TEXT NOT NULL, step INTEGER NOT NULL, status TEXT NOT NULL, sent_at TEXT, provider_id TEXT, PRIMARY KEY (email, step))',
+  // Where the shopper's saved book lives, so every chase email opens their own book on any device. Stored sealed.
+  'CREATE TABLE IF NOT EXISTS chase_links (email TEXT PRIMARY KEY, sealed TEXT NOT NULL, expires_at TEXT NOT NULL, updated_at TEXT NOT NULL)'
+];
+async function ensureChaseTables(env){for(const sql of CHASE_TABLES)await env.DB.prepare(sql).run();}
+async function sealKey(env){return crypto.subtle.importKey('raw',new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('chase-link:'+env.ORDER_LINK_SECRET))),'AES-GCM',false,['encrypt','decrypt']);}
+const b64=bytes=>btoa(String.fromCharCode(...bytes)),unb64=text=>Uint8Array.from(atob(text),c=>c.charCodeAt(0));
+// Called when a shopper's book is saved (the link-back email). Never throws: a failed save only means the
+// chase emails fall back to the plain book-maker link.
+export async function saveChaseLink(env,email,draftId,token,expires){
+  try{
+    if(!env.ORDER_LINK_SECRET||!env.DB)return false;
+    await ensureChaseTables(env);
+    const iv=crypto.getRandomValues(new Uint8Array(12)),cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await sealKey(env),new TextEncoder().encode(draftId+':'+token)));
+    await db(env,'INSERT INTO chase_links (email,sealed,expires_at,updated_at) VALUES (?1,?2,?3,?4) ON CONFLICT(email) DO UPDATE SET sealed=excluded.sealed,expires_at=excluded.expires_at,updated_at=excluded.updated_at',
+      String(email).trim().toLowerCase(),b64(iv)+'.'+b64(cipher),new Date(expires).toISOString(),now()).run();
+    return true;
+  }catch{console.error('Chase link not saved');return false;}
+}
+async function chaseLink(env,email,step,code){
+  const query=`${code?`offer=${encodeURIComponent(code)}&`:''}utm_source=email&utm_medium=email&utm_campaign=chase&utm_content=chase_${step}`;
+  try{
+    const row=await db(env,'SELECT sealed,expires_at FROM chase_links WHERE email=?1',email).first();
+    if(row&&Date.parse(row.expires_at)>Date.now()&&env.ORDER_LINK_SECRET){
+      const [iv,cipher]=row.sealed.split('.').map(unb64);
+      const [draftId,token]=new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv},await sealKey(env),cipher)).split(':');
+      if(/^[a-f0-9-]{36}$/.test(draftId)&&/^[a-f0-9-]{64,80}$/.test(token))return `https://cravenandquill.com/create?${query}#draft=${draftId}&key=${token}`;
+    }
+  }catch{}
+  return `https://cravenandquill.com/create.html?${query}`;
+}
+// Which chase email is due. Latest one whose time has come; earlier ones that were missed are skipped, never
+// sent late in a bunch. At least 18 hours between any two, and nothing after the saved book has been deleted.
+export function chaseDue(hours,sent){
+  if(hours>167)return 0;
+  let due=0;for(let i=0;i<CHASE_HOURS.length;i++)if(hours>=CHASE_HOURS[i])due=i+1;
+  if(!due||sent.some(x=>x.step>=due))return 0;
+  const last=Math.max(0,...sent.filter(x=>x.sent_at).map(x=>Date.parse(x.sent_at)));
+  if(last&&Date.now()-last<18*3600000)return 0;
+  return due;
+}
+async function runChase(env){
+  await ensureChaseTables(env);
+  const out={accepted:0,unknown:0};
+  const rows=(await db(env,`SELECT f.email,f.episode_id,f.consent_at FROM followup_sequences f
+    WHERE f.consent_text=?1 AND f.consent_at IS NOT NULL AND f.consent_at>?2
+    AND NOT EXISTS (SELECT 1 FROM customer_quotes q WHERE q.email=f.email AND q.offer_unsubscribed_at IS NOT NULL)
+    AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE o.email=f.email AND o.payment_status='paid')
+    ORDER BY f.consent_at LIMIT 40`,CHASE_NOTICE,new Date(Date.now()-8*DAY).toISOString()).all()).results||[];
+  for(const row of rows){
+    const sent=(await db(env,'SELECT step,sent_at FROM chase_steps WHERE email=?1',row.email).all()).results||[];
+    const step=chaseDue((Date.now()-Date.parse(row.consent_at))/3600000,sent);
+    if(!step)continue;
+    const claimed=await db(env,"INSERT INTO chase_steps (email,step,status) VALUES (?1,?2,'sending') ON CONFLICT(email,step) DO NOTHING RETURNING step",row.email,step).first();
+    if(!claimed)continue;
+    const expires=new Date(Date.parse(row.consent_at)+7*DAY).toISOString();
+    let code='';
+    if(step>=3){
+      // One personal 10% code per shopper, created with email 3 and repeated in 4 and 5. Ends when the saved book does.
+      await db(env,`INSERT INTO reminder_offers(email,discount_code,code_expires_at,email_status) VALUES (?1,?2,?3,'sending') ON CONFLICT(email) DO NOTHING`,
+        row.email,'CQ'+crypto.randomUUID().replaceAll('-','').slice(0,10).toUpperCase(),expires).run();
+      code=(await db(env,'SELECT discount_code FROM reminder_offers WHERE email=?1 AND redeemed_order_id IS NULL',row.email).first())?.discount_code||'';
+    }
+    const details=await detailsFor(env,row.email);
+    const image=env.BOOK_ASSETS&&await hasCharacter(env,row.email)?`https://cravenandquill.com/api/orders/followup-character?t=${encodeURIComponent(row.episode_id)}`:'';
+    const mail=chaseMessage(step,{names:details?.names,title:details?.title,image,code,expires,
+      link:await chaseLink(env,row.email,step,code),unsub:`https://cravenandquill.com/offer-unsubscribe.html?token=${encodeURIComponent(row.episode_id)}`});
+    const oneClick=`https://cravenandquill.com/api/orders/offer-one-click?token=${encodeURIComponent(row.episode_id)}`;
+    let accepted=false,providerId=null;
+    try{
+      const response=await (env.fetch||fetch)('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`,'Content-Type':'application/json','Idempotency-Key':`cq-chase-${step}-${row.episode_id}`},body:JSON.stringify({from:env.ORDER_EMAIL_FROM,reply_to:env.ORDER_EMAIL_REPLY_TO||'cravenluke@gmail.com',to:[row.email],subject:mail.subject,html:mail.html,text:mail.text,headers:{'List-Unsubscribe':`<${oneClick}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}}),signal:AbortSignal.timeout(15000)});
+      const data=await response.json();accepted=!!(response.ok&&data.id);providerId=accepted?data.id:null;
+    }catch{/* An uncertain send is never retried automatically. */}
+    await db(env,'UPDATE chase_steps SET status=?1,sent_at=?2,provider_id=?3 WHERE email=?4 AND step=?5',accepted?'accepted':'unknown',now(),providerId,row.email,step).run();
+    if(code&&accepted)await db(env,"UPDATE reminder_offers SET email_status='accepted' WHERE email=?1 AND email_status!='accepted'",row.email).run();
+    out[accepted?'accepted':'unknown']++;
+    await new Promise(resolve=>setTimeout(resolve,600));
+  }
+  return out;
+}

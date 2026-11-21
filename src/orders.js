@@ -4,9 +4,9 @@ import {ownerSession} from './owner-auth.js';
 import {sendOrderEmail,savedPreviewEmail} from './order-email.js';
 import {PRODUCTS,OWNER_TEST,BOOK,CATALOG_VERSION,catalogue,recipient,safeText,sha,requireThat,OrderError,checkoutReady,referenceBrief,SHIPPING_PENCE,orderTotal,priceOf,holdEnd,HOLD_GRACE_MS} from './catalog.js';
 import {printBook,validatePdf,makeSpine} from './print-book.js';
-import {recordFollowupConsent,unsubscribeFollowup,ensureFollowupTable,runFollowups,followupStatus,saveFollowupDetails,recordPreviewChoice,enrolPastContacts} from './followups.js';
+import {recordFollowupConsent,unsubscribeFollowup,ensureFollowupTable,runFollowups,followupStatus,saveFollowupDetails,recordPreviewChoice,enrolPastContacts,saveChaseLink,CHASE_NOTICE,chaseMessage,chaseDue} from './followups.js';
 import {validStory} from '../dist/server/story.js';
-export {recordFollowupConsent,unsubscribeFollowup,runFollowups,followupStatus,recordPreviewChoice,enrolPastContacts};
+export {recordFollowupConsent,unsubscribeFollowup,runFollowups,followupStatus,recordPreviewChoice,enrolPastContacts,CHASE_NOTICE,chaseMessage,chaseDue,saveChaseLink};
 const now=()=>new Date().toISOString(),uid=()=>crypto.randomUUID();
 const reply=(body,status=200,extra={})=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',...extra}});
 const q=(env,sql,...v)=>env.DB.prepare(sql).bind(...v);
@@ -225,6 +225,7 @@ export async function ordersApi(req,env){const url=new URL(req.url),path=url.pat
  b.draft.state.photos=[];b.draft.state.photoChecks=[];b.draft.orderRequest=null;b.draft.expires=saved?.expires||Date.now()+7*86400000;
  const stored={draft:b.draft,expires:b.draft.expires,emailedAt:Date.now()};
  await env.BOOK_ASSETS.put(key,new TextEncoder().encode(await privateKey(env,JSON.stringify(stored))),{httpMetadata:{contentType:'text/plain'}});
+ await saveChaseLink(env,b.email,draftRoute[1],token,stored.expires);
  let sent=false;if(env.RESEND_API_KEY&&env.ORDER_EMAIL_FROM){const mail=savedPreviewEmail(b.draft.state.names,'https://cravenandquill.com/create?utm_source=email&utm_medium=email&utm_campaign=saved_preview#draft='+draftRoute[1]+'&key='+token);try{const r=await (env.fetch||fetch)('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+env.RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':'draft-'+draftRoute[1]+'-'+Math.floor(Date.now()/60000)},body:JSON.stringify({from:env.ORDER_EMAIL_FROM,to:[b.email],reply_to:env.ORDER_EMAIL_REPLY_TO||'cravenluke@gmail.com',subject:mail.subject,text:mail.text,html:mail.html}),signal:AbortSignal.timeout(15000)});sent=r.ok;}catch{}}
  return reply({sent});
  }
