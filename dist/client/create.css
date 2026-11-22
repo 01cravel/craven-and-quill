@@ -906,3 +906,8 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 .early-email input{margin:0}
 .early-email .privacy-line{font-size:.8rem;margin-top:6px}
 .sent-line{margin:14px 0 0;font-size:.86rem;color:var(--muted)}
+
+/* Tap-first opening screen: the age buttons are the only thing to do, so they are big. */
+.step[data-step="1"] .age-grid .choice>span{padding:18px 12px;text-align:center}
+.step[data-step="1"] .age-grid .choice b{font-size:1.05rem}
+.step[data-step="9"] .love-intro{margin-top:18px}

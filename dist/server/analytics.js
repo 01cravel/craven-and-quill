@@ -38,13 +38,13 @@ const LIST_LIMIT=300;
 const DETAIL_DAYS=90;
 // Builder pages in the order a visitor meets them.
 export const FUNNEL=[
-  ['visit','Arrived on the site'],['maker_start','Opened the book maker'],['step_1','Name page'],['step_8','Reading level page'],['step_9','Story details page'],['step_3','Story tone page'],
+  ['visit','Arrived on the site'],['maker_start','Opened the book maker'],['step_1','First screen (age)'],['step_8','Reading level page'],['step_9','Name and what they love'],['step_3','Story tone page'],
   ['step_2','Photo page'],['photo_picked','Added a photo'],['photo_passed','Photo passed the check'],['preview_start','Asked for a free preview'],['preview_success','Got their character'],['step_5','Saw their character'],['step_10','Email page'],
   ['step_4','Read their story'],['step_6','Book size page'],['price_visible','Saw the prices'],['step_11','Delivery page'],['step_7','Reached review and pay'],['book_saved','Saved a book'],['checkout_start','Pressed pay'],['paid','Paid']
 ];
 // Page-open totals per step, kept with no visitor reference at all.
 export const COUNT_STEPS=[
-  ['arrive','Arrived'],['maker_start','Opened the book maker'],['step_1','Name page'],['step_8','Reading level page'],['step_9','Story details page'],['step_3','Story tone page'],
+  ['arrive','Arrived'],['maker_start','Opened the book maker'],['step_1','First screen (age)'],['step_8','Reading level page'],['step_9','Name and what they love'],['step_3','Story tone page'],
   ['step_2','Photo page'],['photo_open','Tapped add photo'],['photo_picked','Picked a photo'],['photo_passed','Photo passed check'],['photo_failed','Photo failed check'],
   ['preview_start','Asked for a preview'],['preview_success','Got their character'],['step_5','Character page'],['step_10','Email page'],
   ['step_4','Story page'],['step_6','Book size page'],['price_visible','Saw the prices'],['step_11','Delivery page'],['step_7','Review and pay'],['book_saved','Saved a book'],['checkout_start','Pressed pay']

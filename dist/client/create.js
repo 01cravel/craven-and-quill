@@ -118,7 +118,7 @@ function showStep(number){
   if(number===9)configureBrief();
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);const at=order.indexOf(number===4?5:number);item.classList.toggle('active',order.indexOf(n)===at);item.classList.toggle('done',order.indexOf(n)<at);});
-  const names={1:'Their name',2:'Their photo',9:'What they love',4:'Their story',5:'Their book',11:'Delivery & pay'};
+  const names={1:'Their age',2:'Their photo',9:'About them',4:'Their story',5:'Their book',11:'Delivery & pay'};
   const visibleStep=order.indexOf(number===4?5:number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
   $('.journey').setAttribute('aria-label',`Step ${visibleStep} of ${order.length}: ${names[number]}`);
   if(number===11)queueMicrotask(()=>void prepareAddressStep());
@@ -137,7 +137,6 @@ function showStep(number){
 function configureBrief(){
  const own=state.storyMode==='plot';
  $('#interests-options').hidden=own;$('#own-options').hidden=!own;
- $('#step-9-title').textContent=state.names?`A little about ${state.names}.`:'A little about them.';
  $('#brief-intro').textContent=own?'What should happen? Even one sentence is enough.':'What do they love? Tap a few.';
  $('#brief-help-copy').textContent=own?'Who is the hero? What do they want? What goes wrong? For example: they score the winning goal at Wembley, but their lucky boots have gone missing.':'Say who they are (a child, a grown-up or a pet), one or two things they love, and anything you’d like to happen.';
 }
@@ -212,7 +211,7 @@ async function writeStory(revision=false){
   const error=$('#step-4-error');error.textContent='';
   const basis=JSON.parse(storyBasis());
   if(!basis.age){showStep(1);$('#step-1-error').textContent='Choose a reading age first.';return;}
-  if(!basis.names){error.textContent='Add their first name before generating a story.';showStep(1);$('#names').focus();return;}
+  if(!basis.names){error.textContent='Add their first name before generating a story.';showStep(9);$('#names').focus();return;}
   if(!basis.idea){error.textContent='Add a starting idea before generating the story.';$('#own-idea').focus();return;}
   if(revision&&!draftValid(state.storyDraft)){error.textContent='Keep a title, storyline and words on all ten pages before updating the story.';return;}
   const changes=revision?$('#story-changes').value.trim():'';
@@ -547,13 +546,13 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   const next=Number(button.dataset.next);
   if(state.step===1){
     updateLive();
-    if(!state.names){$('#step-1-error').textContent='Add their first name to continue.';$('#names').focus();return;}
-    if(!$('#second-person').hidden&&!state.secondName){$('#step-1-error').textContent='Add the other person’s first name, or remove them.';$('#second-name').focus();return;}
     if(!$('input[name="age"]:checked')){$('#step-1-error').textContent='Choose a reading age.';$('.age-grid input')?.focus();return;}
     $('#step-1-error').textContent='';
   }
   if(state.step===8&&!$('input[name="age"]:checked')){$('#step-8-error').textContent='Choose a reading level.';return;}
   if(state.step===9&&!$('input[name="age"]:checked')){$('#step-9-error').textContent='Choose a reading age.';$('.age-grid input').focus();return;}
+  // The name is asked here, on the second screen, so the first screen is a single tap.
+  if(state.step===9){updateLive();if(!state.names){$('#step-9-error').textContent='Add their first name to continue.';$('#names').focus();return;}}
   if(state.step===9){state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';}
   if(state.step===9){updateLive();const own=state.storyMode==='plot';const field=own?$('#own-idea'):$('#personal-details');if(!field.value.trim()){$('#step-9-error').textContent=own?'Give us a sentence about what should happen.':'Tap one thing they love, or write a line about them.';field.focus();return;}$('#step-9-error').textContent='';buildIdeas();state.storyError='';if(!storyWriting&&(!draftValid(state.storyDraft)||state.storyBasis!==storyBasis()))void writeStory(false);}
   if(state.step===11){
@@ -735,14 +734,14 @@ new ResizeObserver(fitCoverName).observe($('#mini-cover'));
 document.fonts.ready.then(fitCoverName);
 
 let quickAdvanceTimer;
-for(const [name,step,next] of [['mood',3,2],['story-mode',12,9]]){
+for(const [name,step,next] of [['age',1,9],['mood',3,2],['story-mode',12,9]]){
   for(const input of $$(`input[name="${name}"]`))input.addEventListener('click',()=>{
     if(state.step!==step)return;
     clearTimeout(quickAdvanceTimer);
     quickAdvanceTimer=setTimeout(()=>{if(state.step===step&&input.checked)document.querySelector(`.step[data-step="${step}"] [data-next="${next}"]`).click();},160);
   });
 }
-$('#names').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();document.querySelector('[data-step="1"] [data-next]').click();}});
+$('#names').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();event.target.blur();}});
 $('#story-maker').addEventListener('submit',event=>event.preventDefault());
 showStep(1);
 
@@ -769,7 +768,7 @@ const examplesDialog=$('#examples-dialog');
 function openExamples(fromStart){const frame=$('#examples-frame');if(frame.src==='about:blank'||!frame.src.includes('test-book'))frame.src='test-book.html?book=amara&sample=1&embed=1';$('#examples-cta').hidden=!fromStart;if(fromStart){const a5=$('input[name="product"][value="a5"]'),was=a5?.closest('label')?.querySelector('del')?.textContent;const onOffer=was&&document.querySelector('[data-offer]:not([hidden])');if(a5?.dataset.price)$('#examples-price').textContent=`Hardbacks from £${a5.dataset.price}`;const en=$('#examples-note');en.textContent='';if(onOffer){const d=document.createElement('del');d.textContent=was;en.append(d,' £10 off until 1 Dec. Preview free.');}else en.textContent='The preview is free.';window.cqMeasurement?.record('example_opened');}examplesDialog.showModal();track('examples_opened');}
 $('#open-examples').addEventListener('click',()=>openExamples(false));
 $('#see-example').addEventListener('click',()=>openExamples(true));
-$('#examples-make').addEventListener('click',()=>{examplesDialog.close();$('#names').focus();});
+$('#examples-make').addEventListener('click',()=>{examplesDialog.close();});
 $('#close-examples').addEventListener('click',()=>examplesDialog.close());
 examplesDialog.addEventListener('click',event=>{if(event.target===examplesDialog)examplesDialog.close();});
 
