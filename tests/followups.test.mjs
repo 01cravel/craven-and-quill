@@ -190,3 +190,31 @@ test('chase stops for buyers and unsubscribers, and falls back to the plain link
   assert.equal(sent.length,1);assert.deepEqual(sent[0].to,[people[0]]);assert.equal(sent[0].subject,'Picture them opening this');
   assert.ok(sent[0].text.includes('https://cravenandquill.com/create.html?utm_source=email&utm_medium=email&utm_campaign=chase&utm_content=chase_2'));
 });
+
+test('Christmas emails: everyone we hold an email for, once each, only inside the send window, never unsubscribers or shoppers mid-chase',async()=>{
+  const {CHASE_NOTICE,seasonMessage,seasonDue}=await import('../dist/server/orders.js');
+  const DB=testDb(),sent=[],env={DB,FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
+    async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'sent'+sent.length});}};
+  const add=email=>DB.sqlite.prepare("INSERT INTO preview_contacts(email,source,medium,campaign,creative,country,created_at,updated_at) VALUES (?,'a','b','c','d','GB',?,?)").run(email,'2026-11-18T00:00:00.000Z','2026-11-18T00:00:00.000Z');
+  add('old@somewhere.invalid');add('gone@somewhere.invalid');add('luke@breeztechnologies.com');
+  const chaser='chasing@somewhere.invalid',id=crypto.randomUUID();
+  DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,email,created_at) VALUES (?,'succeeded',?,?)").run(id,chaser,new Date().toISOString());
+  await recordPreviewChoice(env,chaser,id,false,CHASE_NOTICE);
+  DB.sqlite.prepare('UPDATE followup_sequences SET consent_at=? WHERE email=?').run(new Date(Date.now()-3600000).toISOString(),chaser);
+  env.NOW='2026-11-23T12:00:00Z';let r=await runFollowups(env);assert.deepEqual(r.season,{accepted:0,unknown:0});assert.equal(sent.length,0,'nothing before the first date');
+  env.NOW='2026-11-24T09:00:00Z';r=await runFollowups(env);assert.equal(r.season.accepted,2);
+  const token=DB.sqlite.prepare('SELECT episode_id FROM followup_sequences WHERE email=?').get('gone@somewhere.invalid').episode_id;
+  assert.deepEqual(sent.map(m=>m.to[0]).sort(),['gone@somewhere.invalid','old@somewhere.invalid']);
+  assert.equal(sent[0].subject,'A Christmas book with your child in it');assert.ok(sent[0].text.includes('order by 14 December'));
+  assert.ok(sent[0].text.includes('https://cravenandquill.com/create?utm_source=email&utm_medium=email&utm_campaign=season&utm_content=xmas26_1'));
+  assert.ok(sent[0].text.includes('Stop these emails'));assert.ok(sent[0].headers['List-Unsubscribe']);
+  r=await runFollowups(env);assert.equal(r.season.accepted,0,'never twice');
+  assert.equal(await unsubscribeFollowup(env,token),true);
+  env.NOW='2026-11-27T09:00:00Z';await runFollowups(env);assert.equal(sent.length,2,'nothing between dates');
+  env.NOW='2026-12-03T09:00:00Z';await runFollowups(env);assert.equal(sent.length,3);assert.deepEqual(sent[2].to,['old@somewhere.invalid']);
+  env.NOW='2026-12-13T09:00:00Z';await runFollowups(env);assert.equal(sent[3].subject,'The last day for Christmas is tomorrow');
+  assert.deepEqual((await followupStatus(env)).season.sent,{'xmas26-1':2,'xmas26-2':1,'xmas26-3':1});
+  assert.equal(seasonDue(Date.parse('2026-12-14T09:00:00Z')),null);
+  const m=seasonMessage('xmas26-2',{names:'Mia',image:'https://x/y.jpg',link:'https://l',unsub:'https://u'});
+  assert.equal(m.subject,'Mia opening this on Christmas morning');assert.ok(m.html.includes('Make Mia’s book'));assert.ok(!m.html.includes('of 5'));
+});

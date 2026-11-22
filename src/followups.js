@@ -215,7 +215,7 @@ export async function followupStatus(env){
     chase.enrolled=(await db(env,'SELECT COUNT(*) n FROM followup_sequences WHERE consent_text=?1 AND consent_at IS NOT NULL',CHASE_NOTICE).first())?.n||0;
     for(const r of (await env.DB.prepare("SELECT step,COUNT(*) n FROM chase_steps WHERE status='accepted' GROUP BY step").all()).results||[])chase.sent[r.step-1]=r.n;
   }catch{}
-  return {enabled:env.FOLLOWUP_EMAILS_ENABLED==='true',enrolled:(row.enrolled||0)+chase.enrolled,firstSent:row.first_sent||0,secondSent:row.second_sent||0,needsReview:row.needs_review||0,chase};
+  return {enabled:env.FOLLOWUP_EMAILS_ENABLED==='true',enrolled:(row.enrolled||0)+chase.enrolled,firstSent:row.first_sent||0,secondSent:row.second_sent||0,needsReview:row.needs_review||0,chase,season:await seasonStatus(env)};
 }
 
 export async function runFollowups(env){
@@ -241,6 +241,7 @@ export async function runFollowups(env){
     if(second.length>1)await new Promise(resolve=>setTimeout(resolve,600));
   }
   try{results.chase=await runChase(env);}catch{console.error('Chase emails failed');results.chase={error:true};}
+  try{results.season=await runSeason(env);}catch{console.error('Seasonal emails failed');results.season={error:true};}
   return results;
 }
 
@@ -254,14 +255,14 @@ export const CHASE_NOTICE='If you leave your book unfinished, we’ll email you 
 // Hours after the email was given before each chase email is due.
 export const CHASE_HOURS=[3,24,72,120,144];
 const GOLD='#8f6a2a';
-export function chaseMessage(step,{names='',title='',image='',link,unsub,code='',expires=null,today=new Date()}){
+export function chaseMessage(step,{names='',title='',image='',link,unsub,code='',expires=null,today=new Date(),content=null,footer=''}){
   const name=String(names).trim().slice(0,60),t=String(title).trim().slice(0,120);
   const N=name||'your child',Np=name?poss(name):'their',Cap=name?poss(name):'Their';
   const when=expires?new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/London'}).format(new Date(expires)):'';
   const xmas=today<new Date('2026-12-14T23:59:00Z');
   const e=escapeHtml;
   // Plain words, one feeling per email, written the way a person would say it.
-  const c=[null,{
+  const c=content||[null,{
     subject:name?`We drew ${name}. Come and look`:'We drew them. Come and look',
     heading:name?`We drew ${name}. Come and look.`:'We drew them. Come and look.',
     lead:`The story is written and the first picture is done. See how ${e(N)} turned out.`,
@@ -309,7 +310,7 @@ export function chaseMessage(step,{names='',title='',image='',link,unsub,code=''
 ${codeLine}${picture}<p style="margin:0 0 18px;color:#1f1b16;font:17px/1.55 ${SERIF};">${e(c.after)}</p>
 <p style="margin:0 0 26px;color:#1f1b16;font:17px/1.55 ${SERIF};">Any questions, just reply. We read every one.<br>The Craven &amp; Quill team</p>
 <p style="margin:0 0 6px;padding:16px 0 0;border-top:1px solid #e6dfd0;color:#6b6157;font:13px/1.6 ${SANS};">${e(prices)}</p>
-<p style="margin:0;color:#6b6157;font:13px/1.6 ${SANS};">You made a free book preview with us. This is email ${step} of 5. <a href="${e(unsub)}" style="color:#6b6157;">Unsubscribe</a></p>
+<p style="margin:0;color:#6b6157;font:13px/1.6 ${SANS};">${e(footer||`You made a free book preview with us. This is email ${step} of 5.`)} <a href="${e(unsub)}" style="color:#6b6157;">Unsubscribe</a></p>
 </td></tr></table></td></tr></table></body></html>`;
   const strip=x=>x.replace(/<[^>]+>/g,'');
   const text=[c.heading,strip(c.lead),`${c.button}: ${link}`,showCode?`Your code: ${code}`:'',c.after,'Any questions, just reply. We read every one.\nThe Craven & Quill team',prices,`Stop these emails: ${unsub}`].filter(Boolean).join('\n\n');
@@ -397,4 +398,90 @@ async function runChase(env){
     await new Promise(resolve=>setTimeout(resolve,600));
   }
   return out;
+}
+
+
+// ----- Seasonal emails (Christmas 2026) -----
+// Everyone we hold an email for gets these, apart from people who unsubscribed, test addresses, and shoppers
+// who are in the middle of the five-email chase (they are already hearing from us that week).
+export const SEASON_NOTICE='Gave an email to Craven & Quill for a preview or order. Seasonal emails approved by the owner on 22 Nov 2026. Unsubscribe link in every email.';
+// Each email only goes inside its own window (UK morning onwards). A missed window is skipped, never sent late.
+export const SEASONS=[
+  {key:'xmas26-1',from:'2026-11-24T08:00:00Z',to:'2026-11-25T20:00:00Z'},
+  {key:'xmas26-2',from:'2026-12-03T08:00:00Z',to:'2026-12-04T20:00:00Z'},
+  {key:'xmas26-3',from:'2026-12-13T08:00:00Z',to:'2026-12-13T21:00:00Z'}
+];
+export function seasonMessage(key,{names='',title='',image='',link,unsub}){
+  const name=String(names).trim().slice(0,60),e=escapeHtml,N=name||'your little one',Np=name?poss(name):'their';
+  const content={
+    'xmas26-1':{
+      subject:name?`A Christmas book with ${name} in it`:'A Christmas book with your child in it',
+      heading:name?`A Christmas book with ${name} in it.`:'A Christmas book with your child in it.',
+      lead:`${image?`Remember the little character we drew of ${e(N)}? We can turn it into a real storybook`:'We can make a real storybook from one photo'}, with ${e(N)} in every picture. It makes a lovely present to open on Christmas morning. If you’d like one, order by 14 December.`,
+      button:name?`See ${Np} book`:'See their book',
+      after:'It’s free to look. You see every page before we print anything.'
+    },
+    'xmas26-2':{
+      subject:name?`${name} opening this on Christmas morning`:'Opening this on Christmas morning',
+      heading:name?`Imagine ${name} opening this.`:'Imagine them opening this.',
+      lead:`A storybook, and the child in the pictures is ${e(N)}. Children love seeing themselves in a story. It’s the kind of present that still gets read at bedtime long after the toys are forgotten. There’s still time. Order by 14 December.`,
+      button:name?`Make ${Np} book`:'Make their book',
+      after:'It takes about five minutes. You see every page first.'
+    },
+    'xmas26-3':{
+      subject:'The last day for Christmas is tomorrow',
+      heading:'Just a quick reminder.',
+      lead:`Tomorrow, 14 December, is the last day to order ${name?e(Np):'a'} book for Christmas. Each one is made specially, so it takes us a little while. If you’d still like one, now’s the time.`,
+      button:name?`Order ${Np} book`:'Order their book',
+      after:'You see every page before we print.'
+    }
+  }[key];
+  return chaseMessage(0,{names,title,image,link,unsub,content,footer:'You’re getting this because you made a free book preview with us.'});
+}
+const SEASON_TABLE='CREATE TABLE IF NOT EXISTS season_sends (email TEXT NOT NULL, key TEXT NOT NULL, status TEXT NOT NULL, sent_at TEXT, provider_id TEXT, PRIMARY KEY (email, key))';
+const NEW_ID="(lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-8'||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6))))";
+export function seasonDue(at=Date.now()){return SEASONS.find(s=>at>=Date.parse(s.from)&&at<=Date.parse(s.to))||null;}
+async function runSeason(env){
+  const out={accepted:0,unknown:0},season=seasonDue(env.NOW?Date.parse(env.NOW):Date.now());
+  if(!season)return out;
+  await ensureChaseTables(env);await env.DB.prepare(SEASON_TABLE).run();
+  // Give everyone we hold an email for a row here, so each has their own unsubscribe link.
+  for(const source of ['preview_contacts','customer_orders','customer_quotes','launch_leads'])try{
+    await db(env,`INSERT INTO followup_sequences (email,episode_id,consent_text,consent_at,created_at,updated_at)
+      SELECT c.email,${NEW_ID},?1,?2,?2,?2 FROM (SELECT DISTINCT email FROM ${source} WHERE email LIKE '%_@_%') c
+      WHERE NOT EXISTS (SELECT 1 FROM followup_sequences f WHERE f.email=c.email) ON CONFLICT(email) DO NOTHING`,SEASON_NOTICE,now()).run();
+  }catch{/* A table that does not exist yet simply adds nobody. */}
+  const rows=(await db(env,`SELECT f.email,f.episode_id FROM followup_sequences f
+    WHERE f.consent_at IS NOT NULL AND NOT (f.consent_text=?2 AND f.consent_at>?3)
+    AND f.email NOT IN ('lukecraven788@gmail.com','amna_al_aqeeli@hotmail.com')
+    AND f.email NOT LIKE '%@example.%' AND f.email NOT LIKE '%.test'
+    AND f.email NOT LIKE '%@breeztechnologies.com' AND f.email NOT LIKE '%@mailinator.com' AND f.email NOT LIKE '%@gamil.com'
+    AND NOT EXISTS (SELECT 1 FROM customer_quotes q WHERE q.email=f.email AND q.offer_unsubscribed_at IS NOT NULL)
+    AND NOT EXISTS (SELECT 1 FROM season_sends s WHERE s.email=f.email AND s.key=?1)
+    ORDER BY f.created_at LIMIT 25`,season.key,CHASE_NOTICE,new Date(Date.now()-7*DAY).toISOString()).all()).results||[];
+  for(const row of rows){
+    try{if(await db(env,'SELECT 1 x FROM launch_leads WHERE email=?1 AND unsubscribed_at IS NOT NULL',row.email).first())continue;}catch{}
+    const claimed=await db(env,"INSERT INTO season_sends (email,key,status) VALUES (?1,?2,'sending') ON CONFLICT(email,key) DO NOTHING RETURNING key",row.email,season.key).first();
+    if(!claimed)continue;
+    const details=await detailsFor(env,row.email);
+    const image=env.BOOK_ASSETS&&await hasCharacter(env,row.email)?`https://cravenandquill.com/api/orders/followup-character?t=${encodeURIComponent(row.episode_id)}`:'';
+    const mail=seasonMessage(season.key,{names:details?.names,title:details?.title,image,
+      link:`https://cravenandquill.com/create?utm_source=email&utm_medium=email&utm_campaign=season&utm_content=${season.key.replace('-','_')}`,
+      unsub:`https://cravenandquill.com/offer-unsubscribe.html?token=${encodeURIComponent(row.episode_id)}`});
+    const oneClick=`https://cravenandquill.com/api/orders/offer-one-click?token=${encodeURIComponent(row.episode_id)}`;
+    let accepted=false,providerId=null;
+    try{
+      const response=await (env.fetch||fetch)('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`,'Content-Type':'application/json','Idempotency-Key':`cq-season-${season.key}-${row.episode_id}`},body:JSON.stringify({from:env.ORDER_EMAIL_FROM,reply_to:env.ORDER_EMAIL_REPLY_TO||'cravenluke@gmail.com',to:[row.email],subject:mail.subject,html:mail.html,text:mail.text,headers:{'List-Unsubscribe':`<${oneClick}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}}),signal:AbortSignal.timeout(15000)});
+      const data=await response.json();accepted=!!(response.ok&&data.id);providerId=accepted?data.id:null;
+    }catch{/* An uncertain send is never retried automatically. */}
+    await db(env,'UPDATE season_sends SET status=?1,sent_at=?2,provider_id=?3 WHERE email=?4 AND key=?5',accepted?'accepted':'unknown',now(),providerId,row.email,season.key).run();
+    out[accepted?'accepted':'unknown']++;
+    await new Promise(resolve=>setTimeout(resolve,600));
+  }
+  return out;
+}
+export async function seasonStatus(env){
+  const sent={};
+  try{for(const r of (await env.DB.prepare("SELECT key,COUNT(*) n FROM season_sends WHERE status='accepted' GROUP BY key").all()).results||[])sent[r.key]=r.n;}catch{}
+  return {next:SEASONS.find(s=>Date.now()<=Date.parse(s.to))?.from||null,sent};
 }
