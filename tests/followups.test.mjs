@@ -157,19 +157,19 @@ test('five-email chase: right email at the right time, saved-book link, one 10% 
   const rest=()=>DB.sqlite.exec("UPDATE chase_steps SET sent_at='2020-01-01T00:00:00.000Z'");
   // Nothing in the first three hours, and the old two-email reminders never touch a chase shopper.
   let r=await runFollowups(env);assert.equal(sent.length,0);assert.equal(r.first.accepted,0);
-  age(4);r=await runFollowups(env);assert.equal(r.chase.accepted,1);assert.equal(sent[0].subject,'Meet Mia, the hero');
+  age(4);r=await runFollowups(env);assert.equal(r.chase.accepted,1);assert.equal(sent[0].subject,'We drew Mia. Come and look');
   assert.ok(sent[0].text.includes(`https://cravenandquill.com/create?utm_source=email&utm_medium=email&utm_campaign=chase&utm_content=chase_1#draft=${draftId}&key=${token}`),'opens their saved book');
-  assert.equal(/10% code/.test(sent[0].html),false);assert.ok(sent[0].headers['List-Unsubscribe']);
-  assert.ok(sent[0].html.indexOf('class="button"')<sent[0].html.indexOf('as we drew them')||!sent[0].html.includes('as we drew them'),'button comes before the picture');
+  assert.equal(/Your code/.test(sent[0].html),false);assert.ok(sent[0].headers['List-Unsubscribe']);
+  assert.ok(sent[0].html.indexOf('class="button"')<sent[0].html.indexOf('Any questions'),'button sits high in the email');
   // A day later but the last email went an hour ago: wait.
   age(25);await runFollowups(env);assert.equal(sent.length,1);
-  rest();await runFollowups(env);assert.equal(sent[1].subject,'Imagine Mia’s face');
-  rest();age(73);await runFollowups(env);assert.equal(sent[2].subject,'Mia won’t be little for long');
+  rest();await runFollowups(env);assert.equal(sent[1].subject,'Picture Mia opening this');
+  rest();age(73);await runFollowups(env);assert.equal(sent[2].subject,'“Again! The one about me.”');
   const code=DB.sqlite.prepare('SELECT discount_code,email_status,code_expires_at FROM reminder_offers WHERE email=?').get(email);
   assert.match(code.discount_code,/^CQ[A-Z0-9]{10}$/);assert.equal(code.email_status,'accepted');assert.ok(sent[2].html.includes(code.discount_code));
   assert.ok(sent[2].text.includes(`create?offer=${code.discount_code}&utm_source=email`));
   // Missed day 5 entirely: day 6 sends the last email, not a late bunch, with the same code.
-  rest();age(150);await runFollowups(env);assert.equal(sent.length,4);assert.equal(sent[3].subject,'We delete Mia’s book tomorrow');assert.ok(sent[3].html.includes(code.discount_code));
+  rest();age(150);await runFollowups(env);assert.equal(sent.length,4);assert.equal(sent[3].subject,'Tomorrow, Mia’s book is gone');assert.ok(sent[3].html.includes(code.discount_code));
   rest();await runFollowups(env);assert.equal(sent.length,4,'nothing after the last email');
   assert.deepEqual((await followupStatus(env)).chase,{enrolled:1,sent:[1,1,1,0,1]});
   assert.equal(chaseDue(170,[]),0,'nothing once the saved book has been deleted');assert.equal(chaseDue(2,[]),0);assert.equal(chaseDue(121,[]),4);
@@ -187,6 +187,6 @@ test('chase stops for buyers and unsubscribers, and falls back to the plain link
   const token=DB.sqlite.prepare('SELECT episode_id FROM followup_sequences WHERE email=?').get(people[1]).episode_id;
   assert.equal(await unsubscribeFollowup(env,token),true);
   await runFollowups(env);
-  assert.equal(sent.length,1);assert.deepEqual(sent[0].to,[people[0]]);assert.equal(sent[0].subject,'Imagine their face');
+  assert.equal(sent.length,1);assert.deepEqual(sent[0].to,[people[0]]);assert.equal(sent[0].subject,'Picture them opening this');
   assert.ok(sent[0].text.includes('https://cravenandquill.com/create.html?utm_source=email&utm_medium=email&utm_campaign=chase&utm_content=chase_2'));
 });

@@ -256,68 +256,65 @@ export const CHASE_HOURS=[3,24,72,120,144];
 const GOLD='#8f6a2a';
 export function chaseMessage(step,{names='',title='',image='',link,unsub,code='',expires=null,today=new Date()}){
   const name=String(names).trim().slice(0,60),t=String(title).trim().slice(0,120);
-  const N=name||'them',Np=name?poss(name):'their',Cap=name?poss(name):'Their';
+  const N=name||'your child',Np=name?poss(name):'their',Cap=name?poss(name):'Their';
   const when=expires?new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/London'}).format(new Date(expires)):'';
   const xmas=today<new Date('2026-12-01T23:59:00Z');
-  const book=t?`<i style="font-family:${SERIF};">${escapeHtml(t)}</i>`:'their story';
   const e=escapeHtml;
+  // Plain words, one feeling per email, written the way a person would say it.
   const c=[null,{
-    subject:name?`Meet ${name}, the hero`:'Meet the hero of the story',
-    heading:name?`Meet ${name}, the hero.`:'Meet the hero.',
-    lead:`We drew ${e(N)} today and wrote ${book}. It’s one tap from being a real hardback.`,
+    subject:name?`We drew ${name}. Come and look`:'We drew them. Come and look',
+    heading:name?`We drew ${name}. Come and look.`:'We drew them. Come and look.',
+    lead:`The story is written and the first picture is done. See how ${e(N)} turned out.`,
     button:name?`See ${Np} book`:'See their book',
-    after:'You see every page before we print it.'
+    after:'It costs nothing to look. You see every page before we print.'
   },{
-    subject:name?`Imagine ${Np} face`:'Imagine their face',
-    heading:name?`Imagine ${Np} face.`:'Imagine their face.',
-    lead:name?`${e(name)} opens a parcel, turns the page, and finds ${e(name)} looking back. The hero of the whole story.`:'They open a parcel, turn the page, and find themselves looking back. The hero of the whole story.',
+    subject:name?`Picture ${name} opening this`:'Picture them opening this',
+    heading:name?`Picture ${name} opening this.`:'Picture them opening this.',
+    lead:name?`A parcel with ${e(name)}’s name on it. Inside, a real book, and the child on every page is ${e(name)}. You won’t forget that face.`:'A parcel with their name on it. Inside, a real book, and the child on every page is them. You won’t forget that face.',
     button:name?`Make ${Np} book`:'Make their book',
-    after:'You check every page before we print a thing.'
+    after:'You check every page first. We only print when you’re happy.'
   },{
-    subject:name?`${name} won’t be little for long`:'They won’t be little for long',
-    heading:name?`${name} won’t be little for long.`:'They won’t be little for long.',
-    lead:`Toys get outgrown. A book where ${e(N)} is the hero stays on the shelf for good. Here’s 10% off to finish it.`,
-    button:'Finish it with 10% off',
+    subject:'“Again! The one about me.”',
+    heading:'“Again! The one about me.”',
+    lead:`That’s what you’ll hear at bedtime. A story where ${e(N)} is the hero gets read until the pages go soft. Here’s 10% off to make it real.`,
+    button:name?`Get 10% off ${Np} book`:'Get 10% off their book',
     after:`Your code works once, until ${when}.`
   },{
-    subject:xmas?`${Cap} book, in time for Christmas`:`Still thinking about ${Np} book?`,
-    heading:xmas?'Under the tree, with their name on it.':`${Cap} book is still here.`,
-    lead:xmas?`Order by 1 December and ${Np} book arrives for Christmas. A hardback printed for one child only.`:`${Cap} character is drawn and ${book} is written. It only needs you to say go.`,
+    subject:xmas?`The present ${name||'they'} will still have at 30`:`${Cap} book is still here`,
+    heading:xmas?'The one present that won’t end up in a drawer.':'Made for one child in the whole world.',
+    lead:xmas?`Order by 1 December and ${Np} book is under the tree on Christmas morning. Made for one child in the whole world.`:`${Cap} book is still here, drawn and written. It only needs you to say yes.`,
     button:name?`Order ${Np} book`:'Order their book',
     after:`Your 10% code still works, until ${when}.`
   },{
-    subject:`We delete ${Np} book tomorrow`,
-    heading:`We delete ${Np} book tomorrow.`,
-    lead:`We only keep previews for 7 days. After tomorrow, ${Np} character and story are gone for good.`,
-    button:name?`Save ${Np} book`:'Save their book',
+    subject:`Tomorrow, ${Np} book is gone`,
+    heading:`Tomorrow, ${Np} book is gone.`,
+    lead:'We only keep it for 7 days, and tomorrow is day 7. The drawing, the story, all of it. One tap keeps it.',
+    button:name?`Keep ${Np} book`:'Keep their book',
     after:'Your 10% code ends tomorrow too.'
   }][step];
   const showCode=step>=3&&code;
   const prices=`Hardbacks £${(PRODUCTS.a5.regularPricePence/100).toFixed(2)} (A5) and £${(PRODUCTS.a4.regularPricePence/100).toFixed(2)} (A4), plus £3.99 UK postage.`;
-  const codeBox=showCode?`<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 22px;"><tr><td align="center" style="padding:14px 18px;border:1.5px dashed ${GOLD};background:#f8f3e8;"><p style="margin:0 0 2px;color:#655a50;font:13px/1.4 ${SANS};">Your 10% code</p><p style="margin:0;color:#211d1a;font:700 21px/1.2 ${SERIF};letter-spacing:1.5px;">${e(code)}</p></td></tr></table>`:'';
-  const picture=image?`<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 20px;"><tr><td align="center" style="padding:14px;background:#f5f0e6;"><img src="${e(image)}" width="240" alt="${e(name?name+'’s character':'Your character')}" style="display:block;width:240px;max-width:100%;height:auto;border:0;border-radius:4px;"><p style="margin:10px 0 0;color:#846329;font:italic 14px/1.4 ${SERIF};">${e(name?`${name}, as we drew them`:'Your character, as we drew them')}</p></td></tr></table>`:'';
-  const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${e(c.subject)} | Craven &amp; Quill</title><style>@media only screen and (max-width:600px){.shell{width:100%!important}.content{padding:24px 22px 28px!important}.footer{padding:20px 22px 28px!important}.heading{font-size:28px!important}.button{display:block!important;text-align:center!important}}</style></head>
-<body style="margin:0;padding:0;background:#efeae0;color:#211d1a;-webkit-text-size-adjust:100%;">
-<div style="display:none;font-size:1px;color:#efeae0;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${e(c.after)}</div>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#efeae0;"><tr><td align="center" style="padding:16px 12px;">
-<table role="presentation" class="shell" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;max-width:520px;background:#fffdfa;">
-<tr><td align="center" style="padding:18px 24px 14px;border-bottom:1px solid #e9dec7;"><img src="${LOGO}" width="110" alt="Craven &amp; Quill" style="display:block;width:110px;height:auto;border:0;color:#211d1a;font:18px ${SERIF};"></td></tr>
-<tr><td class="content" style="padding:30px 40px 34px;">
-<h1 class="heading" style="margin:0 0 14px;color:#211d1a;font:normal 32px/1.14 ${SERIF};letter-spacing:-.4px;">${e(c.heading)}</h1>
-<p style="margin:0 0 20px;color:#3c352f;font:17px/1.55 ${SANS};">${c.lead}</p>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 22px;"><tr><td bgcolor="${GOLD}" align="center" style="border-radius:4px;"><a class="button" href="${e(link)}" style="display:block;padding:17px 24px;color:#ffffff;text-decoration:none;font:700 17px/1.2 ${SANS};">${e(c.button)}</a></td></tr></table>
-${codeBox}${picture}<p style="margin:0 0 6px;color:#3c352f;font:15px/1.6 ${SANS};">${e(c.after)}</p>
-<p style="margin:0;color:#655a50;font:13px/1.6 ${SANS};">${e(prices)} Questions? Just reply.</p>
-</td></tr>
-<tr><td class="footer" style="padding:18px 40px 26px;border-top:1px solid #e9dec7;background:#faf7f0;">
-<p style="margin:0 0 10px;color:#8a7f73;font:12px/1.55 ${SANS};">You made a free book preview at Craven &amp; Quill. This is email ${step} of 5.</p>
-<p style="margin:0;"><a href="${e(unsub)}" style="color:#655a50;font:13px ${SANS};">Unsubscribe</a></p>
+  const codeLine=showCode?`<p style="margin:0 0 26px;color:#1f1b16;font:17px/1.5 ${SERIF};">Your code: <b style="font-weight:700;letter-spacing:1px;border-bottom:2px solid ${GOLD};padding-bottom:1px;">${e(code)}</b></p>`:'';
+  // The one big thing in the email: their own character, shown like a page from the book.
+  const picture=image?`<img src="${e(image)}" width="560" alt="${e(name?name+'’s character':'Your character')}" style="display:block;width:100%;max-width:560px;height:auto;border:0;border-radius:6px;"><p style="margin:10px 0 26px;color:#6b6157;font:italic 15px/1.5 ${SERIF};">${e(name?`${name}, drawn from your photo`:'Drawn from your photo')}${t?`, for <span style="color:#1f1b16;">${e(t)}</span>`:''}</p>`:'';
+  const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${e(c.subject)} | Craven &amp; Quill</title><style>@media only screen and (max-width:600px){.content{padding:20px 20px 28px!important}.heading{font-size:30px!important}}</style></head>
+<body style="margin:0;padding:0;background:#ffffff;color:#1f1b16;-webkit-text-size-adjust:100%;">
+<div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${e(c.after)}</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#ffffff;"><tr><td class="content" style="padding:28px 28px 32px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;max-width:560px;"><tr><td>
+<img src="${LOGO}" width="46" alt="Craven &amp; Quill" style="display:block;width:46px;height:auto;border:0;margin:0 0 22px;color:#1f1b16;font:15px ${SERIF};">
+<h1 class="heading" style="margin:0 0 14px;color:#1f1b16;font:normal 36px/1.12 ${SERIF};letter-spacing:-.5px;">${e(c.heading)}</h1>
+<p style="margin:0 0 22px;color:#1f1b16;font:19px/1.5 ${SERIF};">${c.lead}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 ${showCode?'16':'28'}px;"><tr><td bgcolor="${GOLD}" align="center" style="border-radius:6px;"><a class="button" href="${e(link)}" style="display:block;padding:18px 24px;color:#ffffff;text-decoration:none;font:700 18px/1.2 ${SANS};">${e(c.button)}</a></td></tr></table>
+${codeLine}${picture}<p style="margin:0 0 18px;color:#1f1b16;font:17px/1.55 ${SERIF};">${e(c.after)}</p>
+<p style="margin:0 0 26px;color:#1f1b16;font:17px/1.55 ${SERIF};">Any questions, just reply. I read every one.<br>Luke, Craven &amp; Quill</p>
+<p style="margin:0 0 6px;padding:16px 0 0;border-top:1px solid #e6dfd0;color:#6b6157;font:13px/1.6 ${SANS};">${e(prices)}</p>
+<p style="margin:0;color:#6b6157;font:13px/1.6 ${SANS};">You made a free book preview with us. This is email ${step} of 5. <a href="${e(unsub)}" style="color:#6b6157;">Unsubscribe</a></p>
 </td></tr></table></td></tr></table></body></html>`;
   const strip=x=>x.replace(/<[^>]+>/g,'');
-  const text=[c.heading,strip(c.lead),`${c.button}: ${link}`,showCode?`Your 10% code: ${code}`:'',c.after,prices,`Stop these emails: ${unsub}`,'Craven & Quill'].filter(Boolean).join('\n\n');
+  const text=[c.heading,strip(c.lead),`${c.button}: ${link}`,showCode?`Your code: ${code}`:'',c.after,'Any questions, just reply. I read every one.\nLuke, Craven & Quill',prices,`Stop these emails: ${unsub}`].filter(Boolean).join('\n\n');
   return {subject:c.subject,html,text};
 }
-
 
 // ----- Chase sending -----
 const CHASE_TABLES=[
