@@ -307,12 +307,12 @@ export function chaseMessage(step,{names='',title='',image='',link,unsub,code=''
 <p style="margin:0 0 22px;color:#1f1b16;font:19px/1.5 ${SERIF};">${c.lead}</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 ${showCode?'16':'28'}px;"><tr><td bgcolor="${GOLD}" align="center" style="border-radius:6px;"><a class="button" href="${e(link)}" style="display:block;padding:18px 24px;color:#ffffff;text-decoration:none;font:700 18px/1.2 ${SANS};">${e(c.button)}</a></td></tr></table>
 ${codeLine}${picture}<p style="margin:0 0 18px;color:#1f1b16;font:17px/1.55 ${SERIF};">${e(c.after)}</p>
-<p style="margin:0 0 26px;color:#1f1b16;font:17px/1.55 ${SERIF};">Any questions, just reply. I read every one.<br>Luke, Craven &amp; Quill</p>
+<p style="margin:0 0 26px;color:#1f1b16;font:17px/1.55 ${SERIF};">Any questions, just reply. We read every one.<br>The Craven &amp; Quill team</p>
 <p style="margin:0 0 6px;padding:16px 0 0;border-top:1px solid #e6dfd0;color:#6b6157;font:13px/1.6 ${SANS};">${e(prices)}</p>
 <p style="margin:0;color:#6b6157;font:13px/1.6 ${SANS};">You made a free book preview with us. This is email ${step} of 5. <a href="${e(unsub)}" style="color:#6b6157;">Unsubscribe</a></p>
 </td></tr></table></td></tr></table></body></html>`;
   const strip=x=>x.replace(/<[^>]+>/g,'');
-  const text=[c.heading,strip(c.lead),`${c.button}: ${link}`,showCode?`Your code: ${code}`:'',c.after,'Any questions, just reply. I read every one.\nLuke, Craven & Quill',prices,`Stop these emails: ${unsub}`].filter(Boolean).join('\n\n');
+  const text=[c.heading,strip(c.lead),`${c.button}: ${link}`,showCode?`Your code: ${code}`:'',c.after,'Any questions, just reply. We read every one.\nThe Craven & Quill team',prices,`Stop these emails: ${unsub}`].filter(Boolean).join('\n\n');
   return {subject:c.subject,html,text};
 }
 
