@@ -64,7 +64,7 @@ export async function finishPreview(env,id,status){await env.DB.prepare('UPDATE 
 export async function campaignApi(request,env){
   const path=new URL(request.url).pathname;
   const feed=await adFeed(request,env);if(feed)return feed;
-  if(path==='/api/ad-config')return request.method==='GET'?reply({pixelId:/^[0-9]{5,30}$/.test(env.META_PIXEL_ID||'')?env.META_PIXEL_ID:null,google:adConfig(env),clarityId:/^[a-z0-9]{6,20}$/i.test(env.CLARITY_PROJECT_ID||'')?env.CLARITY_PROJECT_ID:null}):reply({error:'Method not allowed.'},405);
+  if(path==='/api/ad-config')return request.method==='GET'?reply({pixelId:/^[0-9]{5,30}$/.test(env.META_PIXEL_ID||'')?env.META_PIXEL_ID:null,google:adConfig(env),clarityId:/^[a-z0-9]{6,20}$/i.test(env.CLARITY_PROJECT_ID??'zhnqvptsom')?(env.CLARITY_PROJECT_ID??'zhnqvptsom'):null}):reply({error:'Method not allowed.'},405);
   if(!['/api/ad-revoke','/api/preview-email','/api/preview-emails.csv','/api/launch-signup','/api/campaign-event','/api/visit-count','/api/campaign-report','/api/launch-signups.csv','/api/unsubscribe'].includes(path))return null;
   const report=path==='/api/campaign-report'||path==='/api/launch-signups.csv'||path==='/api/preview-emails.csv';
   if(request.method!==(report?'GET':'POST'))return reply({error:'Method not allowed.'},405);
