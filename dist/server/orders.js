@@ -52710,7 +52710,7 @@ function message(step, quote, code2, expiry, details = {}) {
       `It\u2019s one step from being real. We print it, post it to your door, and send you the finished proof to check first.`
     ],
     button: name5 ? `Finish ${Np} book` : "Finish their book",
-    note: "Hardbacks from \xA324.99 with UK delivery. Order by 1 December for Christmas."
+    note: "Hardbacks from \xA324.99 with UK delivery. Order by 14 December for Christmas."
   } : {
     subject: name5 ? `10% off ${Np} book, just for you` : "10% off their book, just for you",
     pre: `Your own code, until ${when}.`,
@@ -52929,7 +52929,7 @@ function chaseMessage(step, { names = "", title: title2 = "", image = "", link, 
   const name5 = String(names).trim().slice(0, 60), t2 = String(title2).trim().slice(0, 120);
   const N = name5 || "your child", Np = name5 ? poss(name5) : "their", Cap = name5 ? poss(name5) : "Their";
   const when = expires ? new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/London" }).format(new Date(expires)) : "";
-  const xmas = today < /* @__PURE__ */ new Date("2026-12-01T23:59:00Z");
+  const xmas = today < /* @__PURE__ */ new Date("2026-12-14T23:59:00Z");
   const e = escapeHtml;
   const c = [null, {
     subject: name5 ? `We drew ${name5}. Come and look` : "We drew them. Come and look",
@@ -52952,7 +52952,7 @@ function chaseMessage(step, { names = "", title: title2 = "", image = "", link, 
   }, {
     subject: xmas ? `The present ${name5 || "they"} will still have at 30` : `${Cap} book is still here`,
     heading: xmas ? "The one present that won\u2019t end up in a drawer." : "Made for one child in the whole world.",
-    lead: xmas ? `Order by 1 December and ${Np} book is under the tree on Christmas morning. Made for one child in the whole world.` : `${Cap} book is still here, drawn and written. It only needs you to say yes.`,
+    lead: xmas ? `Order by 14 December and ${Np} book is under the tree on Christmas morning. Made for one child in the whole world.` : `${Cap} book is still here, drawn and written. It only needs you to say yes.`,
     button: name5 ? `Order ${Np} book` : "Order their book",
     after: `Your 10% code still works, until ${when}.`
   }, {

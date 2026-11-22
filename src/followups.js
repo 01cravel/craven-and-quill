@@ -68,7 +68,7 @@ function message(step,quote,code,expiry,details={}){
       `Picture the moment ${escapeHtml(who)} opens a real hardback and sees ${name?escapeHtml(name)+'’s':'their'} own face looking back from the page, the hero of the whole story. That’s the kind of gift a child keeps long after the toys are gone.`,
       `It’s one step from being real. We print it, post it to your door, and send you the finished proof to check first.`],
     button:name?`Finish ${Np} book`:'Finish their book',
-    note:'Hardbacks from £24.99 with UK delivery. Order by 1 December for Christmas.'
+    note:'Hardbacks from £24.99 with UK delivery. Order by 14 December for Christmas.'
   }:{
     subject:name?`10% off ${Np} book, just for you`:'10% off their book, just for you',
     pre:`Your own code, until ${when}.`,
@@ -258,7 +258,7 @@ export function chaseMessage(step,{names='',title='',image='',link,unsub,code=''
   const name=String(names).trim().slice(0,60),t=String(title).trim().slice(0,120);
   const N=name||'your child',Np=name?poss(name):'their',Cap=name?poss(name):'Their';
   const when=expires?new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/London'}).format(new Date(expires)):'';
-  const xmas=today<new Date('2026-12-01T23:59:00Z');
+  const xmas=today<new Date('2026-12-14T23:59:00Z');
   const e=escapeHtml;
   // Plain words, one feeling per email, written the way a person would say it.
   const c=[null,{
@@ -282,7 +282,7 @@ export function chaseMessage(step,{names='',title='',image='',link,unsub,code=''
   },{
     subject:xmas?`The present ${name||'they'} will still have at 30`:`${Cap} book is still here`,
     heading:xmas?'The one present that won’t end up in a drawer.':'Made for one child in the whole world.',
-    lead:xmas?`Order by 1 December and ${Np} book is under the tree on Christmas morning. Made for one child in the whole world.`:`${Cap} book is still here, drawn and written. It only needs you to say yes.`,
+    lead:xmas?`Order by 14 December and ${Np} book is under the tree on Christmas morning. Made for one child in the whole world.`:`${Cap} book is still here, drawn and written. It only needs you to say yes.`,
     button:name?`Order ${Np} book`:'Order their book',
     after:`Your 10% code still works, until ${when}.`
   },{

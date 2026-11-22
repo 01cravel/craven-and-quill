@@ -508,10 +508,10 @@ function updateReveal(){
 // Honest deadline: our own Christmas order date. Disappears once it has passed.
 function updateXmas(){
   const line=$('#xmas-line');if(!line)return;
-  const now=new Date(),year=now.getMonth()===11&&now.getDate()>1?null:now.getFullYear();
+  const now=new Date(),year=now.getMonth()===11&&now.getDate()>14?null:now.getFullYear();
   if(year===null||now.getMonth()<9){line.hidden=true;return;}
-  const cutoff=new Date(year,11,1,23,59,59),days=Math.ceil((cutoff-now)/86400000);
-  line.textContent=days<=1?'Order today to have it for Christmas.':`Order by 1 December to have it for Christmas. ${days} days left.`;line.hidden=false;
+  const cutoff=new Date(year,11,14,23,59,59),days=Math.ceil((cutoff-now)/86400000);
+  line.textContent=days<=1?'Order today to have it for Christmas.':`Order by 14 December to have it for Christmas. ${days} days left.`;line.hidden=false;
 }
 async function preparePreview(){
   if(generationBusy)return;generationBusy=true;
