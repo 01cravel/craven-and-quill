@@ -67,6 +67,8 @@ function syncLikes(){
   if(box.dataset.set!==set){box.dataset.set=set;box.replaceChildren(...LIKES[set].map(label=>{const chip=document.createElement('button');chip.type='button';chip.className='like-chip';chip.textContent=label;chip.dataset.like=label.toLowerCase();return chip;}));}
   const chosen=new Set(readLikes(field.value).items.map(v=>v.toLowerCase()));
   for(const chip of box.children)chip.setAttribute('aria-pressed',String(chosen.has(chip.dataset.like)));
+  const picked=[...box.children].filter(chip=>chosen.has(chip.dataset.like)).length,count=$('#love-count');
+  if(count)count.textContent=picked?`${picked} picked`:'Tap two or three';
 }
 function toggleLike(like){
   const field=$('#personal-details'),{items,rest}=readLikes(field.value);
@@ -768,7 +770,7 @@ $('#review-next').addEventListener('click',()=>{reviewPage++;renderReviewPage();
 const examplesDialog=$('#examples-dialog');
 function openExamples(fromStart){const frame=$('#examples-frame');if(frame.src==='about:blank'||!frame.src.includes('test-book'))frame.src='test-book.html?book=amara&sample=1&embed=1';$('#examples-cta').hidden=!fromStart;if(fromStart){const a5=$('input[name="product"][value="a5"]'),was=a5?.closest('label')?.querySelector('del')?.textContent;const onOffer=was&&document.querySelector('[data-offer]:not([hidden])');if(a5?.dataset.price)$('#examples-price').textContent=`Hardbacks from £${a5.dataset.price}`;const en=$('#examples-note');en.textContent='';if(onOffer){const d=document.createElement('del');d.textContent=was;en.append(d,' £10 off until 1 Dec. Preview free.');}else en.textContent='The preview is free.';window.cqMeasurement?.record('example_opened');}examplesDialog.showModal();track('examples_opened');}
 $('#open-examples').addEventListener('click',()=>openExamples(false));
-$('#see-example').addEventListener('click',()=>openExamples(true));
+$('#see-example')?.addEventListener('click',()=>openExamples(true));
 $('#examples-make').addEventListener('click',()=>{examplesDialog.close();});
 $('#close-examples').addEventListener('click',()=>examplesDialog.close());
 examplesDialog.addEventListener('click',event=>{if(event.target===examplesDialog)examplesDialog.close();});

@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=gift-3">
+  <link rel="stylesheet" href="create.css?v=about-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -53,7 +53,6 @@
           <h1 id="step-1-title">How old is the star of the book?</h1>
           <p id="starting-story" hidden></p>
           <p class="intro">One photo becomes a ten-page illustrated hardback. Free preview, no card.</p>
-          <button type="button" class="see-example" id="see-example" aria-haspopup="dialog">See a finished book and prices</button>
           
           
           <fieldset>
@@ -108,10 +107,9 @@
 <section class="step" data-step="9" aria-labelledby="step-9-title" hidden><h1 id="step-9-title">Who is the star?</h1>
           <label for="names">Their first name</label>
           <input id="names" enterkeyhint="done" name="names" maxlength="40" autocomplete="off" placeholder="For example, Leo" required>
-          <p class="intro love-intro">What do they love? Tap a few. We write their story around them.</p>
-
+          
 <p class="brief-label" id="brief-intro" hidden>What do they love? Tap a few.</p>
-<div id="interests-options"><div class="like-chips" id="like-chips" role="group" aria-label="Things they love"></div><label for="personal-details">Or say it in your own words <span>Optional</span></label><textarea id="personal-details" name="personal-details" rows="2" maxlength="800" placeholder="Alfie would love to score the winning goal for Leeds." aria-describedby="personal-details-note"></textarea><p class="privacy-line" id="personal-details-note">Leave out surnames, school names and other private details.</p></div>
+<div id="interests-options"><div class="field-head"><span class="field-label" id="love-label">What do they love?</span><span class="field-hint" id="love-count" aria-live="polite">Tap two or three</span></div><div class="like-chips" id="like-chips" role="group" aria-labelledby="love-label"></div><label for="personal-details">Anything else about them? <span>Optional</span></label><textarea id="personal-details" name="personal-details" rows="2" maxlength="800" placeholder="Alfie would love to score the winning goal for Leeds." aria-describedby="personal-details-note"></textarea><p class="privacy-line" id="personal-details-note">Leave out surnames, school names and other private details.</p></div>
           <div id="own-options" hidden>
             <label for="own-idea">What should happen? <span>Required</span></label>
             <textarea id="own-idea" name="own-idea" rows="5" maxlength="500" placeholder="For example, Leo finds three friendly aliens above Dubai and helps them get home."></textarea>
@@ -290,6 +288,6 @@
   <script src="preview-progress.js?v=retry-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=gift-3" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=about-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
 </body>
 </html>
