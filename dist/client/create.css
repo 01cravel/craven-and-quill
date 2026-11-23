@@ -1104,3 +1104,7 @@ body.hold-on .top-back{visibility:visible}
 .order-line>span:last-child{white-space:nowrap}
 .order-offer span,.order-offer b{display:inline}
 .order-line>span:last-child{display:inline-flex;align-items:baseline;justify-content:flex-end;gap:6px}
+/* Delivery page side panel: their moving book instead of the flat cover card. */
+.story-side.has-book>:not(.side-book){display:none!important}
+.side-book{width:100%;max-width:520px}
+.side-book .pb3{height:calc(var(--ph)*1.5 + 16px)}

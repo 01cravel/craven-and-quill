@@ -131,6 +131,7 @@ function showStep(number){
   if(number===5||number===11)void refreshHold();else document.body.classList.remove('hold-on');
   if(number===5){ensurePreview();updateReveal();updateXmas();if(state.characterImages[0]){renderPreviewBook();startAutoFlip();}}
   if(number===13)renderGiftBook();
+  renderSideBook();
   if([4,5,11].includes(number))void drawPages();
   scrollToStepTop(number);
   if(number===5)requestAnimationFrame(observeBookPrice);
@@ -865,8 +866,8 @@ function layoutBook3d(stage,page){
   leaf.style.transform=turned?`translateZ(${(i+1)*PB_GAP}px) rotateY(-180deg)`:`translateZ(${PB_BLOCK+(n-i)*PB_GAP}px) rotateY(0deg)`;
  });
 }
-function renderPreviewBook(){
- const track=$('#pbook-track');if(!track)return;
+// The pages shown in the preview book: cover, up to three painted spreads, then "the rest of the story".
+function previewBookFaces(){
  const make=pbEl;
  const title=state.storyDraft?.title||'';
  const spreads=state.storyDraft?.spreads||[];
@@ -895,11 +896,45 @@ function renderPreviewBook(){
   const count=make('div','pbook-page pb3-more-count');count.append(make('b',null,String(left)),make('span',null,`more page${left===1?'':'s'}`));lefts.push(count);
   const more=make('div','pbook-page pb3-more');more.append(make('b',null,`The rest of ${state.names?state.names+'’s':'their'} story`),make('p',null,'We paint it when you order. You see every page before we print, and we change anything you don’t love.'));rights.push(more);
  }
+ return {rights,lefts};
+}
+function renderPreviewBook(){
+ const track=$('#pbook-track');if(!track)return;
+ const {rights,lefts}=previewBookFaces();
  track.replaceChildren(buildBook3d(rights,lefts));
  $('.pbook-nav').hidden=rights.length<2;
  previewBookPage=Math.min(previewBookPage,rights.length-1);
  sizePreviewBook();turnPreviewBook(previewBookPage,'instant');
  startAutoFlip();
+}
+// On the delivery page (wide screens), the side panel shows their book doing the same show as the
+// book page: turning through the painted pages, closing, then twirling to show the hardback.
+var sideBookRun=0;
+function renderSideBook(){
+ const host=$('#side-book'),side=$('.story-side'),run=++sideBookRun;if(!host)return;
+ const want=state.step===11&&!!state.characterImages[0]&&!!state.storyDraft?.spreads?.length;
+ host.hidden=!want;side.classList.toggle('has-book',want);
+ if(!want||!host.clientWidth){host.replaceChildren();return;}
+ const {rights,lefts}=previewBookFaces(),stage=buildBook3d(rights,lefts);
+ stage.classList.add('side-stage','instant');
+ host.style.setProperty('--pw',Math.round(Math.min(host.clientWidth*.46,236))+'px');
+ host.replaceChildren(stage);layoutBook3d(stage,0);
+ requestAnimationFrame(()=>requestAnimationFrame(()=>stage.classList.remove('instant')));
+ if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ const live=()=>run===sideBookRun&&state.step===11&&document.visibilityState==='visible';
+ const wait=ms=>new Promise(done=>setTimeout(done,ms));
+ (async()=>{
+  const last=Math.min(3,stage.querySelectorAll('.pb3-leaf').length-1);
+  while(run===sideBookRun){
+   await wait(2500);if(!live())continue;
+   for(let page=1;page<=last&&live();page++){layoutBook3d(stage,page);await wait(3800);}
+   if(!live())continue;
+   layoutBook3d(stage,0);await wait(1600);if(!live())continue;
+   stage.classList.add('twirl');
+   const backOn=setTimeout(()=>stage.classList.add('from-back'),1900),backOff=setTimeout(()=>stage.classList.remove('from-back'),3270);
+   await wait(6000);clearTimeout(backOn);clearTimeout(backOff);stage.classList.remove('twirl','from-back');
+  }
+ })();
 }
 // The message page: the book opens its cover to the first page, where their name and message
 // appear as they type, laid out like the printed opening page.

@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=magic-1">
+  <link rel="stylesheet" href="create.css?v=sidebook-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -36,6 +36,7 @@
     <aside class="story-side" aria-live="polite">
       <p class="side-label" id="cover-caption">Your inside gift page</p>
       <div class="gift-page-preview" aria-label="Inside gift page preview"><p>A story just for</p><strong data-gift-name>Someone special</strong><p data-gift-sender hidden></p><p class="gift-message" data-gift-message hidden></p></div>
+      <div class="side-book" id="side-book" data-clarity-mask="true" aria-hidden="true" hidden></div>
       <div class="mini-cover" id="mini-cover" data-clarity-mask="true" hidden>
         <img id="mini-cover-art" src="assets/storybook.webp" width="900" height="1125" alt="Example book, your cover will be personalised">
         <div class="mini-cover-shade"></div>
@@ -291,6 +292,6 @@
   <script src="preview-progress.js?v=magic-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=magic-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=sidebook-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
 </body>
 </html>
