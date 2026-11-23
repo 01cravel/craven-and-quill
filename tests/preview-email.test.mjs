@@ -36,7 +36,7 @@ test('email is saved before their book shows, and re-linked once the character e
  assert.ok(prepare.includes('void sendPreviewLink();'),'the link email goes once the character exists');
  const pay=source.slice(source.indexOf("$('#join-launch').addEventListener"),source.indexOf("void loadOrderCatalog();"));
  assert.ok(pay.indexOf('await saveEmailOnce()')>0&&pay.indexOf('await saveEmailOnce()')<pay.indexOf("fetch('/api/orders'"),'email is saved before the order');
- assert.match(source,/const order=\[1,9,2,5,11\]/);
+ assert.match(source,/const order=\[1,9,2,5,13,11\]/);
 });
 
 test('multiple references create one character, not one character per photo',async()=>{
