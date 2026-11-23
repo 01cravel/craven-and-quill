@@ -1047,3 +1047,8 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 .proof-stars{flex:none;width:70px;height:13px;background:#b8893b;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.6l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z'/%3E%3C/svg%3E") 0 50%/14px 13px repeat-x;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.6l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z'/%3E%3C/svg%3E") 0 50%/14px 13px repeat-x}
 .proof-rule{flex:none;width:1px;height:14px;margin:0 4px;background:currentColor;opacity:.35}
 .page-preview-heading .proof{margin:10px 0 0}
+/* Header flip: hide the face turned away halfway through, so browsers that ignore hidden backs never show mirrored text. */
+.top-face{transition:transform 1.1s cubic-bezier(.45,.05,.2,1),visibility 0s linear .55s}
+.top-back,body.hold-on .top-front{visibility:hidden}
+body.hold-on .top-back{visibility:visible}
+@media(prefers-reduced-motion:reduce){.top-face{transition:none}}
