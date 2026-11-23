@@ -1004,3 +1004,11 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 @keyframes pb3-caret{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.pb3-caret{animation:none}}
 .pb3-endpaper{background:radial-gradient(120% 85% at 70% 22%,#fffdf7 0%,#fbf5e8 60%,#f1e7d1 100%)}
+/* Hide what can't be seen, rather than trusting every browser to sort 3D depth and hidden backs. */
+.pb3-leaf.pb3-off{visibility:hidden}
+.pb3-leaf:not([data-turned="true"]) .pb3-rear,.pb3-leaf[data-turned="true"] .pb3-front{visibility:hidden}
+.pb3-leaf.turning .pb3-face{transition:visibility 0s linear .42s}
+.pb3-hard.turning .pb3-face{transition-delay:.45s}
+.pb3-backcover{visibility:hidden}
+.pb3.from-back .pb3-backcover{visibility:visible}
+.pb3.from-back .pb3-leaf{visibility:hidden}

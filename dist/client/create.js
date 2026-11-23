@@ -812,8 +812,17 @@ function buildBook3d(rights,lefts){
  });
  const stage=pbEl('div','pb3');stage.append(book);return stage;
 }
+// Only the leaves you can see are drawn: the two open pages, plus any page on its way over.
+// Every face also hides itself once it is turned away. Browsers that ignore 3D depth or
+// hidden backs (some Safari builds) then still show the right pages in the right order.
+function showLeaves(leaves,lo,hi){leaves.forEach((leaf,i)=>leaf.classList.toggle('pb3-off',i<lo||i>hi));}
 function layoutBook3d(stage,page){
  const leaves=[...stage.querySelectorAll('.pb3-leaf')],n=leaves.length;
+ const prev=stage.dataset.page===undefined?page:Number(stage.dataset.page);
+ stage.dataset.page=String(page);
+ clearTimeout(stage._settle);
+ if(prev===page||stage.classList.contains('instant'))showLeaves(leaves,page-1,page);
+ else{showLeaves(leaves,Math.min(prev,page)-1,Math.max(prev,page));stage._settle=setTimeout(()=>showLeaves(leaves,page-1,page),1450);}
  stage.dataset.open=page?'1':'0';
  stage.style.setProperty('--depth',(PB_BLOCK+(n-page)*PB_GAP)+'px');
  leaves.forEach((leaf,i)=>{
@@ -912,12 +921,15 @@ async function runAutoShow(){
   if(!ready())continue;
   turnPreviewBook(0);await wait(1600);
   if(!ready())continue;
-  $('#pbook-track .pb3').classList.add('twirl');
+  const spin=$('#pbook-track .pb3');spin.classList.add('twirl');
+  // Swap to the back cover while the book faces away (about 1.9s to 3.3s into the spin).
+  const backOn=setTimeout(()=>spin.classList.add('from-back'),1900),backOff=setTimeout(()=>spin.classList.remove('from-back'),3270);
   await wait(PB_TWIRL_MS);
-  $('#pbook-track .pb3')?.classList.remove('twirl');
+  clearTimeout(backOn);clearTimeout(backOff);
+  $('#pbook-track .pb3')?.classList.remove('twirl','from-back');
  }
 }
-function stopAutoFlip(){autoFlipStopped=true;clearTimeout(autoFlip);autoFlip=null;$('#pbook-track .pb3')?.classList.remove('twirl');}
+function stopAutoFlip(){autoFlipStopped=true;clearTimeout(autoFlip);autoFlip=null;$('#pbook-track .pb3')?.classList.remove('twirl','from-back');}
 ['pointerdown','touchstart','wheel','keydown'].forEach(type=>$('#preview-book').addEventListener(type,stopAutoFlip,{passive:true}));
 function updatePreviewBook(index){
  const leaves=$$('#pbook-track .pb3-leaf');if(!leaves.length)return;
