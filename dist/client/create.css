@@ -911,3 +911,8 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 .step[data-step="1"] .age-grid .choice>span{padding:18px 12px;text-align:center}
 .step[data-step="1"] .age-grid .choice b{font-size:1.05rem}
 .step[data-step="9"] .love-intro{margin-top:18px}
+
+.pbook-more{align-items:center}
+.pbook-more-card{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10% 12%;text-align:center;background:#fffaf0;border-radius:8px;box-shadow:0 1px 0 rgba(23,51,44,.08),0 10px 24px -14px rgba(23,51,44,.35)}
+.pbook-more-card b{font:600 clamp(1.05rem,4.6vw,1.35rem)/1.2 Story,Georgia,serif;color:var(--ink)}
+.pbook-more-card p{margin:0;max-width:26ch;font:400 clamp(.82rem,3.4vw,.95rem)/1.45 Figtree,ui-sans-serif,sans-serif;color:var(--muted)}
