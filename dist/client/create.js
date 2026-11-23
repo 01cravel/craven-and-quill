@@ -819,12 +819,14 @@ function renderPreviewBook(){
   const more=make('div','pbook-page pb3-more');more.append(make('b',null,`The rest of ${state.names?state.names+'’s':'their'} story`),make('p',null,'We paint it when you order. You see every page before we print, and we change anything you don’t love.'));rights.push(more);
  }
  const book=make('div','pb3-book');
- book.append(make('div','pb3-shadow'),make('div','pb3-back'),make('div','pb3-edge pb3-fore'),make('div','pb3-edge pb3-tail'));
+ book.append(make('div','pb3-shadow'),make('div','pb3-back'),make('div','pb3-edge pb3-back-edge'),make('div','pb3-edge pb3-fore'),make('div','pb3-edge pb3-tail'),make('div','pb3-ribbon'));
  rights.forEach((right,i)=>{
   const leaf=make('div','pb3-leaf'+(i===0?' pb3-hard':''));
   const front=make('div','pb3-face pb3-front');front.append(right);
   const rear=make('div','pb3-face pb3-rear');if(lefts[i])rear.append(lefts[i]);
-  leaf.append(front,rear);book.append(leaf);
+  leaf.append(front,rear);
+  if(i===0)leaf.append(make('div','pb3-board-edge'),make('div','pb3-board-tail'));
+  book.append(leaf);
  });
  const stage=make('div','pb3');stage.append(book);track.replaceChildren(stage);
  $('.pbook-nav').hidden=rights.length<2;
@@ -854,6 +856,12 @@ function updatePreviewBook(index){
  stage.style.setProperty('--depth',(PB_BLOCK+(n-previewBookPage)*PB_GAP)+'px');
  leaves.forEach((leaf,i)=>{
   const turned=i<previewBookPage;
+  // A page catches the light as it lifts, then settles: shade it only while it is moving.
+  if(leaf.dataset.turned!==undefined&&leaf.dataset.turned!==String(turned)&&!stage.classList.contains('instant')){
+   leaf.classList.remove('turning');void leaf.offsetWidth;leaf.classList.add('turning');
+   clearTimeout(leaf._turnTimer);leaf._turnTimer=setTimeout(()=>leaf.classList.remove('turning'),1400);
+  }
+  leaf.dataset.turned=String(turned);
   leaf.style.transform=turned?`translateZ(${(i+1)*PB_GAP}px) rotateY(-180deg)`:`translateZ(${PB_BLOCK+(n-i)*PB_GAP}px) rotateY(0deg)`;
   leaf.querySelector('.pb3-front').setAttribute('aria-hidden',String(i!==previewBookPage));
   leaf.querySelector('.pb3-rear').setAttribute('aria-hidden',String(i!==previewBookPage-1));

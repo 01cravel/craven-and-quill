@@ -914,37 +914,37 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 
 /* The preview as a 3D hardback: closed on its cover, it opens and turns its own pages. */
 .pbook-track{display:block;aspect-ratio:auto;overflow:visible;border-radius:0;touch-action:pan-y;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
-.pb3{--pw:150px;--ph:calc(var(--pw)*1.36);--depth:14px;--board:#14261f;height:calc(var(--ph)*1.3 + 36px);display:grid;place-items:center;perspective:1500px;perspective-origin:50% 20%}
+.pb3{--linen:repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(0,0,0,.09) 0 1px,transparent 1px 3px);--pw:150px;--ph:calc(var(--pw)*1.36);--depth:14px;--board:#14261f;height:calc(var(--ph)*1.3 + 36px);display:grid;place-items:center;perspective:1500px;perspective-origin:50% 20%}
 .pb3-book{position:relative;width:calc(var(--pw)*2);height:var(--ph);transform-style:preserve-3d;transform:rotateX(14deg);transition:transform 1.15s cubic-bezier(.4,.05,.2,1)}
 .pb3[data-open="0"] .pb3-book{transform:translateX(-27%) rotateX(9deg) rotateY(-23deg) scale(1.2)}
 .pb3-shadow,.pb3-back,.pb3-edge,.pb3-leaf{position:absolute}
 .pb3-shadow{left:50%;right:-5%;top:8%;bottom:-9%;border-radius:12px;background:rgba(23,51,44,.5);filter:blur(13px);transform:translateZ(-3px);transition:left 1.15s cubic-bezier(.4,.05,.2,1)}
 .pb3[data-open="1"] .pb3-shadow{left:-5%}
-.pb3-back{left:50%;top:-3px;bottom:-3px;width:calc(50% + 3px);border-radius:2px 5px 5px 2px;background:var(--board)}
-.pb3-fore{left:100%;top:0;width:var(--depth);height:100%;transform-origin:left center;transform:translateZ(var(--depth)) rotateY(90deg);background:repeating-linear-gradient(90deg,#e6dcc5 0 1px,#fbf6ea 1px 2.5px)}
-.pb3-tail{left:50%;top:100%;width:50%;height:var(--depth);transform-origin:center top;transform:translateZ(var(--depth)) rotateX(-90deg);background:repeating-linear-gradient(0deg,#ded3ba 0 1px,#f6f0e2 1px 2.5px)}
+.pb3-back{left:50%;top:-3px;bottom:-3px;width:calc(50% + 3px);border-radius:2px 5px 5px 2px;background:var(--linen),var(--board);box-shadow:0 1px 2px rgba(0,0,0,.35)}
+.pb3-fore{left:100%;top:0;width:calc(var(--depth) - 1px);height:100%;transform-origin:left center;transform:translateZ(calc(var(--depth) - 1px)) rotateY(90deg);background:linear-gradient(90deg,rgba(60,45,20,.16),rgba(60,45,20,0) 35%,rgba(60,45,20,.1)),linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0) 20%,rgba(60,45,20,.12)),repeating-linear-gradient(90deg,#e3d8bf 0 .6px,#fbf6ea .6px 1.8px)}
+.pb3-tail{left:50%;top:100%;width:50%;height:calc(var(--depth) - 1px);transform-origin:center top;transform:translateZ(calc(var(--depth) - 1px)) rotateX(-90deg);background:linear-gradient(0deg,rgba(60,45,20,.18),rgba(60,45,20,0) 40%),repeating-linear-gradient(0deg,#dacfb5 0 .6px,#f6f0e2 .6px 1.8px)}
 .pb3-leaf{left:50%;top:0;width:50%;height:100%;transform-origin:left center;transform-style:preserve-3d;transition:transform 1.15s cubic-bezier(.45,.05,.2,1)}
 .pb3-hard{transition-duration:1.3s}
 .pb3-face{position:absolute;inset:0;overflow:hidden;background:#fffdf7;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .pb3-front{border-radius:0 3px 3px 0}
 .pb3-rear{border-radius:3px 0 0 3px;transform:rotateY(180deg)}
 .pb3-face::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none}
-.pb3-front::after{background:linear-gradient(90deg,rgba(23,51,44,.2),rgba(23,51,44,.05) 7%,rgba(23,51,44,0) 16%)}
-.pb3-rear::after{background:linear-gradient(270deg,rgba(23,51,44,.22),rgba(23,51,44,.05) 7%,rgba(23,51,44,0) 16%)}
+.pb3-front::after{background:linear-gradient(90deg,rgba(23,40,34,.34),rgba(23,40,34,.1) 4%,rgba(255,255,255,.06) 9%,rgba(23,40,34,0) 18%,rgba(23,40,34,0) 94%,rgba(23,40,34,.06))}
+.pb3-rear::after{background:linear-gradient(270deg,rgba(23,40,34,.36),rgba(23,40,34,.1) 4%,rgba(255,255,255,.06) 9%,rgba(23,40,34,0) 18%,rgba(23,40,34,0) 94%,rgba(23,40,34,.06))}
 .pb3-face>.pbook-page{position:absolute;inset:0;border-radius:0;box-shadow:none}
 .pb3 .pbook-paint{border-radius:0}
 /* Hard cover: a board a little bigger than the pages, with the picture wrapped over it. */
-.pb3-hard .pb3-face{inset:-3px -3px -3px 0;background:var(--board)}
+.pb3-hard .pb3-face{inset:-3px -3px -3px 0;background:var(--linen),var(--board)}
 .pb3-hard .pb3-front{border-radius:2px 5px 5px 2px}
 .pb3-hard .pb3-rear{border-radius:5px 2px 2px 5px}
 .pb3-hard .pb3-rear>.pbook-page{inset:3px 0 3px 3px}
 .pb3-cover{position:absolute;inset:0;display:flex;background:#efe8da}
 .pb3-cover img{display:block;flex:1;min-width:0;height:100%;object-fit:cover;object-position:center 12%}
-.pb3-cover::before{content:"";position:absolute;inset:0 auto 0 0;width:9%;z-index:2;background:linear-gradient(90deg,rgba(0,0,0,.38),rgba(255,255,255,.22) 42%,rgba(0,0,0,.2) 62%,rgba(0,0,0,0))}
+.pb3-cover::before{content:"";position:absolute;inset:0 auto 0 0;width:11%;z-index:2;background:linear-gradient(90deg,rgba(0,0,0,.42),rgba(255,255,255,.24) 30%,rgba(0,0,0,.16) 48%,rgba(0,0,0,0) 56%,rgba(0,0,0,0) 66%,rgba(0,0,0,.3) 72%,rgba(255,255,255,.22) 78%,rgba(0,0,0,0) 90%)}
 .pb3-cover::after{content:"";position:absolute;inset:0;z-index:2;background:linear-gradient(112deg,rgba(255,255,255,.26),rgba(255,255,255,0) 34%,rgba(255,255,255,0) 72%,rgba(255,255,255,.1));box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
 .pb3 .pbook-cover-copy{z-index:1;padding:36% 9% 8% 13%}
 .pb3 .pbook-cover-copy p{font-size:calc(var(--pw)*.05)}
-.pb3 .pbook-cover-copy h3{margin:0;font-size:calc(var(--pw)*.112)}
+.pb3 .pbook-cover-copy h3{margin:0;font-size:calc(var(--pw)*.112);background:linear-gradient(100deg,#b8893b,#f7e7ad 32%,#cfa152 52%,#f4dd98 76%,#a97a30);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
 .pb3-more,.pb3-more-count{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#fffaf0}
 .pb3-more{gap:8px;padding:12% 12% 12% 14%}
 .pb3-more b{font:600 calc(var(--pw)*.1)/1.2 Story,Georgia,serif;color:var(--ink);text-wrap:balance}
@@ -953,3 +953,15 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 .pb3-more-count span{font:500 calc(var(--pw)*.07)/1.3 Figtree,ui-sans-serif,sans-serif;color:var(--muted)}
 .pb3.instant,.pb3.instant *{transition:none!important}
 @media (prefers-reduced-motion:reduce){.pb3 *{transition:none!important}}
+
+/* Premium finish: paper grain, board thickness, a ribbon, and light on a lifting page. */
+.pb3-face::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .13 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");mix-blend-mode:multiply}
+.pb3-cover{box-shadow:inset 0 0 calc(var(--pw)*.08) rgba(0,0,0,.28)}
+.pb3-back-edge{left:calc(100% + 3px);top:-3px;bottom:-3px;width:3px;transform-origin:left center;transform:rotateY(90deg);background:#0d1a15}
+.pb3-board-edge,.pb3-board-tail{position:absolute;left:calc(100% + 3px);top:-3px;bottom:-3px;width:1.4px;transform-origin:left center;transform:rotateY(90deg);background:linear-gradient(180deg,#2a4a3f,#0f1e19)}
+.pb3-ribbon{position:absolute;left:74%;top:calc(100% - 6px);width:calc(var(--pw)*.055);height:calc(var(--pw)*.2);transform-origin:center top;transform:translateZ(calc(var(--depth)*.55)) rotateZ(5deg);background:linear-gradient(90deg,#6d1a22,#b13a43 45%,#7a1f27);clip-path:polygon(0 0,100% 0,100% 100%,50% 80%,0 100%);transition:transform 1.15s cubic-bezier(.4,.05,.2,1)}
+.pb3-leaf.turning .pb3-face::before{animation:pb3-lift 1.15s cubic-bezier(.45,.05,.2,1)}
+@keyframes pb3-lift{0%,100%{background-color:transparent}45%{background-color:rgba(70,80,75,.55)}}
+@media (prefers-reduced-motion:reduce){.pb3-leaf.turning .pb3-face::before{animation:none}}
+.pb3-board-tail{left:0;right:-3px;width:auto;top:calc(100% + 3px);bottom:auto;height:1.4px;transform-origin:center top;transform:rotateX(-90deg);background:#0f1e19}
+.pb3[data-open="0"] .pb3-tail{visibility:hidden}
