@@ -107,13 +107,14 @@ async function ownerPreviews(request,env){
   const days=Math.min(30,Math.max(1,Number(url.searchParams.get('days'))||7));
   const since=new Date(Date.now()-days*86400000).toISOString();
   const rows=(await env.DB.prepare("SELECT id,email,created_at FROM preview_receipts WHERE status='succeeded' AND created_at>=?1 ORDER BY created_at DESC LIMIT 120").bind(since).all()).results||[];
-  const previews=[];
-  for(const row of rows){
-    const parts=[];
-    for(const part of PREVIEW_PARTS)if(await env.BOOK_ASSETS.head(previewKey(row.id,part)))parts.push(part);
+  // One storage listing per folder for each preview, all previews at once (asking about every picture in turn timed out).
+  const keysUnder=async prefix=>(await env.BOOK_ASSETS.list({prefix,limit:20})).objects.map(o=>o.key);
+  const previews=await Promise.all(rows.map(async row=>{
+    const have=new Set([...await keysUnder(`photos/${row.id}/`),...await keysUnder(`drawn/${row.id}/`)]);
+    const parts=PREVIEW_PARTS.filter(part=>have.has(previewKey(row.id,part)));
     if(!parts.includes('character')&&row.email&&await env.BOOK_ASSETS.head('followup/'+await sha256(row.email)))parts.push('character');
-    previews.push({id:row.id,email:row.email||'',at:row.created_at,parts});
-  }
+    return {id:row.id,email:row.email||'',at:row.created_at,parts};
+  }));
   return json({previews,days});
 }
 async function generateCharacter(request,env){
