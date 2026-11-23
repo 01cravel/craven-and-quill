@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="styles.css?v=61">
+  <link rel="stylesheet" href="hero-demo.css?v=1">
   <link rel="stylesheet" href="/book-navigation.css?v=1">
   <script src="/book-navigation.js?v=1" defer></script>
 </head>
@@ -68,7 +69,7 @@
         </ul>
       </div>
 
-      <div class="hero-stage" aria-label="Example: a photo is dropped onto the book and becomes the storybook hero">
+      <div class="hero-stage" aria-label="Example: a photo is dropped in, sketched and painted, then becomes a printed hardback">
         <img class="stage-scene" src="assets/hero-book.webp" width="1005" height="843" fetchpriority="high" alt="A personalised hardback, Oliver and the Birthday Star, with the boy from the photo drawn on the cover">
         <img class="stage-empty" src="assets/hero-book-empty.webp" width="1005" height="843" alt="" aria-hidden="true">
         <div class="stage-glow" aria-hidden="true"></div>
@@ -209,6 +210,7 @@
   <script>(()=>{const card=document.querySelector(".stage-photo");if(!card)return;let runs=0;card.addEventListener("animationiteration",()=>{if(++runs>=3)card.closest(".hero-stage").classList.add("settled");});})();</script>
   <script src="campaign.js?v=10" defer></script>
   <script src="app.js?v=books-5" defer></script>
+  <script src="hero-demo.js?v=3" defer></script>
 <script>if(Date.now()>Date.parse('2026-12-01T23:59:59Z')){document.querySelectorAll('[data-offer]').forEach(e=>e.remove());const h=document.getElementById('pricing-title');if(h)h.textContent='Simple prices.';}</script>
 </body>
 </html>
