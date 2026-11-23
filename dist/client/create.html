@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=trust-1">
+  <link rel="stylesheet" href="create.css?v=address-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -216,11 +216,11 @@
           <label for="dedication">Your message <span>Optional</span></label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea>
           <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" type="button" data-next="11">Continue <span>→</span></button></div></section>
 <section class="step" data-step="11" data-clarity-mask="true" aria-labelledby="step-11-title" hidden><h1 id="step-11-title">Where should it go?</h1>
+          <div class="pay-who">
           <p class="intro">You see the whole book first. Once you approve it, we print and post it, usually within 7–12 working days. UK postage is £3.99.</p><p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>Rated 4.9★</b> with 3,000+ books sold across our book catalogue</span></p>
           <div id="preview-email-wrap" class="pay-email">
             <label class="field-label" for="email">Your email</label>
             <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" required aria-describedby="preview-email-note">
-            <p class="privacy-line" id="preview-email-note">We send your receipt and the finished proof here. We keep their book for 7 days and send a few reminders if you don’t finish. Unsubscribe any time.</p>
             <div class="error" id="step-10-error" role="alert"></div>
           </div>
           <p class="pay-email-known" id="email-known" hidden>Receipt and proof go to <b id="email-known-addr"></b> <button type="button" class="email-change" id="email-change">Change</button></p>
@@ -229,6 +229,8 @@
             <label class="send-option"><input type="radio" name="send-to" value="them"><span><b>Straight to <span data-send-name>them</span></b><small>We post it to their address, ready to open.</small></span></label>
             <label class="send-option"><input type="radio" name="send-to" value="me" checked><span><b>To me, I’ll hand it over</b><small>Comes to you first, so you can wrap it or keep it a surprise.</small></span></label>
           </fieldset>
+          </div>
+          <div class="pay-where">
           <label for="recipient-name" id="recipient-name-label">Your name on the parcel</label><input id="recipient-name" maxlength="100" autocomplete="shipping name" required>
             <div class="address-finder" id="address-finder" hidden>
               <label for="address-search">Address</label>
@@ -250,7 +252,6 @@
           <section class="order-total" aria-label="Your order"><div class="order-lines"><span class="order-line"><span id="order-label">A4 hardback</span><span id="order-book-price">£29.99</span></span><span class="order-line order-postage"><span>UK postage</span><span id="order-postage">£3.99</span></span></div><div class="order-sum"><span>Total</span><strong id="order-price">£33.98</strong></div></section>
           <p id="offer-code-note" class="privacy-line" hidden></p>
           <div class="offer-code-field" id="offer-code-field" hidden><label for="offer-code">Discount code</label><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="CQ…"></div>
-          <div class="offer-code-field" id="offer-code-field" hidden><label for="offer-code">Discount code</label><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="CQ…"></div>
           <div id="launch-form">
             <div class="signup-honeypot" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" tabindex="-1" autocomplete="off"></div>
             <input id="purchase-intent" type="checkbox" checked hidden>
@@ -266,10 +267,11 @@
               <p class="privacy-line">Your full illustrated proof: within 7 calendar days of payment. Estimated UK delivery: 7–12 working days after you approve the proof. Our team checks every page before printing. Buying for Christmas? Order by 14 December for the best chance of arriving in time. Need it for another date? <a href="mailto:cravenluke@gmail.com">Check with us before ordering</a>.</p>
               
               <p class="privacy-line">We save this book, illustrated character, email and delivery details privately. We use your email for this book, not a marketing subscription. <a href="privacy.html" target="_blank" rel="noopener">Privacy details</a> · <a href="ordering.html" target="_blank" rel="noopener">Ordering and delivery</a></p>
-              
+              <p class="privacy-line" id="preview-email-note">We send your receipt and the finished proof here. We keep their book for 7 days and send a few reminders if you don’t finish. Unsubscribe any time.</p>
             </div>
           </div>
-          <div class="step-actions"><button class="back" type="button" data-back="13">Back</button><button class="next checkout-button" id="join-launch" type="button"><span class="cta-text">Pay securely</span> <span class="cta-price" data-cta-price>£29.99</span></button></div>
+          </div>
+          <div class="step-actions"><button class="back" type="button" data-back="13">Back</button><button class="back" type="button" id="back-who">Back</button><button class="next" type="button" id="to-address">Continue <span>→</span></button><button class="next checkout-button" id="join-launch" type="button"><span class="cta-text">Pay securely</span> <span class="cta-price" data-cta-price>£29.99</span></button></div>
           <div hidden><span id="review-art"></span><span id="review-text"></span><span id="review-folio"></span><span id="review-pos"></span><button id="review-prev" type="button"></button><button id="review-next" type="button"></button><span id="review-spread"></span><span id="review-chapter"></span><span class="review-art-page"></span><span class="art-badge"></span><span id="delivery-summary"></span><button id="open-examples" type="button"></button></div>
         </section>
         <dialog class="examples-dialog" id="examples-dialog" aria-labelledby="examples-title">
@@ -288,6 +290,6 @@
   <script src="preview-progress.js?v=retry-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=trust-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=address-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
 </body>
 </html>

@@ -1036,3 +1036,8 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 .page-preview-heading .trust-top{justify-content:flex-start;margin:8px 0 0;font-size:.8rem}
 .page-preview-heading .trust-top svg{width:24px;height:24px;padding:5px}
 .page-preview-heading .trust-top,.page-preview-heading .trust-top span{white-space:normal}
+/* Delivery page in two screens: who it goes to, then the address and payment. */
+.step[data-step="11"]:not([data-stage="where"]) :is(.pay-where,#join-launch,#back-who),
+.step[data-step="11"][data-stage="where"] :is(.pay-who,#to-address,.back[data-back]){display:none!important}
+.step[data-step="11"] #preview-email-note{margin-top:14px}
+.step[data-step="11"] #recipient-name-label{display:block;font-weight:700;font-size:.95rem;color:var(--ink);margin:0 0 8px}

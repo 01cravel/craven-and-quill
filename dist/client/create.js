@@ -116,7 +116,7 @@ function showStep(number){
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
   state.step=number;keepStepFields();
   if(number===2){updatePhotoGate();renderPhotoThumbnails(state.photos);}
-  if(number===11){defaultSendTo();updateSendTo(true);showKnownEmail();}
+  if(number===11){defaultSendTo();updateSendTo(true);showKnownEmail();if(previous!==11)payStage('who');}
   if(number===9)configureBrief();
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);const at=order.indexOf(number===4?5:number);item.classList.toggle('active',order.indexOf(n)===at);item.classList.toggle('done',order.indexOf(n)<at);});
@@ -274,6 +274,22 @@ function updateSendTo(entering){const to=$('input[name="send-to"]:checked')?.val
   if(to==='them'&&child&&(!field.value.trim()||!entering&&field.dataset.autofill==='me')){set(child);field.dataset.autofill='them';}
   else if(to==='me'&&!entering&&field.dataset.autofill==='them'){set('');field.dataset.autofill='me';field.focus();}
   else if(entering&&!field.value.trim()&&to==='them'&&child){set(child);field.dataset.autofill='them';}}
+// The delivery page is two short screens: first who it goes to, then the address and payment.
+function payStage(stage){
+ const page=$('.step[data-step="11"]');if(page.dataset.stage===stage)return;page.dataset.stage=stage;
+ const to=$('input[name="send-to"]:checked')?.value;
+ $('#step-11-title').textContent=stage==='where'?(to==='them'?'Their address':'Your address'):'Where should it go?';
+ if(state.step===11){scrollToStepTop(11);if(stage==='where')track('story_step_view',{step:7});}
+}
+async function goToAddress(){
+ if(!validPreviewEmail()){$('#step-10-error').textContent='Enter your email so we can send your receipt and proof.';$('#email').focus();return;}
+ if(!await saveEmailOnce())return;
+ payStage('where');
+}
+$('#to-address').addEventListener('click',()=>void goToAddress());
+$('#back-who').addEventListener('click',()=>payStage('who'));
+// Tapping a choice moves straight on once we already have their email.
+$$('.send-option').forEach(option=>option.addEventListener('click',()=>{if(state.step===11&&validPreviewEmail())setTimeout(()=>void goToAddress(),280);}));
 let sendToChosen=false;
 function defaultSendTo(){if(sendToChosen)return;const want=state.age==='teen-adult'?'them':'me';const radio=$(`input[name="send-to"][value="${want}"]`);if(radio&&!radio.checked){radio.checked=true;const field=$('#recipient-name');if(field.dataset.autofill){field.value='';delete field.dataset.autofill;}}}
 document.querySelectorAll('input[name="send-to"]').forEach(r=>r.addEventListener('change',event=>{if(event.isTrusted)sendToChosen=true;updateSendTo(false);}));
@@ -705,7 +721,7 @@ $('#join-launch').addEventListener('click',async()=>{
  if(!validPreviewEmail()){$('#step-10-error').textContent='Enter your email so we can send your receipt and proof.';$('#email').focus();$('#email').scrollIntoView({block:'center'});return;}
  if(!await saveEmailOnce())return;
  if(!$('#purchase-intent').checked||!$('#photo-permission').checked){showStep(2);$('#step-2-error').textContent='Tick to confirm you have permission to use the photo.';return;}
- const fields=['recipient-name','address-line1','town','postcode'];const invalid=fields.find(id=>!$('#'+id).value.trim());if(invalid){showStep(11);$('#step-11-error').textContent='Complete the UK delivery address.';$('#'+invalid).focus();return;}
+ const fields=['recipient-name','address-line1','town','postcode'];const invalid=fields.find(id=>!$('#'+id).value.trim());if(invalid){showStep(11);payStage('where');$('#step-11-error').textContent='Complete the UK delivery address.';$('#'+invalid).focus();return;}
  if(!validUkPostcode($('#postcode').value)){$('#step-11-error').textContent='Check the postcode. It should look like YO1 7AA.';if(addressFinder.mode!=='manual')setAddressMode('manual');$('#postcode').focus();return;}
  if(!draftValid(state.storyDraft)||!state.characterImages.length){error.textContent='Finish the story and character preview first.';return;}
  updateProduct();button.disabled=true;button.textContent='Saving your book…';error.textContent='';
