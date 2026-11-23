@@ -1059,13 +1059,13 @@ body.hold-on .top-back{visibility:visible}
 .magic-frame>img,.magic-frame>canvas,.magic-scan{position:absolute;left:9px;top:9px;width:calc(100% - 18px);height:calc(100% - 18px);border-radius:2px}
 .magic-photo{object-fit:cover;object-position:50% 30%;transition:opacity 1.4s ease,filter 4s ease}
 .magic[data-stage="study"] .magic-photo{filter:saturate(.85) brightness(1.04)}
-.magic:not([data-stage="study"]) .magic-photo{opacity:0}
+.magic:not([data-stage="study"]) .magic-photo{filter:saturate(1.05) brightness(1.03)}
 .magic-sketch{clip-path:inset(0 0 100% 0);transition:clip-path 11.5s linear}
 .magic:is([data-stage="sketch"],[data-stage="paint"],[data-stage="gild"],[data-stage="paused"]) .magic-sketch{clip-path:inset(0 0 0 0)}
 .magic-paint{-webkit-mask-image:radial-gradient(circle,#000 42%,transparent 70%);mask-image:radial-gradient(circle,#000 42%,transparent 70%);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:50% 40%;mask-position:50% 40%;-webkit-mask-size:0% 0%;mask-size:0% 0%;transition:-webkit-mask-size 13s cubic-bezier(.3,.1,.3,1),mask-size 13s cubic-bezier(.3,.1,.3,1)}
 .magic:is([data-stage="paint"],[data-stage="gild"]) .magic-paint{-webkit-mask-size:280% 280%;mask-size:280% 280%}
 .magic-scan{height:30%;background:linear-gradient(180deg,transparent,#f4dc9a40 55%,#fff6d8b0 90%,transparent);mix-blend-mode:screen;opacity:0;transition:opacity .6s}
-.magic[data-stage="study"] .magic-scan{opacity:1;animation:magic-scan 2.4s ease-in-out infinite}
+.magic:is([data-stage="study"],[data-stage="sketch"],[data-stage="paint"]) .magic-scan{opacity:1;animation:magic-scan 3.2s ease-in-out infinite}
 @keyframes magic-scan{0%{transform:translateY(-100%)}100%{transform:translateY(330%)}}
 /* The quill rides the edge of the pencil drawing as it moves down the page. */
 .magic-quill{position:absolute;left:9px;right:9px;top:9px;height:0;opacity:0;pointer-events:none;transition:opacity .5s}
@@ -1081,7 +1081,7 @@ body.hold-on .top-back{visibility:visible}
 .magic{--h:calc(min(224px,58vw)*1.25 - 18px)}
 /* Gold dust once the paint goes on. */
 .magic-dust i{position:absolute;left:var(--x);top:var(--y);width:calc(14px*var(--s));height:calc(14px*var(--s));margin:-7px 0 0 -7px;background:var(--gold);opacity:0;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0c.8 6.4 5.6 11.2 12 12-6.4.8-11.2 5.6-12 12-.8-6.4-5.6-11.2-12-12C6.4 11.2 11.2 6.4 12 0z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0c.8 6.4 5.6 11.2 12 12-6.4.8-11.2 5.6-12 12-.8-6.4-5.6-11.2-12-12C6.4 11.2 11.2 6.4 12 0z'/%3E%3C/svg%3E") center/contain no-repeat}
-.magic:is([data-stage="paint"],[data-stage="gild"]) .magic-dust i{animation:magic-twinkle 3s ease-in-out var(--d) infinite}
+.magic:is([data-stage="sketch"],[data-stage="paint"],[data-stage="gild"]) .magic-dust i{animation:magic-twinkle 3s ease-in-out var(--d) infinite}
 @keyframes magic-twinkle{0%,100%{opacity:0;transform:scale(.4) rotate(0)}45%{opacity:1;transform:scale(1) rotate(45deg)}70%{opacity:.5;transform:scale(.8) translateY(-6px) rotate(70deg)}}
 .magic[data-stage="gild"] .magic-frame{box-shadow:0 0 0 1px #e2c98f,0 0 0 5px #f6ead0,0 22px 44px -22px #17332c66,0 0 38px -6px #e7c77c99}
 .magic.no-photo .magic-frame>img,.magic.no-photo canvas,.magic.no-photo .magic-scan{display:none}
@@ -1092,7 +1092,7 @@ body.hold-on .top-back{visibility:visible}
 .magic.calm *{transition:none!important;animation:none!important}
 .magic.calm .magic-sketch{clip-path:none}
 .magic.calm .magic-paint{-webkit-mask-size:280% 280%;mask-size:280% 280%}
-.magic.calm .magic-photo,.magic.calm .magic-scan,.magic.calm .magic-quill{opacity:0}
+.magic.calm .magic-scan{opacity:0}
 #making-state .drawing-progress{margin-top:22px}
 @media (max-height:700px){.magic{width:min(184px,50vw)}}
 /* Book page: sizes only, prices come at checkout. */
