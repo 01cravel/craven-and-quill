@@ -1031,3 +1031,8 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 .app-header .brand{cursor:default}
 /* Message page on short phones: a smaller book so the two boxes show without scrolling. */
 @media (max-height:760px) and (max-width:780px){.gift-book{margin-bottom:12px}.gift-book .pb3{height:calc(var(--ph)*1.5 + 8px)}.pb3.gift-stage[data-zoom="1"] .pb3-book{transform:translateX(-36%) rotateX(7deg) translateX(30%) rotateY(-9deg) translateX(-30%) scale(1.4)}}
+.preview-step .trust-line,.step[data-step="5"] .trust-line{justify-content:flex-start;margin:8px 0 4px}
+.step[data-step="11"] .trust-line{justify-content:flex-start;margin:-4px 0 14px;max-width:none}
+.page-preview-heading .trust-top{justify-content:flex-start;margin:8px 0 0;font-size:.8rem}
+.page-preview-heading .trust-top svg{width:24px;height:24px;padding:5px}
+.page-preview-heading .trust-top,.page-preview-heading .trust-top span{white-space:normal}
