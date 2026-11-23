@@ -139,10 +139,10 @@ test('one people view joins every email record, and keeps unlinked visits visibl
   assert.equal(filtered.knownEmailTotal,2);assert.ok(!filtered.people.some(p=>p.email==='colour@example.test'));
 });
 
-test('all eleven maker pages can be counted and linked to a visit',async()=>{
+test('every maker page, including the message page, can be counted and linked to a visit',async()=>{
   const env=environment(),visitId=crypto.randomUUID();
-  for(const n of [3,8,9,10,11])assert.equal((await campaignApi(post('campaign-event',{event:'step_'+n,visitId}),env)).status,200);
-  assert.equal((await campaignApi(post('campaign-event',{event:'step_12',visitId}),env)).status,400);
+  for(const n of [3,8,9,10,13,11])assert.equal((await campaignApi(post('campaign-event',{event:'step_'+n,visitId}),env)).status,200);
+  assert.equal((await campaignApi(post('campaign-event',{event:'step_14',visitId}),env)).status,400);
   const d=await(await get(env)).json();
   assert.equal(d.journeys[0].furthest,'Delivery page');
   assert.ok(d.journeys[0].steps.includes('step_10'));
