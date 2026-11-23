@@ -116,7 +116,7 @@ function showStep(number){
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
   state.step=number;keepStepFields();
   if(number===2){updatePhotoGate();renderPhotoThumbnails(state.photos);}
-  if(number===11){defaultSendTo();updateSendTo(true);}
+  if(number===11){defaultSendTo();updateSendTo(true);showKnownEmail();}
   if(number===9)configureBrief();
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);const at=order.indexOf(number===4?5:number);item.classList.toggle('active',order.indexOf(n)===at);item.classList.toggle('done',order.indexOf(n)<at);});
@@ -375,6 +375,13 @@ async function inspectPhoto(file){
   return{pass:true,message:faceMessage};
 }
 
+// The email was asked for on the photo page, so the pay page shows it instead of asking again.
+function showKnownEmail(){
+ const known=validPreviewEmail();
+ $('#preview-email-wrap').hidden=known;$('#email-known').hidden=!known;
+ if(known)$('#email-known-addr').textContent=$('#email').value.trim();
+}
+$('#email-change').addEventListener('click',()=>{$('#preview-email-wrap').hidden=false;$('#email-known').hidden=true;$('#email').focus();});
 function validPreviewEmail(){
   const email=$('#email').value.trim();
   return email.length<=254&&/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)&&$('#email').validity.valid;

@@ -1025,3 +1025,9 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 .step[data-step="9"] #personal-details-note{margin-top:8px;font-size:.8rem}
 @media (prefers-reduced-motion:reduce){.step[data-step="9"] .like-chip{transition:none}}
 .step[data-step="9"] h1{margin-bottom:20px}
+.pay-email-known{margin:4px 0 18px;font-size:.92rem;color:var(--muted);overflow-wrap:anywhere}
+.pay-email-known b{color:var(--ink);font-weight:600}
+.email-change{appearance:none;border:0;background:none;padding:10px 4px;margin:-10px 0;font:inherit;font-weight:700;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.app-header .brand{cursor:default}
+/* Message page on short phones: a smaller book so the two boxes show without scrolling. */
+@media (max-height:760px) and (max-width:780px){.gift-book{margin-bottom:12px}.gift-book .pb3{height:calc(var(--ph)*1.5 + 8px)}.pb3.gift-stage[data-zoom="1"] .pb3-book{transform:translateX(-36%) rotateX(7deg) translateX(30%) rotateY(-9deg) translateX(-30%) scale(1.4)}}

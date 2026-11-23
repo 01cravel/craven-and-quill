@@ -12,13 +12,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=about-1">
+  <link rel="stylesheet" href="create.css?v=journey-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
 
   <header class="app-header">
-    <a class="brand" href="index.html"><img src="assets/logo-mark-on-white.png?v=gold-alpha-20261026" width="420" height="401" alt=""><span>Craven &amp; Quill</span></a>
+    <span class="brand"><img src="assets/logo-mark-on-white.png?v=gold-alpha-20261026" width="420" height="401" alt=""><span>Craven &amp; Quill</span></span>
     <nav class="journey" aria-label="Your progress">
       <span class="journey-step active" data-progress="1"><b>1</b><em>Name</em></span>
       <span class="journey-step" data-progress="9"><b>2</b><em>Loves</em></span>
@@ -30,7 +30,6 @@
       <div class="top-face top-front"><div class="progress-mini" aria-hidden="true"><span class="progress-label"><b id="progress-num" hidden>1</b><em id="progress-name">Their name</em></span><span class="progress-bar"><i id="progress-fill"></i></span></div></div>
       <div class="top-face top-back" id="top-timer" role="timer" aria-hidden="true"><span class="timer-label"><span id="top-timer-what">£10 off held for</span><b id="top-timer-time">60:00</b></span><span class="progress-bar timer-bar"><i id="top-timer-fill"></i></span></div>
     </div>
-    <a class="save-note" href="index.html">Exit</a>
   </header>
 
   <main id="maker" class="maker-shell">
@@ -224,6 +223,7 @@
             <p class="privacy-line" id="preview-email-note">We send your receipt and the finished proof here. We keep their book for 7 days and send a few reminders if you don’t finish. Unsubscribe any time.</p>
             <div class="error" id="step-10-error" role="alert"></div>
           </div>
+          <p class="pay-email-known" id="email-known" hidden>Receipt and proof go to <b id="email-known-addr"></b> <button type="button" class="email-change" id="email-change">Change</button></p>
           
           <fieldset class="send-to"><legend>Who should the parcel go to?</legend>
             <label class="send-option"><input type="radio" name="send-to" value="them"><span><b>Straight to <span data-send-name>them</span></b><small>We post it to their address, ready to open.</small></span></label>
@@ -288,6 +288,6 @@
   <script src="preview-progress.js?v=retry-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=about-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=journey-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
 </body>
 </html>
