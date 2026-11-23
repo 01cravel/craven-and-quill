@@ -1,6 +1,6 @@
 import {campaignApi,beginPreview,finishPreview,linkVisit} from './campaign.js';
 import {ordersApi,runFollowups,followupStatus,runArtworkJobs,claimBookSoldAlerts,runMetaPurchaseJobs} from './orders.js';
-import {ownerAuth} from './owner-auth.js';
+import {ownerAuth,ownerSession} from './owner-auth.js';
 import {referenceBrief} from './catalog.js';
 import {analyticsApi,reminderTick} from './analytics.js';
 import {storyApi} from './story.js';
@@ -69,6 +69,7 @@ async function previewPage(request,env){
   const image=result?.data?.[0]?.b64_json;
   if(!response.ok||!image){await release();console.error('Preview page failed',response.status,result?.error?.code||'');return json({error:'This page did not finish. Try again.'},response.status===429?429:502);}
   await env.DB.prepare("UPDATE preview_pages SET status='done' WHERE preview_id=?1 AND page=?2").bind(artKey,page).run().catch(()=>{});
+  await keepPreviewImage(env,previewId,'page'+(page+2),image);
   return json({image:`data:image/jpeg;base64,${image}`,page});
 }
 
@@ -76,7 +77,45 @@ async function previewPage(request,env){
 // Stored under photos/<previewId>/<n>; only the order desk can open them; deleted automatically after PHOTO_KEEP_DAYS.
 const PHOTO_KEEP_DAYS=90;
 async function keepPhotos(env,previewId,photos){if(!env.BOOK_ASSETS||!previewId)return;try{for(let i=0;i<photos.length;i++)await env.BOOK_ASSETS.put(`photos/${previewId}/${i+1}`,await photos[i].arrayBuffer(),{httpMetadata:{contentType:photos[i].type},customMetadata:{kind:'customer-photo'}});}catch(error){console.error('Customer photo not kept',error?.message||error);}}
-async function deleteOldPhotos(env){if(!env.BOOK_ASSETS)return;const cutoff=Date.now()-PHOTO_KEEP_DAYS*86400000;let cursor;do{const page=await env.BOOK_ASSETS.list({prefix:'photos/',cursor,limit:500});const old=page.objects.filter(x=>new Date(x.uploaded).getTime()<cutoff).map(x=>x.key);if(old.length)await env.BOOK_ASSETS.delete(old);cursor=page.truncated?page.cursor:undefined;}while(cursor);}
+async function deleteOldPhotos(env){if(!env.BOOK_ASSETS)return;for(const prefix of ['photos/','drawn/'])await deleteOldUnder(env,prefix);}
+async function deleteOldUnder(env,prefix){const cutoff=Date.now()-PHOTO_KEEP_DAYS*86400000;let cursor;do{const page=await env.BOOK_ASSETS.list({prefix,cursor,limit:500});const old=page.objects.filter(x=>new Date(x.uploaded).getTime()<cutoff).map(x=>x.key);if(old.length)await env.BOOK_ASSETS.delete(old);cursor=page.truncated?page.cursor:undefined;}while(cursor);}
+
+// Keep each free preview's character and painted pages privately, so the owner can check likeness and that the
+// hero stays the same person (an adult never turns into a child) on every page. Same 90-day automatic deletion.
+async function keepPreviewImage(env,previewId,kind,b64){if(!env.BOOK_ASSETS||!previewId)return;try{await env.BOOK_ASSETS.put(`drawn/${previewId}/${kind}`,Uint8Array.from(atob(b64),c=>c.charCodeAt(0)),{httpMetadata:{contentType:'image/jpeg'},customMetadata:{kind:'preview-'+kind}});}catch(error){console.error('Preview drawing not kept',error?.message||error);}}
+const sha256=async value=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))].map(v=>v.toString(16).padStart(2,'0')).join('');
+const PREVIEW_PARTS=['photo1','photo2','photo3','character','page2','page3','page4'];
+function previewKey(id,part,email){
+  if(/^photo[123]$/.test(part))return `photos/${id}/${part.slice(5)}`;
+  return `drawn/${id}/${part}`;
+}
+// Owner-only: recent free previews with the photo, character and first painted pages, newest first.
+async function ownerPreviews(request,env){
+  const url=new URL(request.url);
+  if(!['/api/owner-previews','/api/owner-preview-image'].includes(url.pathname))return null;
+  if(request.method!=='GET')return json({error:'Method not allowed.'},405);
+  if(!await ownerSession(request,env))return json({error:'Sign in to the order dashboard first.'},401);
+  if(!env.DB||!env.BOOK_ASSETS)return json({error:'Unavailable.'},503);
+  if(url.pathname==='/api/owner-preview-image'){
+    const id=url.searchParams.get('id')||'',part=url.searchParams.get('part')||'';
+    if(!/^[0-9a-f-]{36}$/.test(id)||!PREVIEW_PARTS.includes(part))return json({error:'Not found.'},404);
+    let object=await env.BOOK_ASSETS.get(previewKey(id,part));
+    if(!object&&part==='character'){const row=await env.DB.prepare('SELECT email FROM preview_receipts WHERE id=?1').bind(id).first();if(row?.email)object=await env.BOOK_ASSETS.get('followup/'+await sha256(row.email));}
+    if(!object)return json({error:'Not found.'},404);
+    return new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType||'image/jpeg','Cache-Control':'private, max-age=3600','X-Content-Type-Options':'nosniff'}});
+  }
+  const days=Math.min(30,Math.max(1,Number(url.searchParams.get('days'))||7));
+  const since=new Date(Date.now()-days*86400000).toISOString();
+  const rows=(await env.DB.prepare("SELECT id,email,created_at FROM preview_receipts WHERE status='succeeded' AND created_at>=?1 ORDER BY created_at DESC LIMIT 120").bind(since).all()).results||[];
+  const previews=[];
+  for(const row of rows){
+    const parts=[];
+    for(const part of PREVIEW_PARTS)if(await env.BOOK_ASSETS.head(previewKey(row.id,part)))parts.push(part);
+    if(!parts.includes('character')&&row.email&&await env.BOOK_ASSETS.head('followup/'+await sha256(row.email)))parts.push('character');
+    previews.push({id:row.id,email:row.email||'',at:row.created_at,parts});
+  }
+  return json({previews,days});
+}
 async function generateCharacter(request,env){
   if(request.method!=='POST')return json({error:'Use the character form to create a preview.'},405,{Allow:'POST'});
   if(!allowedOrigin(request))return json({error:'Please reload the page and try again.'},403);
@@ -106,6 +145,7 @@ async function generateCharacter(request,env){
   }
   try{await finishPreview(env,previewId,'succeeded');}catch{return json({error:'Your preview could not be saved. Please try again shortly.'},503);}
   await keepPhotos(env,previewId,photos);
+  await keepPreviewImage(env,previewId,'character',image);
   return json({image:`data:image/jpeg;base64,${image}`,requestId,previewId});
 }
 
@@ -193,6 +233,7 @@ export default {async fetch(request,env,ctx){
   const url=new URL(request.url);
   if(url.pathname==='/mcp')return followupMcp(request,env);
   const ownerResponse=await ownerAuth(request,env);if(ownerResponse)return ownerResponse;
+  const previewsResponse=await ownerPreviews(request,env);if(previewsResponse)return previewsResponse;
   const analyticsResponse=await analyticsApi(request,env);if(analyticsResponse)return analyticsResponse;
   const orderResponse=await ordersApi(request,env);if(orderResponse)return orderResponse;
   const storyResponse=await storyApi(request,env);if(storyResponse)return storyResponse;

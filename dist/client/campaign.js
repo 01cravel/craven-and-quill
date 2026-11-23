@@ -172,7 +172,7 @@
     window.gtag('event','conversion',{send_to:sendTo,transaction_id:receipt.eventId,value:receipt.value,currency:'GBP',page_location:cleanPage(),page_referrer:''});
   }
   // Microsoft Clarity: replays of public pages so the owner can see where people get stuck.
-  // Typed text is masked, and photos, characters, stories, emails and addresses are hidden (data-clarity-mask).
+  // Typed text is masked, and uploaded photos, emails and addresses are hidden (data-clarity-mask). Characters and story pages show, so the owner can check them.
   let clarityStarted=false;
   async function startClarity(){
     if(preference!=='ads'||privatePage||infoPage||clarityStarted||!['cravenandquill.com','www.cravenandquill.com'].includes(location.hostname)||attribution.source==='qa'||/^qa(?:[_.-]|$)/.test(attribution.campaign))return;

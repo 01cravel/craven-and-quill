@@ -36,11 +36,11 @@
     <aside class="story-side" aria-live="polite">
       <p class="side-label" id="cover-caption">Your inside gift page</p>
       <div class="gift-page-preview" aria-label="Inside gift page preview"><p>A story just for</p><strong data-gift-name>Someone special</strong><p data-gift-sender hidden></p><p class="gift-message" data-gift-message hidden></p></div>
-      <div class="side-book" id="side-book" data-clarity-mask="true" aria-hidden="true" hidden></div>
-      <div class="mini-cover" id="mini-cover" data-clarity-mask="true" hidden>
+      <div class="side-book" id="side-book" aria-hidden="true" hidden></div>
+      <div class="mini-cover" id="mini-cover" hidden>
         <img id="mini-cover-art" src="assets/storybook.webp" width="900" height="1125" alt="Example book, your cover will be personalised">
         <div class="mini-cover-shade"></div>
-        <div class="mini-cover-copy" data-clarity-mask="true"><span>A STORY FOR</span><strong id="live-name">SOMEONE SPECIAL</strong><em id="live-title">The Map Beneath the Moon</em></div>
+        <div class="mini-cover-copy"><span>A STORY FOR</span><strong id="live-name">SOMEONE SPECIAL</strong><em id="live-title">The Map Beneath the Moon</em></div>
       </div>
       <div class="side-details"><span id="live-age">Your reader</span><span id="live-mood">Adventure</span></div>
       <div class="side-promise"><b>Free preview first</b><span>Meet their character and read their story before choosing a format.</span></div>
@@ -139,7 +139,7 @@
           <div class="step-actions"><button class="back" type="button" data-back="9">Back</button><button class="next" type="button" data-next="2">Continue <span>→</span></button></div>
         </section>
 
-        <section class="step" data-step="4" data-clarity-mask="true" aria-labelledby="step-4-title" hidden>
+        <section class="step" data-step="4" aria-labelledby="step-4-title" hidden>
           <h1 id="step-4-title">Your story.</h1>
           <p class="intro" id="story-choice-intro">We’re drawing the first three pages now. Swipe to read while you wait.</p>
           <p id="story-writing-status" class="story-status" role="status" aria-live="polite"></p>
@@ -166,10 +166,10 @@
           <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" id="generate-story" type="button">Write their story</button><button class="next" id="use-story" type="button" data-next="5" disabled>Done <span>→</span></button></div>
         </section>
 
-        <section class="step preview-step" data-step="5" data-clarity-mask="true" aria-labelledby="step-5-title" hidden>
+        <section class="step preview-step" data-step="5" aria-labelledby="step-5-title" hidden>
           <div id="making-state">
             <h1 id="step-5-title" tabindex="-1" class="sketch-title"><span id="sketch-name">Your star</span> is stepping into the story.</h1>
-            <div class="magic" id="magic" data-stage="study" aria-hidden="true"><div class="magic-frame"><img class="magic-photo" id="magic-photo" alt=""><span class="magic-scan"></span></div><span class="magic-dust"><i style="--x:-6%;--y:18%;--d:0s;--s:1"></i><i style="--x:104%;--y:10%;--d:0.7s;--s:0.8"></i><i style="--x:110%;--y:46%;--d:1.4s;--s:1.1"></i><i style="--x:-10%;--y:58%;--d:2.1s;--s:0.7"></i><i style="--x:96%;--y:84%;--d:0.35s;--s:0.9"></i><i style="--x:4%;--y:96%;--d:1.75s;--s:1"></i><i style="--x:50%;--y:-6%;--d:1.05s;--s:0.75"></i><i style="--x:70%;--y:104%;--d:2.45s;--s:0.85"></i><i style="--x:-4%;--y:36%;--d:2.8s;--s:0.6"></i></span></div>
+            <div class="magic" id="magic" data-clarity-mask="true" data-stage="study" aria-hidden="true"><div class="magic-frame"><img class="magic-photo" id="magic-photo" alt=""><span class="magic-scan"></span></div><span class="magic-dust"><i style="--x:-6%;--y:18%;--d:0s;--s:1"></i><i style="--x:104%;--y:10%;--d:0.7s;--s:0.8"></i><i style="--x:110%;--y:46%;--d:1.4s;--s:1.1"></i><i style="--x:-10%;--y:58%;--d:2.1s;--s:0.7"></i><i style="--x:96%;--y:84%;--d:0.35s;--s:0.9"></i><i style="--x:4%;--y:96%;--d:1.75s;--s:1"></i><i style="--x:50%;--y:-6%;--d:1.05s;--s:0.75"></i><i style="--x:70%;--y:104%;--d:2.45s;--s:0.85"></i><i style="--x:-4%;--y:36%;--d:2.8s;--s:0.6"></i></span></div>
             
             <div class="drawing-progress" id="drawing-progress" data-phase="saving">
               <p id="drawing-stage" class="sketch-stage" role="status">Getting started</p>
@@ -287,7 +287,7 @@
   </main>
 
   <footer><span>Images are used to create your preview and, if you save a book, to prepare its artwork.</span><a href="privacy.html">Privacy</a></footer>
-  <script src="campaign.js?v=11" defer></script>
+  <script src="campaign.js?v=12" defer></script>
   <script src="photo-upload.js?v=23" defer></script>
   <script src="preview-progress.js?v=magic-2" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
