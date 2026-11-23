@@ -1,5 +1,5 @@
-// Homepage hero demo, on a loop: a photo is dragged in, a quill sketches it, watercolour washes in,
-// then it becomes the real hardback, which turns its painted pages, closes and spins round.
+// Homepage hero demo, on a loop: a photo is dragged onto a blank hardback, the cover fills in with
+// their illustrated character, then the book turns its painted pages, closes and spins round.
 // It uses the example book (Oliver), so it is the same for everyone. Without JavaScript, or with
 // reduced motion, the still photo of the finished book stays in place.
 (()=>{
@@ -16,46 +16,21 @@
 
  // ---- Pieces on the stage ----
  const demo=el('div','demo');demo.setAttribute('aria-hidden','true');
- const drop=el('div','demo-drop');drop.append(el('span',null,'Drop a photo'));
- const frame=el('div','demo-frame'),photo=el('img','demo-photo'),sketchC=el('canvas','demo-sketch'),paintC=el('canvas','demo-paint');
- photo.src=PHOTO;photo.alt='';sketchC.width=paintC.width=240;sketchC.height=paintC.height=300;
- frame.append(photo,sketchC,paintC,el('span','demo-scan'));
- const quill=el('span','demo-quill');quill.innerHTML='<span><svg viewBox="0 0 48 48"><path class="q-vane" d="M44 3C30 6 17 16 10 33l5 1C22 21 32 11 44 3z"/><path class="q-shaft" d="M44 3 6 42"/><path class="q-nib" d="M9 37 4 45l8-5z"/></svg></span>';
- frame.append(quill);
+ const card=el('div','demo-card'),photo=el('img','demo-photo');photo.src=PHOTO;photo.alt='';card.append(photo);
  const hand=el('span','demo-hand');hand.innerHTML='<svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-1.5a1.5 1.5 0 0 1 3 0V10m0-.5a1.5 1.5 0 0 1 3 0V14c0 3.9-2.6 7-6.3 7-2.4 0-3.9-1-5.2-2.8L4 14.6a1.6 1.6 0 0 1 2.5-2L9 15"/></svg>';
+ card.append(hand);
  const dust=el('span','demo-dust');[[8,22,0],[90,14,.6],[95,52,1.3],[5,64,2],[84,86,.3],[14,90,1.7],[50,6,1],[66,94,2.4]].forEach(([x,y,d])=>{const i=el('i');i.style.cssText=`left:${x}%;top:${y}%;animation-delay:${d}s`;dust.append(i);});
+ const flash=el('span','demo-flash');
  const bookHost=el('div','demo-book');
- const caption=el('p','stage-caption demo-cap','One photo');
- const card=el('div','demo-card');card.append(frame,hand);
- demo.append(drop,dust,card,bookHost,caption);
+ const caption=el('p','stage-caption demo-cap','');
+ demo.append(dust,bookHost,flash,card,caption);
  stage.append(demo);
-
- // ---- Pencil and watercolour versions of the photo, made in the browser ----
- const paintPhoto=()=>{
-  const W=240,H=300,src=el('canvas');src.width=W;src.height=H;
-  const sx=src.getContext('2d',{willReadFrequently:true}),r=Math.max(W/photo.naturalWidth,H/photo.naturalHeight);
-  const dw=photo.naturalWidth*r,dh=photo.naturalHeight*r;sx.drawImage(photo,(W-dw)/2,(H-dh)/2.6,dw,dh);
-  const d=sx.getImageData(0,0,W,H).data,L=new Float32Array(W*H);
-  for(let i=0;i<W*H;i++)L[i]=.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2];
-  const at=(x,y)=>L[Math.min(H-1,Math.max(0,y))*W+Math.min(W-1,Math.max(0,x))];
-  const sk=sketchC.getContext('2d').createImageData(W,H),pt=paintC.getContext('2d').createImageData(W,H);
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-   const gx=-at(x-1,y-1)-2*at(x-1,y)-at(x-1,y+1)+at(x+1,y-1)+2*at(x+1,y)+at(x+1,y+1);
-   const gy=-at(x-1,y-1)-2*at(x,y-1)-at(x+1,y-1)+at(x-1,y+1)+2*at(x,y+1)+at(x+1,y+1);
-   const i=y*W+x,o=i*4,e=Math.min(1,Math.hypot(gx,gy)/260),v=Math.max(0,Math.min(1,.78+L[i]/255*.26)-e*1.25);
-   sk.data[o]=247*v;sk.data[o+1]=241*v;sk.data[o+2]=229*v;sk.data[o+3]=255;
-   let rr=0,gg=0,bb=0,n=0;for(let dy=-2;dy<=2;dy+=2)for(let dx=-2;dx<=2;dx+=2){const p=(Math.min(H-1,Math.max(0,y+dy))*W+Math.min(W-1,Math.max(0,x+dx)))*4;rr+=d[p];gg+=d[p+1];bb+=d[p+2];n++;}
-   rr/=n;gg/=n;bb/=n;const g=(rr+gg+bb)/3;rr=g+(rr-g)*1.25;gg=g+(gg-g)*1.25;bb=g+(bb-g)*1.25;
-   const q=c=>Math.round(Math.min(255,Math.max(0,c))/34)*34,ink=1-e*.6;
-   pt.data[o]=(q(rr)*.8+247*.2)*ink;pt.data[o+1]=(q(gg)*.8+241*.2)*ink;pt.data[o+2]=(q(bb)*.8+229*.2)*ink;pt.data[o+3]=255;
-  }
-  sketchC.getContext('2d').putImageData(sk,0,0);paintC.getContext('2d').putImageData(pt,0,0);
- };
 
  // ---- The hardback: same build as the book on the maker's price page ----
  const GAP=1.5,BLOCK=8;
  const buildBook=()=>{
   const cover=el('div','pb3-cover'),art=el('img');art.src=COVER;art.alt='';art.draggable=false;cover.append(art);
+  const blank=el('div','demo-blank');blank.append(el('span',null,'Drop a photo'));cover.append(blank);
   const copy=el('div','pbook-cover-copy');copy.append(el('p',null,'A personalised story for Oliver'),el('h3',null,TITLE));cover.append(copy);
   const rights=[cover],lefts=[];
   PAGES.forEach(([src,text],i)=>{
@@ -102,18 +77,15 @@
  const ready=new Promise(done=>{if(photo.complete&&photo.naturalWidth)done();else{photo.onload=done;photo.onerror=done;}});
  (async()=>{
   await ready;
-  try{paintPhoto();}catch{demo.classList.add('no-paint');}
   stage.classList.add('demo-on');
   for(;;){
    await holdWhileHidden();
    book?.remove();book=buildBook();book.classList.add('instant');bookHost.replaceChildren(book);sizeBook();layout(book,0);
-   scene('empty','One photo');await wait(900);
-   scene('drag');await wait(1700);
-   scene('dropped');await wait(700);
-   scene('scan','A little magic');await wait(2600);
-   scene('sketch');await wait(5200);
-   scene('paint');await wait(4600);
-   scene('book','Their hardback, made from it');book.classList.remove('instant');await wait(1400);
+   requestAnimationFrame(()=>requestAnimationFrame(()=>book.classList.remove('instant')));
+   demo.classList.remove('revealed');
+   scene('empty','One photo');await wait(1000);
+   scene('drag');await wait(1800);
+   scene('dropped','Their hardback, made from it');demo.classList.add('revealed');await wait(2600);
    for(let p=1;p<=PAGES.length;p++){await holdWhileHidden();layout(book,p);await wait(3000);}
    layout(book,0);await wait(1500);
    book.classList.add('twirl');
