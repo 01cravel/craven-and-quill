@@ -1052,3 +1052,55 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 .top-back,body.hold-on .top-front{visibility:hidden}
 body.hold-on .top-back{visibility:visible}
 @media(prefers-reduced-motion:reduce){.top-face{transition:none}}
+/* Magic easel while the character is drawn: their photo is studied, sketched in pencil, washed in watercolour, then gilded. */
+#making-state .sketch-title{max-width:15ch}
+.magic{--gold:#c49a45;position:relative;width:min(224px,58vw);aspect-ratio:4/5;margin:26px auto 0}
+.magic-frame{position:absolute;inset:0;padding:9px;background:#fffdf7;border-radius:5px;transform:rotate(-1.6deg);box-shadow:0 0 0 1px #eadfc9,0 22px 44px -22px #17332c66,0 6px 14px -8px #17332c40;overflow:hidden;transition:box-shadow 1.2s ease}
+.magic-frame>img,.magic-frame>canvas,.magic-scan{position:absolute;left:9px;top:9px;width:calc(100% - 18px);height:calc(100% - 18px);border-radius:2px}
+.magic-photo{object-fit:cover;object-position:50% 30%;transition:opacity 1.4s ease,filter 4s ease}
+.magic[data-stage="study"] .magic-photo{filter:saturate(.85) brightness(1.04)}
+.magic:not([data-stage="study"]) .magic-photo{opacity:0}
+.magic-sketch{clip-path:inset(0 0 100% 0);transition:clip-path 11.5s linear}
+.magic:is([data-stage="sketch"],[data-stage="paint"],[data-stage="gild"],[data-stage="paused"]) .magic-sketch{clip-path:inset(0 0 0 0)}
+.magic-paint{-webkit-mask-image:radial-gradient(circle,#000 42%,transparent 70%);mask-image:radial-gradient(circle,#000 42%,transparent 70%);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:50% 40%;mask-position:50% 40%;-webkit-mask-size:0% 0%;mask-size:0% 0%;transition:-webkit-mask-size 13s cubic-bezier(.3,.1,.3,1),mask-size 13s cubic-bezier(.3,.1,.3,1)}
+.magic:is([data-stage="paint"],[data-stage="gild"]) .magic-paint{-webkit-mask-size:280% 280%;mask-size:280% 280%}
+.magic-scan{height:30%;background:linear-gradient(180deg,transparent,#f4dc9a40 55%,#fff6d8b0 90%,transparent);mix-blend-mode:screen;opacity:0;transition:opacity .6s}
+.magic[data-stage="study"] .magic-scan{opacity:1;animation:magic-scan 2.4s ease-in-out infinite}
+@keyframes magic-scan{0%{transform:translateY(-100%)}100%{transform:translateY(330%)}}
+/* The quill rides the edge of the pencil drawing as it moves down the page. */
+.magic-quill{position:absolute;left:9px;right:9px;top:9px;height:0;opacity:0;pointer-events:none;transition:opacity .5s}
+.magic-quill>span{position:absolute;left:0;top:-38px;width:44px;height:44px}
+.magic-quill svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 3px 3px #17332c40)}
+.magic-quill .q-vane{fill:#fffdf7;stroke:#17332c;stroke-width:1.4;stroke-linejoin:round}
+.magic-quill .q-shaft{stroke:#17332c;stroke-width:1.4}
+.magic-quill .q-nib{fill:var(--gold);stroke:#17332c;stroke-width:1;stroke-linejoin:round}
+.magic[data-stage="sketch"] .magic-quill{opacity:1;animation:magic-down 11.5s linear forwards}
+.magic[data-stage="sketch"] .magic-quill>span{animation:magic-across 1.15s ease-in-out infinite alternate}
+@keyframes magic-down{from{transform:translateY(0)}to{transform:translateY(calc(var(--h,272px)))}}
+@keyframes magic-across{from{transform:translateX(6px) rotate(-6deg)}to{transform:translateX(calc(min(224px,58vw) - 64px)) rotate(4deg)}}
+.magic{--h:calc(min(224px,58vw)*1.25 - 18px)}
+/* Gold dust once the paint goes on. */
+.magic-dust i{position:absolute;left:var(--x);top:var(--y);width:calc(14px*var(--s));height:calc(14px*var(--s));margin:-7px 0 0 -7px;background:var(--gold);opacity:0;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0c.8 6.4 5.6 11.2 12 12-6.4.8-11.2 5.6-12 12-.8-6.4-5.6-11.2-12-12C6.4 11.2 11.2 6.4 12 0z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0c.8 6.4 5.6 11.2 12 12-6.4.8-11.2 5.6-12 12-.8-6.4-5.6-11.2-12-12C6.4 11.2 11.2 6.4 12 0z'/%3E%3C/svg%3E") center/contain no-repeat}
+.magic:is([data-stage="paint"],[data-stage="gild"]) .magic-dust i{animation:magic-twinkle 3s ease-in-out var(--d) infinite}
+@keyframes magic-twinkle{0%,100%{opacity:0;transform:scale(.4) rotate(0)}45%{opacity:1;transform:scale(1) rotate(45deg)}70%{opacity:.5;transform:scale(.8) translateY(-6px) rotate(70deg)}}
+.magic[data-stage="gild"] .magic-frame{box-shadow:0 0 0 1px #e2c98f,0 0 0 5px #f6ead0,0 22px 44px -22px #17332c66,0 0 38px -6px #e7c77c99}
+.magic.no-photo .magic-frame>img,.magic.no-photo canvas,.magic.no-photo .magic-scan{display:none}
+.magic.no-photo .magic-frame{background:radial-gradient(circle at 50% 42%,#fbf1da,#fffdf7 70%)}
+.magic.no-photo .magic-dust i{animation:magic-twinkle 3s ease-in-out var(--d) infinite}
+.magic[data-stage="paused"] *{animation-play-state:paused!important}
+.magic[data-stage="paused"] .magic-quill,.magic[data-stage="paused"] .magic-dust{opacity:0}
+.magic.calm *{transition:none!important;animation:none!important}
+.magic.calm .magic-sketch{clip-path:none}
+.magic.calm .magic-paint{-webkit-mask-size:280% 280%;mask-size:280% 280%}
+.magic.calm .magic-photo,.magic.calm .magic-scan,.magic.calm .magic-quill{opacity:0}
+#making-state .drawing-progress{margin-top:22px}
+@media (max-height:700px){.magic{width:min(184px,50vw)}}
+/* Book page: sizes only, prices come at checkout. */
+.step[data-step="5"] .size-options .product strong,.step[data-step="5"] .size-options .offer-label{display:none!important}
+/* Checkout: full price struck through, the held price, and the countdown. */
+#order-was{color:var(--muted);font-weight:400;margin-right:4px}
+.order-offer{margin:10px 0 0;padding:8px 12px;border-radius:10px;background:#fff4d6;color:var(--ink);font-size:.88rem;font-weight:600;text-align:center;font-variant-numeric:tabular-nums}
+.order-offer b{font-weight:800}
+.order-line>span:last-child{white-space:nowrap}
+.order-offer span,.order-offer b{display:inline}
+.order-line>span:last-child{display:inline-flex;align-items:baseline;justify-content:flex-end;gap:6px}

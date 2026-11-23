@@ -81,7 +81,7 @@ function toggleLike(like){
 
 function updateLive(){
   updateGiftPage();
-  state.names=$('#names').value.trim();
+  state.names=niceName($('#names').value.trim());
   state.secondName=$('#second-person').hidden?'':$('#second-name').value.trim();
   state.age=($('input[name="age"]:checked')||{}).value||'';
   syncLikes();
@@ -107,6 +107,8 @@ function scrollToStepTop(number){
   resetScroll();requestAnimationFrame(resetScroll);
 }
 
+// Names typed in lower case ("luke craven") show and print as "Luke Craven". Capitals already typed are kept.
+function niceName(v){return v.replace(/(^|[\s\-'’])(\p{Ll})/gu,(m,a,b)=>a+b.toUpperCase());}
 function showStep(number){
   const order=[1,9,2,5,13,11];
   number={8:1,3:9,12:9,6:5,7:11,10:5}[number]||number;
@@ -547,7 +549,7 @@ async function preparePreview(){
   $('#result-story-title').textContent=idea[0];$('#live-title').textContent=idea[0];
   $('#story-copy').textContent=previewText(idea);$('#preview-image').src='assets/storybook.webp';$('#preview-image').alt=`Sample opening illustration format for ${idea[0]}`;
   $('#preview-image-second').hidden=true;$('#preview-art').classList.remove('two-people');
-  $('#generation-error').hidden=true;$('#blocked-actions').hidden=true;$('#retry-generation').hidden=false;drawingProgress=window.cqPreviewProgress.start();updateReveal();
+  $('#generation-error').hidden=true;$('#blocked-actions').hidden=true;$('#retry-generation').hidden=false;drawingProgress=window.cqPreviewProgress.start(photoUrls[0]);updateReveal();
   try{
     await renderStoryArt();
     await Promise.all([$('#preview-image'),...(state.characterImages[1]?[$('#preview-image-second')]:[])].map(image=>image.decode()));
@@ -702,6 +704,8 @@ function tickHold(){
   const showing=!over&&!!chosen&&(state.step===5||state.step===11);
   document.body.classList.toggle('hold-on',showing);$('#top-timer').setAttribute('aria-hidden',String(!showing));
   if(chosen&&!over){$('#top-timer-what').textContent=`${money(chosen.regularPricePence-chosen.pricePence).replace('.00','')} off held for`;$('#top-timer-time').textContent=time;$('#top-timer-fill').style.width=`${Math.min(100,left/36)}%`;}
+  const offer=!!chosen&&!over;$('#order-offer').hidden=!offer;$('#order-was').hidden=!offer;
+  if(offer){$('#order-was').textContent=money(chosen.regularPricePence);$('#order-offer-what').textContent=`${money(chosen.regularPricePence-chosen.pricePence).replace('.00','')} off`;$('#order-offer-time').textContent=time;}
   clocks.forEach(el=>{el.hidden=!over||!chosen;el.classList.add('over');if(over&&chosen)el.textContent=`The offer has ended. The price is now ${money(chosen.regularPricePence)}.`;});
   const shown=`${holdFor}:${over}`;if(shown!==holdShown){holdShown=shown;updateProduct();}
 }
