@@ -820,6 +820,12 @@ function renderPreviewBook(){
  }
  const book=make('div','pb3-book');
  book.append(make('div','pb3-shadow'),make('div','pb3-back'),make('div','pb3-edge pb3-back-edge'),make('div','pb3-edge pb3-fore'),make('div','pb3-edge pb3-tail'),make('div','pb3-ribbon'));
+ // Spine and back cover, seen when the book twirls round.
+ const spine=make('div','pb3-spine');spine.append(make('span',null,title||`${who}’s story`));
+ const backCover=make('div','pb3-backcover');
+ if(pictures[0]){const img=make('img');img.src=pictures[0];img.alt='';img.draggable=false;backCover.append(img);}
+ backCover.append(make('span',null,'Craven & Quill'));
+ book.append(spine,backCover);
  rights.forEach((right,i)=>{
   const leaf=make('div','pb3-leaf'+(i===0?' pb3-hard':''));
   const front=make('div','pb3-face pb3-front');front.append(right);
@@ -834,17 +840,31 @@ function renderPreviewBook(){
  sizePreviewBook();turnPreviewBook(previewBookPage,'instant');
  startAutoFlip();
 }
-// The book turns its own pages every few seconds until the shopper touches it.
-let autoFlip=null,autoFlipStopped=false;
+// Until the shopper touches it, the book shows itself off: it turns through the painted pages,
+// closes, then twirls round once so they see the spine and back cover, and starts again.
+let autoFlip=null,autoFlipStopped=false,autoShowRunning=false;
+const PB_PAGE_MS=3800,PB_TWIRL_MS=6000;
 function startAutoFlip(){
- if(autoFlip||autoFlipStopped||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
- autoFlip=setInterval(()=>{
-  if(state.step!==5||document.visibilityState!=='visible')return;
-  const total=$$('#pbook-track .pb3-leaf').length;if(total<2)return;
-  turnPreviewBook(previewBookPage+1>=total?0:previewBookPage+1);
- },3800);
+ if(autoShowRunning||autoFlipStopped||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ autoShowRunning=true;runAutoShow();
 }
-function stopAutoFlip(){autoFlipStopped=true;clearInterval(autoFlip);autoFlip=null;}
+async function runAutoShow(){
+ const wait=ms=>new Promise(done=>{autoFlip=setTimeout(done,ms);});
+ const ready=()=>!autoFlipStopped&&state.step===5&&document.visibilityState==='visible'&&$$('#pbook-track .pb3-leaf').length>1;
+ while(!autoFlipStopped){
+  await wait(3000);
+  if(!ready())continue;
+  const last=Math.min(3,state.storyDraft?.spreads?.length||0,$$('#pbook-track .pb3-leaf').length-1);
+  for(let page=previewBookPage+1;page<=last;page++){if(!ready())break;turnPreviewBook(page);await wait(PB_PAGE_MS);}
+  if(!ready())continue;
+  turnPreviewBook(0);await wait(1600);
+  if(!ready())continue;
+  $('#pbook-track .pb3').classList.add('twirl');
+  await wait(PB_TWIRL_MS);
+  $('#pbook-track .pb3')?.classList.remove('twirl');
+ }
+}
+function stopAutoFlip(){autoFlipStopped=true;clearTimeout(autoFlip);autoFlip=null;$('#pbook-track .pb3')?.classList.remove('twirl');}
 ['pointerdown','touchstart','wheel','keydown'].forEach(type=>$('#preview-book').addEventListener(type,stopAutoFlip,{passive:true}));
 function updatePreviewBook(index){
  const leaves=$$('#pbook-track .pb3-leaf');if(!leaves.length)return;
