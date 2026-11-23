@@ -1041,3 +1041,9 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 .step[data-step="11"][data-stage="where"] :is(.pay-who,#to-address,.back[data-back]){display:none!important}
 .step[data-step="11"] #preview-email-note{margin-top:14px}
 .step[data-step="11"] #recipient-name-label{display:block;font-weight:700;font-size:.95rem;color:var(--ink);margin:0 0 8px}
+/* Proof line: gold stars, the rating, a hairline, the sales figure. One quiet line. */
+.proof{display:flex;align-items:center;gap:8px;margin:12px 0 16px;font-size:.84rem;line-height:1;color:var(--muted);white-space:nowrap}
+.proof b{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.proof-stars{flex:none;width:70px;height:13px;background:#b8893b;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.6l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z'/%3E%3C/svg%3E") 0 50%/14px 13px repeat-x;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.6l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z'/%3E%3C/svg%3E") 0 50%/14px 13px repeat-x}
+.proof-rule{flex:none;width:1px;height:14px;margin:0 4px;background:currentColor;opacity:.35}
+.page-preview-heading .proof{margin:10px 0 0}

@@ -394,7 +394,7 @@ async function inspectPhoto(file){
 // The email was asked for on the photo page, so the pay page shows it instead of asking again.
 function showKnownEmail(){
  const known=validPreviewEmail();
- $('#preview-email-wrap').hidden=known;$('#email-known').hidden=!known;
+ $('#preview-email-wrap').hidden=known;$('#email-known').hidden=true;
  if(known)$('#email-known-addr').textContent=$('#email').value.trim();
 }
 $('#email-change').addEventListener('click',()=>{$('#preview-email-wrap').hidden=false;$('#email-known').hidden=true;$('#email').focus();});
