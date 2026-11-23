@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=hardback-4">
+  <link rel="stylesheet" href="create.css?v=gift-2">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -128,7 +128,6 @@
 
             </div>
           </fieldset>
-<details class="optional-detail gift-message-field"><summary>Add who it’s from and a message <span>Optional</span></summary><label for="sender-name">Who is it from?</label><input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad"><label for="dedication">Your message inside the book</label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea></details>
           <div class="error" id="step-9-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" type="button" data-next="2">Continue <span>→</span></button></div></section>
         <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
           <p class="eyebrow">Story direction</p>
@@ -207,12 +206,18 @@
               <div id="locked-dots" hidden></div>
             </section>
 <div class="error" id="step-5-error" role="alert"></div>
-            <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="choose-book" type="button" data-next="11" disabled>Order the hardback</button></div>
+            <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="choose-book" type="button" data-next="13" disabled>Order the hardback</button></div>
           </div>
         </section>
 
         
 
+<section class="step gift-step" data-step="13" data-clarity-mask="true" aria-labelledby="step-13-title" hidden><h1 id="step-13-title">Add a message inside</h1>
+          <p class="intro">It goes on the first page, the moment they open the cover.</p>
+          <div class="gift-book" id="gift-book" aria-hidden="true"></div>
+          <label for="sender-name">Who is it from? <span>Optional</span></label><input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad">
+          <label for="dedication">Your message <span>Optional</span></label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea>
+          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" type="button" data-next="11">Continue <span>→</span></button></div></section>
 <section class="step" data-step="11" data-clarity-mask="true" aria-labelledby="step-11-title" hidden><h1 id="step-11-title">Where should it go?</h1>
           <p class="intro">You see the whole book first. Once you approve it, we print and post it, usually within 7–12 working days. UK postage is £3.99.</p>
           <div id="preview-email-wrap" class="pay-email">
@@ -266,7 +271,7 @@
               
             </div>
           </div>
-          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next checkout-button" id="join-launch" type="button"><span class="cta-text">Pay securely</span> <span class="cta-price" data-cta-price>£29.99</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="13">Back</button><button class="next checkout-button" id="join-launch" type="button"><span class="cta-text">Pay securely</span> <span class="cta-price" data-cta-price>£29.99</span></button></div>
           <div hidden><span id="review-art"></span><span id="review-text"></span><span id="review-folio"></span><span id="review-pos"></span><button id="review-prev" type="button"></button><button id="review-next" type="button"></button><span id="review-spread"></span><span id="review-chapter"></span><span class="review-art-page"></span><span class="art-badge"></span><span id="delivery-summary"></span><button id="open-examples" type="button"></button></div>
         </section>
         <dialog class="examples-dialog" id="examples-dialog" aria-labelledby="examples-title">
@@ -285,6 +290,6 @@
   <script src="preview-progress.js?v=retry-1" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=hardback-4" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=gift-2" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
 </body>
 </html>

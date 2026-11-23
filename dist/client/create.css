@@ -982,3 +982,25 @@ body.hold-on .app-header>.save-note{background:#2a2a2a;color:#fff}
 .pb3.twirl .pb3-shadow{opacity:0}
 @keyframes pb3-twirl{from{transform:translateX(-29%) rotateX(9deg) translateX(30%) rotateY(-23deg) translateX(-30%) scale(1.2)}to{transform:translateX(-29%) rotateX(9deg) translateX(30%) rotateY(-383deg) translateX(-30%) scale(1.2)}}
 @media (prefers-reduced-motion:reduce){.pb3.twirl .pb3-book{animation:none}}
+/* Message page: the book opens to its first page, then leans in so their words can be read.
+   Text is a little larger than print (about 1.4x) because the page is shown small on a phone. */
+.gift-book{position:relative;overflow:hidden;margin:6px 0 20px;border-radius:22px;background:radial-gradient(80% 70% at 50% 38%,#fdfbf6 0%,#f1ece2 62%,#e4ddcf 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 0 0 1px rgba(23,51,44,.06)}
+.gift-book::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(60% 50% at 30% 18%,rgba(255,244,214,.35),rgba(255,244,214,0) 70%);mix-blend-mode:soft-light}
+.gift-book .pb3{height:calc(var(--ph)*1.68 + 16px)}
+.pb3.gift-stage[data-zoom="1"] .pb3-book{transform:translateX(-42%) rotateX(7deg) translateX(30%) rotateY(-9deg) translateX(-30%) scale(1.55)}
+.gift-stage .pb3-shadow{background:rgba(40,30,15,.42);filter:blur(16px)}
+.pb3-gift{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--pw)*.028);padding:12% 11.4%;text-align:center;background:radial-gradient(120% 85% at 38% 22%,#fffdf7 0%,#fbf5e8 60%,#f3ead6 100%);font-family:Story,Georgia,serif;color:#173f35}
+.pb3-gift p{margin:0}
+.pb3-gift-title{margin-bottom:calc(var(--pw)*.07)!important;font-size:calc(var(--pw)*.07);line-height:1.2;text-wrap:balance}
+.pb3-gift-for{font-size:calc(var(--pw)*.042)}
+.pb3-gift-name{font-weight:400;font-size:calc(var(--pw)*.076);line-height:1.15;text-wrap:balance}
+.pb3-gift-from,.pb3-gift-message{font-size:calc(var(--pw)*.042);line-height:1.45;overflow-wrap:anywhere;white-space:pre-line;transition:opacity .3s}
+.pb3-gift .ghost{opacity:.35;font-style:italic}
+.pb3-endpaper{background:#fffaf0}
+.gift-step label{display:block;margin-top:12px}
+.gift-step textarea{resize:vertical}
+/* The page shows a blinking pen point where they are typing. */
+.pb3-caret{display:inline-block;width:1px;height:1.05em;margin-left:1px;vertical-align:-.15em;background:#173f35;animation:pb3-caret 1s steps(1) infinite}
+@keyframes pb3-caret{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.pb3-caret{animation:none}}
+.pb3-endpaper{background:radial-gradient(120% 85% at 70% 22%,#fffdf7 0%,#fbf5e8 60%,#f1e7d1 100%)}

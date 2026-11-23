@@ -3,7 +3,7 @@ const pageJobs=new Set();
 const pageArtKey=()=>'reference-1:'+state.previewId;
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
-const track=(event,data={})=>{const names={story_maker_open:'maker_start',free_preview_created:'preview_success',free_preview_failed:'preview_error'};const allowed=['maker_start','photo_open','photo_picked','photo_passed','photo_failed','story_generated','story_edited','checkout_start','checkout_error','book_saved'];const value=names[event]||(event==='story_step_view'?'step_'+data.step:event==='photos_checked'?(data.passed?'photo_passed':'photo_failed'):event);if(allowed.includes(value)||/^step_(?:[1-9]|10|11)$/.test(value)||names[event])window.cqMeasurement?.record(value);};
+const track=(event,data={})=>{const names={story_maker_open:'maker_start',free_preview_created:'preview_success',free_preview_failed:'preview_error'};const allowed=['maker_start','photo_open','photo_picked','photo_passed','photo_failed','story_generated','story_edited','checkout_start','checkout_error','book_saved'];const value=names[event]||(event==='story_step_view'?'step_'+data.step:event==='photos_checked'?(data.passed?'photo_passed':'photo_failed'):event);if(allowed.includes(value)||/^step_(?:[1-9]|1[0-3])$/.test(value)||names[event])window.cqMeasurement?.record(value);};
 track('story_maker_open',{offer:'one_page_free'});
 // First-screen behaviour: how long the name page is on screen (visible time only), whether
 // they typed a name, whether they pressed start, and any script error on the page. Tells a
@@ -106,7 +106,7 @@ function scrollToStepTop(number){
 }
 
 function showStep(number){
-  const order=[1,9,2,5,11];
+  const order=[1,9,2,5,13,11];
   number={8:1,3:9,12:9,6:5,7:11,10:5}[number]||number;
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
@@ -118,7 +118,7 @@ function showStep(number){
   if(number===9)configureBrief();
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);const at=order.indexOf(number===4?5:number);item.classList.toggle('active',order.indexOf(n)===at);item.classList.toggle('done',order.indexOf(n)<at);});
-  const names={1:'Their age',2:'Their photo',9:'About them',4:'Their story',5:'Their book',11:'Delivery & pay'};
+  const names={1:'Their age',2:'Their photo',9:'About them',4:'Their story',5:'Their book',13:'Your message',11:'Delivery & pay'};
   const visibleStep=order.indexOf(number===4?5:number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
   $('.journey').setAttribute('aria-label',`Step ${visibleStep} of ${order.length}: ${names[number]}`);
   if(number===11)queueMicrotask(()=>void prepareAddressStep());
@@ -126,6 +126,7 @@ function showStep(number){
   if(number===4&&state.storyDraft)requestAnimationFrame(()=>turnStoryPage(state.storyPage,'instant'));
   if(number===5||number===11)void refreshHold();else document.body.classList.remove('hold-on');
   if(number===5){ensurePreview();updateReveal();updateXmas();if(state.characterImages[0]){renderPreviewBook();startAutoFlip();}}
+  if(number===13)renderGiftBook();
   if([4,5,11].includes(number))void drawPages();
   scrollToStepTop(number);
   if(number===5)requestAnimationFrame(observeBookPrice);
@@ -342,8 +343,8 @@ stepFields.forEach(field=>field.addEventListener('input',event=>{
 }));
 keepStepFields();
 $('#names').addEventListener('input',updateLive);
-$('#sender-name').addEventListener('input',updateGiftPage);
-$('#dedication').addEventListener('input',updateGiftPage);
+$('#sender-name').addEventListener('input',()=>{updateGiftPage();updateGiftBook();});
+$('#dedication').addEventListener('input',()=>{updateGiftPage();updateGiftBook();});
 $('#second-name').addEventListener('input',updateLive);
 $$('input[name="age"]').forEach(input=>input.addEventListener('change',updateLive));
 $('#like-chips').addEventListener('click',event=>{const chip=event.target.closest('.like-chip');if(chip)toggleLike(chip.dataset.like);});
@@ -782,19 +783,57 @@ let previewBookPage=0;
 // turns the painted pages. Leaves are stacked a little apart so the book has real thickness.
 const PB_GAP=1.5,PB_BLOCK=8;
 function sizePreviewBook(){const t=$('#pbook-track');if(t&&t.clientWidth)t.style.setProperty('--pw',Math.round(Math.min(t.clientWidth*.46,236))+'px');}
+function pbEl(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!=null)el.textContent=text;return el;}
+function bookCoverFace(){
+ const title=state.storyDraft?.title||'';
+ const cover=pbEl('div','pb3-cover');cover.setAttribute('aria-label','Front cover');
+ state.characterImages.filter(Boolean).forEach((src,i)=>{const img=pbEl('img');img.src=src;img.alt=i?`${state.secondName} as a character`:`${state.names} as a character`;img.draggable=false;cover.append(img);});
+ const copy=pbEl('div','pbook-cover-copy');copy.append(pbEl('p',null,`A personalised story for ${fullNames()||state.names||'them'}`));if(title)copy.append(pbEl('h3',null,title));
+ cover.append(copy);return cover;
+}
+// rights[i] is the right-hand page when i leaves have been turned; lefts[i] is printed on the back of leaf i.
+function buildBook3d(rights,lefts){
+ const title=state.storyDraft?.title||'',picture=state.characterImages.find(Boolean);
+ const book=pbEl('div','pb3-book');
+ book.append(pbEl('div','pb3-shadow'),pbEl('div','pb3-back'),pbEl('div','pb3-edge pb3-back-edge'),pbEl('div','pb3-edge pb3-fore'),pbEl('div','pb3-edge pb3-tail'),pbEl('div','pb3-ribbon'));
+ // Spine and back cover, seen when the book twirls round.
+ const spine=pbEl('div','pb3-spine');spine.append(pbEl('span',null,title||`${state.names||'Their'}’s story`));
+ const backCover=pbEl('div','pb3-backcover');
+ if(picture){const img=pbEl('img');img.src=picture;img.alt='';img.draggable=false;backCover.append(img);}
+ backCover.append(pbEl('span',null,'Craven & Quill'));
+ book.append(spine,backCover);
+ rights.forEach((right,i)=>{
+  const leaf=pbEl('div','pb3-leaf'+(i===0?' pb3-hard':''));
+  const front=pbEl('div','pb3-face pb3-front');front.append(right);
+  const rear=pbEl('div','pb3-face pb3-rear');if(lefts[i])rear.append(lefts[i]);
+  leaf.append(front,rear);
+  if(i===0)leaf.append(pbEl('div','pb3-board-edge'),pbEl('div','pb3-board-tail'));
+  book.append(leaf);
+ });
+ const stage=pbEl('div','pb3');stage.append(book);return stage;
+}
+function layoutBook3d(stage,page){
+ const leaves=[...stage.querySelectorAll('.pb3-leaf')],n=leaves.length;
+ stage.dataset.open=page?'1':'0';
+ stage.style.setProperty('--depth',(PB_BLOCK+(n-page)*PB_GAP)+'px');
+ leaves.forEach((leaf,i)=>{
+  const turned=i<page;
+  // A page catches the light as it lifts, then settles: shade it only while it is moving.
+  if(leaf.dataset.turned!==undefined&&leaf.dataset.turned!==String(turned)&&!stage.classList.contains('instant')){
+   leaf.classList.remove('turning');void leaf.offsetWidth;leaf.classList.add('turning');
+   clearTimeout(leaf._turnTimer);leaf._turnTimer=setTimeout(()=>leaf.classList.remove('turning'),1400);
+  }
+  leaf.dataset.turned=String(turned);
+  leaf.style.transform=turned?`translateZ(${(i+1)*PB_GAP}px) rotateY(-180deg)`:`translateZ(${PB_BLOCK+(n-i)*PB_GAP}px) rotateY(0deg)`;
+ });
+}
 function renderPreviewBook(){
  const track=$('#pbook-track');if(!track)return;
- const make=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!=null)el.textContent=text;return el;};
+ const make=pbEl;
  const title=state.storyDraft?.title||'';
  const spreads=state.storyDraft?.spreads||[];
  const who=state.names||'them';
- // rights[i] is the right-hand page when i leaves have been turned; lefts[i] is printed on the back of leaf i.
- const rights=[],lefts=[];
- const cover=make('div','pb3-cover');cover.setAttribute('aria-label','Front cover');
- const pictures=state.characterImages.filter(Boolean);
- pictures.forEach((src,i)=>{const img=make('img');img.src=src;img.alt=i?`${state.secondName} as a character`:`${state.names} as a character`;img.draggable=false;cover.append(img);});
- const copy=make('div','pbook-cover-copy');copy.append(make('p',null,`A personalised story for ${fullNames()||state.names||'them'}`));if(title)copy.append(make('h3',null,title));
- cover.append(copy);rights.push(cover);
+ const rights=[bookCoverFace()],lefts=[];
  // Only the pages we really paint for free are shown. The unpainted ones used to follow as blanks, and
  // recordings showed shoppers flipping through blank after blank and leaving.
  spreads.slice(0,3).forEach((spread,i)=>{
@@ -818,28 +857,42 @@ function renderPreviewBook(){
   const count=make('div','pbook-page pb3-more-count');count.append(make('b',null,String(left)),make('span',null,`more page${left===1?'':'s'}`));lefts.push(count);
   const more=make('div','pbook-page pb3-more');more.append(make('b',null,`The rest of ${state.names?state.names+'’s':'their'} story`),make('p',null,'We paint it when you order. You see every page before we print, and we change anything you don’t love.'));rights.push(more);
  }
- const book=make('div','pb3-book');
- book.append(make('div','pb3-shadow'),make('div','pb3-back'),make('div','pb3-edge pb3-back-edge'),make('div','pb3-edge pb3-fore'),make('div','pb3-edge pb3-tail'),make('div','pb3-ribbon'));
- // Spine and back cover, seen when the book twirls round.
- const spine=make('div','pb3-spine');spine.append(make('span',null,title||`${who}’s story`));
- const backCover=make('div','pb3-backcover');
- if(pictures[0]){const img=make('img');img.src=pictures[0];img.alt='';img.draggable=false;backCover.append(img);}
- backCover.append(make('span',null,'Craven & Quill'));
- book.append(spine,backCover);
- rights.forEach((right,i)=>{
-  const leaf=make('div','pb3-leaf'+(i===0?' pb3-hard':''));
-  const front=make('div','pb3-face pb3-front');front.append(right);
-  const rear=make('div','pb3-face pb3-rear');if(lefts[i])rear.append(lefts[i]);
-  leaf.append(front,rear);
-  if(i===0)leaf.append(make('div','pb3-board-edge'),make('div','pb3-board-tail'));
-  book.append(leaf);
- });
- const stage=make('div','pb3');stage.append(book);track.replaceChildren(stage);
+ track.replaceChildren(buildBook3d(rights,lefts));
  $('.pbook-nav').hidden=rights.length<2;
  previewBookPage=Math.min(previewBookPage,rights.length-1);
  sizePreviewBook();turnPreviewBook(previewBookPage,'instant');
  startAutoFlip();
 }
+// The message page: the book opens its cover to the first page, where their name and message
+// appear as they type, laid out like the printed opening page.
+let giftBookTimer=null;
+function giverName(text){return String(text||'').trim().replace(/^(?:given\s+)?(?:with\s+)?(?:(?:lots\s+of|all\s+(?:our|my))\s+)?love,?\s+(?:from|by)\s+|^(?:from|by)\s+/i,'').trim();}
+function renderGiftBook(){
+ const host=$('#gift-book');if(!host||!host.clientWidth)return;
+ const page=pbEl('div','pbook-page pb3-gift');
+ if(state.storyDraft?.title)page.append(pbEl('p','pb3-gift-title',state.storyDraft.title));
+ page.append(pbEl('p','pb3-gift-for','A story just for'),pbEl('strong','pb3-gift-name',fullNames()||state.names||'Someone special'),pbEl('p','pb3-gift-from'),pbEl('p','pb3-gift-message'));
+ const stage=buildBook3d([bookCoverFace(),page],[pbEl('div','pbook-page pb3-endpaper')]);
+ stage.classList.add('gift-stage','instant');
+ host.style.setProperty('--pw',Math.round(Math.min(host.clientWidth*.46,236))+'px');
+ host.replaceChildren(stage);
+ updateGiftBook();
+ clearTimeout(giftBookTimer);
+ if(matchMedia('(prefers-reduced-motion: reduce)').matches){layoutBook3d(stage,1);stage.dataset.zoom='1';return;}
+ layoutBook3d(stage,0);
+ requestAnimationFrame(()=>requestAnimationFrame(()=>stage.classList.remove('instant')));
+ giftBookTimer=setTimeout(()=>{layoutBook3d(stage,1);giftBookTimer=setTimeout(()=>{stage.dataset.zoom='1';},1300);},900);
+}
+function updateGiftBook(){
+ const from=$('#gift-book .pb3-gift-from'),note=$('#gift-book .pb3-gift-message');if(!from)return;
+ const sender=giverName($('#sender-name').value),message=$('#dedication').value.trim();
+ const typingFrom=document.activeElement===$('#sender-name'),typingNote=document.activeElement===$('#dedication');
+ from.textContent=`Given with love by ${sender||(typingFrom?'':'…')}`;from.classList.toggle('ghost',!sender&&!typingFrom);
+ note.textContent=message||(typingNote?'':'Your message goes here.');note.classList.toggle('ghost',!message&&!typingNote);
+ if(typingFrom)from.append(pbEl('span','pb3-caret'));
+ if(typingNote)note.append(pbEl('span','pb3-caret'));
+}
+['focus','blur'].forEach(type=>['#sender-name','#dedication'].forEach(id=>$(id).addEventListener(type,updateGiftBook)));
 // Until the shopper touches it, the book shows itself off: it turns through the painted pages,
 // closes, then twirls round once so they see the spine and back cover, and starts again.
 let autoFlip=null,autoFlipStopped=false,autoShowRunning=false;
@@ -872,17 +925,8 @@ function updatePreviewBook(index){
  previewBookPage=Math.max(0,Math.min(index,n-1));
  $('#pbook-pos').textContent=previewBookPage===0?'Cover':leaves[previewBookPage].querySelector('.pb3-more')?'The rest':`Page ${previewBookPage} of ${state.storyDraft?.spreads?.length||n-1}`;
  $('#pbook-prev').disabled=previewBookPage===0;$('#pbook-next').disabled=previewBookPage===n-1;
- stage.dataset.open=previewBookPage?'1':'0';
- stage.style.setProperty('--depth',(PB_BLOCK+(n-previewBookPage)*PB_GAP)+'px');
+ layoutBook3d(stage,previewBookPage);
  leaves.forEach((leaf,i)=>{
-  const turned=i<previewBookPage;
-  // A page catches the light as it lifts, then settles: shade it only while it is moving.
-  if(leaf.dataset.turned!==undefined&&leaf.dataset.turned!==String(turned)&&!stage.classList.contains('instant')){
-   leaf.classList.remove('turning');void leaf.offsetWidth;leaf.classList.add('turning');
-   clearTimeout(leaf._turnTimer);leaf._turnTimer=setTimeout(()=>leaf.classList.remove('turning'),1400);
-  }
-  leaf.dataset.turned=String(turned);
-  leaf.style.transform=turned?`translateZ(${(i+1)*PB_GAP}px) rotateY(-180deg)`:`translateZ(${PB_BLOCK+(n-i)*PB_GAP}px) rotateY(0deg)`;
   leaf.querySelector('.pb3-front').setAttribute('aria-hidden',String(i!==previewBookPage));
   leaf.querySelector('.pb3-rear').setAttribute('aria-hidden',String(i!==previewBookPage-1));
  });
