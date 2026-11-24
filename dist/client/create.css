@@ -1108,3 +1108,13 @@ body.hold-on .top-back{visibility:visible}
 .story-side.has-book>:not(.side-book){display:none!important}
 .side-book{width:100%;max-width:520px}
 .side-book .pb3{height:calc(var(--ph)*1.5 + 16px)}
+/* Book page: what arrives, then one order button with the smaller size behind a quiet link. */
+.step[data-step="5"] .size-pick{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;margin:0;padding:0}
+.step[data-step="5"] .see-first{display:none}
+.arrives{list-style:none;margin:18px 0 4px;padding:14px 16px;border:1.5px solid var(--line);border-radius:14px;background:#fff;display:grid;gap:10px}
+.arrives li{display:grid;grid-template-columns:18px 1fr;column-gap:10px;align-items:start}
+.arrives li:before{content:"";width:12px;height:7px;margin-top:5px;border-left:2.5px solid var(--ink);border-bottom:2.5px solid var(--ink);transform:rotate(-45deg)}
+.arrives b{font-size:.98rem;color:var(--ink)}
+.arrives span{grid-column:2;font-size:.86rem;color:var(--muted);line-height:1.35}
+.size-switch{margin:10px 0 0;text-align:center;font-size:.88rem;color:var(--muted)}
+.size-switch .text-link{font-size:.88rem;min-height:0;padding:0 0 0 2px}

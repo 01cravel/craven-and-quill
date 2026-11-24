@@ -717,9 +717,13 @@ function updateProduct(){
   $('#order-book-price').textContent=`£${state.price.toFixed(2)}`;
   $('#order-postage').textContent=`£${state.postage.toFixed(2)}`;
   $('#order-price').textContent=`£${orderTotal().toFixed(2)}`;
-  updateCtaPrices();
+  updateCtaPrices();if($("#size-toggle"))showSizeChoice();
 }
 $$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{orderRequest=null;updateProduct();observeBookPrice();recordQuote();}));
+// Book page: one button for the A4, the smaller A5 behind a quiet link, so there is one decision, not two.
+function showSizeChoice(){const a5=state.product==='a5';$('#choose-book').textContent=`Order their ${a5?'A5':'A4'} hardback`;$('#size-now').textContent=a5?'A5 is 14.8 × 21 cm.':'A4 is 21 × 29.7 cm.';$('#size-toggle').textContent=a5?'Prefer the bigger A4?':'Prefer the smaller A5?';}
+$('#size-toggle').addEventListener('click',()=>{const next=$(`input[name="product"][value="${state.product==='a5'?'a4':'a5'}"]`);next.checked=true;next.dispatchEvent(new Event('change'));});
+$$('input[name="product"]').forEach(input=>input.addEventListener('change',showSizeChoice));showSizeChoice();
 $('#join-launch').addEventListener('click',async()=>{
  const error=$('#step-7-error'),button=$('#join-launch');if(button.disabled)return;
  const typedCode=$('#offer-code').value.replace(/\s/g,'').toUpperCase();if(typedCode){if(!/^CQ[A-Z0-9]{10}$/.test(typedCode)){error.textContent='Check the discount code. It starts with CQ and has 12 characters.';$('#offer-code').focus();return;}offerCode=typedCode;}
@@ -809,6 +813,8 @@ $('#show-offer-code').addEventListener('click',()=>{const field=$('#offer-code-f
 // (src/print-book.js): picture on the left, words on the right. The picture is a sketch placeholder
 // because we only paint the pages after an order. Folios match the printed interior page numbers.
 let previewBookPage=0;
+// Pages whose free painting failed are left out of the preview book rather than shown half-made.
+const pageFailed=new Set();
 // The free preview is shown as a real 3D hardback: it lies closed showing the cover, opens itself and
 // turns the painted pages. Leaves are stacked a little apart so the book has real thickness.
 const PB_GAP=1.5,PB_BLOCK=8;
@@ -875,7 +881,8 @@ function previewBookFaces(){
  const rights=[bookCoverFace()],lefts=[];
  // Only the pages we really paint for free are shown. The unpainted ones used to follow as blanks, and
  // recordings showed shoppers flipping through blank after blank and leaving.
- spreads.slice(0,3).forEach((spread,i)=>{
+ const shown=[0,1,2].filter(i=>i<spreads.length&&!pageFailed.has(`${pageArtKey()}:${i}`));
+ shown.forEach(i=>{const spread=spreads[i];
   const art=make('div','pbook-page pbook-art');art.dataset.page=i;art.setAttribute('aria-label',`Page ${i+1} of ${spreads.length}, picture`);
   const painted=state.pageArtFor===pageArtKey()&&state.pageArt[i];
   if(painted){const img=make('img','pbook-paint');img.src=painted;img.alt=`Page ${i+1}, illustrated`;img.draggable=false;art.append(img);}
@@ -891,8 +898,8 @@ function previewBookFaces(){
   const words=make('div','pbook-page pbook-words');words.append(make('p','pbook-head',title),body,make('span','pbook-folio',String(i*2+3)));
   rights.push(words);
  });
- if(spreads.length>3){
-  const left=spreads.length-3;
+ if(spreads.length>shown.length){
+  const left=spreads.length-shown.length;
   const count=make('div','pbook-page pb3-more-count');count.append(make('b',null,String(left)),make('span',null,`more page${left===1?'':'s'}`));lefts.push(count);
   const more=make('div','pbook-page pb3-more');more.append(make('b',null,`The rest of ${state.names?state.names+'’s':'their'} story`),make('p',null,'We paint it when you order. You see every page before we print, and we change anything you don’t love.'));rights.push(more);
  }
@@ -1146,7 +1153,7 @@ async function drawPages(){
         else if([400,403,409].includes(r.status))break;
       }
     }catch{}
-    finally{pageJobs.delete(i);if(!done){const fig=document.querySelector(`#story-pages .page-art[data-page="${i}"]`);if(fig)fig.dataset.failed='1';}paintPageArt();}
+    finally{pageJobs.delete(i);if(!done){const fig=document.querySelector(`#story-pages .page-art[data-page="${i}"]`);if(fig)fig.dataset.failed='1';if(state.previewId===forId){pageFailed.add(`${pageArtKey()}:${i}`);renderPreviewBook();}}paintPageArt();}
   });
   await Promise.all(jobs);
 }

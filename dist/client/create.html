@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=magic-2">
+  <link rel="stylesheet" href="create.css?v=onebutton-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -191,7 +191,12 @@
                 <article class="preview-copy"><p class="chapter" id="preview-chapter">The adventure begins</p><p id="story-copy"></p></article>
               </div>
               <button type="button" class="text-link" id="edit-words">Change the words</button>
-              <fieldset>
+              <ul class="arrives" aria-label="What arrives">
+                <li><b>A proper hardback</b><span>Matte cover on rigid board, made to keep</span></li>
+                <li><b>24 full-colour pages</b><span>Thick 200gsm gloss paper, a picture on every spread</span></li>
+                <li><b>You approve it first</b><span>We change anything you don’t love before we print</span></li>
+              </ul>
+              <fieldset class="size-pick" id="size-pick">
             <legend class="visually-hidden">Book format</legend>
             <div class="product-options size-options">
               <label class="product"><input type="radio" name="product" value="a4" data-price="29.99" checked><span><b>A4 hardback</b><small>21 × 29.7 cm</small><strong><del data-offer>£39.99</del><span class="current-price">£29.99</span></strong><small class="offer-label" data-offer>£10 off</small></span></label>
@@ -205,7 +210,8 @@
               <div id="locked-dots" hidden></div>
             </section>
 <div class="error" id="step-5-error" role="alert"></div>
-            <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="choose-book" type="button" data-next="13" disabled>Order the hardback</button></div>
+            <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="choose-book" type="button" data-next="13" disabled>Order their A4 hardback</button></div>
+            <p class="size-switch"><span id="size-now">A4 is 21 × 29.7 cm.</span> <button type="button" class="text-link" id="size-toggle">Prefer the smaller A5?</button></p>
           </div>
         </section>
 
@@ -292,6 +298,6 @@
   <script src="preview-progress.js?v=magic-2" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=sidebook-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=onebutton-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
 </body>
 </html>
