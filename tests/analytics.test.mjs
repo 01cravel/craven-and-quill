@@ -281,6 +281,10 @@ test('default view shows UK shoppers only; crawlers and visits from abroad are c
 
 test('a preview email links its own drawing without creating a quote or enrolling on dashboard load',async()=>{
  const env=environment(),id=crypto.randomUUID(),email='reader@somewhere.invalid';
+ // Exercise ordinary preview reminders outside the separately tested Christmas campaign.
+ env.NOW='2026-11-23T12:00:00Z';
+ const mailRequests=[];
+ env.fetch=async (...args)=>{mailRequests.push(args);return Response.json({id:'test-message'});};
  env.FOLLOWUP_EMAILS_ENABLED='true';env.RESEND_API_KEY='test';env.ORDER_EMAIL_FROM='test@cq.test';
  const stamp=new Date().toISOString();
  env.DB.sqlite.prepare("INSERT INTO preview_receipts (id,status,created_at) VALUES (?,'succeeded',?)").run(id,stamp);
@@ -295,6 +299,7 @@ test('a preview email links its own drawing without creating a quote or enrollin
  env.DB.sqlite.prepare("INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,unsubscribe_token) VALUES (?,'a4',2999,'legacy',?,?,?)").run(email,stamp,stamp,crypto.randomUUID());
  const report=await (await get(env)).json();
  assert.equal(report.quotes.length,0);
+ assert.equal(mailRequests.length,0);
 });
 
 test('the preview form enrols only submissions with the current notice and respects a later opt-out',async()=>{

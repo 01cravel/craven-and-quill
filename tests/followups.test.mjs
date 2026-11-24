@@ -67,7 +67,7 @@ test('neither reminder can use assumed permission or an unverified price',async(
 });
 
 test('only a new disclosed preview receives the sequence, without creating a quote',async()=>{
-  const DB=testDb(),sent=[],env={DB,FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
+  const DB=testDb(),sent=[],env={DB,NOW:'2026-11-23T12:00:00Z',FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
     async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'sent'+sent.length});}};
   const email='reader@somewhere.invalid',no='declined@somewhere.invalid';
   for(const address of [email,no]){
@@ -118,7 +118,7 @@ test('unsubscribing from the first preview reminder stops the discount email and
 test('owner-approved one-off: past preview contacts get both reminders, opt-outs and owner skipped',async()=>{
   const {enrolPastContacts}=await import('../dist/server/orders.js');
   const DB=testDb(),sent=[];
-  const env={DB,FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'k',ORDER_EMAIL_FROM:'books@example.test',
+  const env={DB,NOW:'2026-11-23T12:00:00Z',FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'k',ORDER_EMAIL_FROM:'books@example.test',
     async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'e'+sent.length});}};
   const old='2026-10-01T00:00:00.000Z';
   const cols=DB.sqlite.prepare("PRAGMA table_info(preview_contacts)").all().map(c=>c.name);
