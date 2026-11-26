@@ -158,7 +158,7 @@ let cat=null;const money=p=>'£'+(p/100).toFixed(2);
 async function buyControls(){$('bar').hidden=false;$('approve').hidden=true;$('buy').hidden=false;const g=order.discount?.ownerGift?order.discount:null,size=order.size==='a5'?'a5':'a4',who=order.names?poss(order.names)+' book':'this book';$('buyOne').textContent='Order '+who;
   $('barText').textContent=(g?(g.percent?g.percent+'%':money(g.amountPence))+' off already taken off. ':'')+'A hardback, printed in the UK, delivery included.';
   try{cat=await fetch('/api/orders/catalog').then(r=>r.json());const p=cat.products.find(x=>x.id===size);if(p){const full=(order.fullPrice?p.regularPricePence:p.pricePence)+cat.shippingPence,off=g?(g.offBySize?.[size]??g.amountPence):0;$('buyOne').textContent='Order '+who+', '+money(full-off);if(off){const was=document.createElement('s');was.textContent=money(full);$('barText').replaceChildren(was,' Now '+money(full-off)+' with '+(g.percent?g.percent+'%':money(off))+' off. A hardback, printed in the UK, delivery included.');}}}catch{}}
-async function buy(size){if(testCopy){$('barText').textContent='This is your test copy, so the button is switched off. On the customer’s link it goes straight to the payment page.';return;}
+async function buy(size){// 26 Nov: the buy button works on the owner test copy too, so Luke can test the real payment page.
   $('buyOne').disabled=true;$('barText').textContent='Opening the secure payment page…';
   try{await api('/session',{revision:order.revision,token:key}).catch(()=>{});order=await api('');const d=await api('/checkout',{revision:order.revision,size});location.href=d.url;}
   catch(e){$('barText').textContent=e.message;$('buyOne').disabled=false;}}

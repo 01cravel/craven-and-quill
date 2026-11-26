@@ -535,7 +535,8 @@ test('recent characters: owner lists emailed drafts without keys, turns one into
  r=await request(env,'/'+made.id+'/prebuild',{revision:o.revision,page:'cover',confirm:true},{admin:true});assert.equal(r.status,200);o=await state(env,made.id);assert.ok(o.data.art.cover);assert.equal(o.data.prebuilt,true);
  const link=await request(env,'/'+made.id+'/customer-link',{revision:o.revision},{admin:true});const key=(await link.json()).url.split('#key=')[1];assert.equal((await ordersApi(new Request(origin+'/api/orders/'+made.id,{headers:{Authorization:'Bearer '+key}}),env)).status,200,'the new book has its own private key');
 });
-test('order desk watermarks unpaid preview phone pages only',async()=>{
+test('order desk: preview phone pages carry no watermark (Luke, 26 Nov)',async()=>{const src=readFileSync(new URL('../dist/client/orders-admin.js',import.meta.url),'utf8');assert.match(src,/const markPages=o=>false;/);});
+test.skip('order desk watermarks unpaid preview phone pages only',async()=>{
  const {runInNewContext}=await import('node:vm');const src=readFileSync(new URL('../dist/client/orders-admin.js',import.meta.url),'utf8');
  const ctx={Math};runInNewContext(src.match(/const markPages=[^\n]*/)[0].replace('const markPages','markPages')+'\n'+src.match(/function stampPreview[^\n]*/)[0],ctx);
  assert.equal(ctx.markPages({paymentStatus:'unpaid',proof:null,previewBook:{hash:'h'}}),true);assert.equal(ctx.markPages({paymentStatus:'paid',proof:{hash:'p'},previewBook:null}),false);assert.equal(ctx.markPages({paymentStatus:'unpaid',proof:{hash:'p'},previewBook:null}),false);
