@@ -443,15 +443,12 @@ test('before payment: owner builds a whole-book preview, customer flips it and b
  o=await state(env,id);r=await request(env,'/'+id+'/preview-email',{revision:o.revision,to:'customer',greeting:'Hi Jan,',note:'Sorry the last link didn’t work.'},{admin:true});assert.equal(r.status,200);m=mails.at(-1);
  assert.equal(m.to[0],o.email);assert.equal(m.from,'orders@example.test');assert.ok(m.text.includes('Hi Jan,')&&m.text.includes('Sorry the last link'));assert.ok(m.text.includes('I’ve put together Jamie’s whole book'));assert.ok(m.text.includes('Order Jamie’s book: '));assert.ok(!m.html.includes('<img src="cid:'),'no attachments');assert.ok(m.text.includes('/book.html?id='+id+'#key='));
  // The email shows the whole book: cover, ten spreads of two, back cover, all from signed public picture links.
- const pics=[...m.html.matchAll(/src="([^"]*\/preview-image\?[^"]*)"/g)].map(x=>x[1].replaceAll('&amp;','&'));assert.equal(pics.length,22);assert.ok(pics[0].includes('n=0&')&&pics.at(-1).includes('n='+(total-1)+'&'));
- const pub=u=>ordersApi(new Request(u),env);let im=await pub(pics[1]);assert.equal(im.status,200);assert.equal(im.headers.get('content-type'),'image/jpeg');assert.equal(im.headers.get('cache-control'),'public, max-age=604800');assert.equal(im.headers.get('referrer-policy'),'no-referrer');
- assert.equal((await pub(pics[1].replace(/sig=./,'sig=0'))).status,404,'wrong signature');assert.equal((await pub(pics[1].replace('n=2&','n=3&'))).status,404,'signature is per page');assert.equal((await pub(origin+'/api/orders/'+id+'/preview-image?n=0')).status,404);
+ const pics=[...m.html.matchAll(/src="([^"]*\/preview-image\?[^"]*)"/g)].map(x=>x[1].replaceAll('&amp;','&'));assert.equal(pics.length,0,'link only, like the proof email');
  // A4 from the book page: the open A5 card page is retired and a new A4 one made.
  o=await state(env,id);r=await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a4'});assert.equal(r.status,200,JSON.stringify(await r.clone().json()));assert.equal(made,2);
  o=await state(env,id);assert.equal(o.size,'a4');assert.equal(o.amount,PRODUCTS.a4.pricePence+399);assert.equal(o.session_id,'ziina-intent-2');assert.equal(o.status,'awaiting_payment');assert.equal(o.data.failedPayments.at(-1).replacedForSize,'a4');
  r=await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a4'});assert.equal(r.status,200);assert.equal(made,2,'same size reuses the open card page');
  ziinaStatus='pending';o=await state(env,id);assert.equal((await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a5'})).status,409);o=await state(env,id);assert.equal(o.size,'a4','a payment in progress keeps its size');
- assert.equal((await pub(pics[0])).status,200,'still shows while unpaid');env.DB.sqlite.prepare("UPDATE customer_orders SET payment_status='paid' WHERE id=?").run(id);assert.equal((await pub(pics[0])).status,404,'public pictures stop once paid');
 });
 test('gift sender wording is not doubled in the book',()=>{for(const [i,o] of [['With love from Nanny and Grandad','Nanny and Grandad'],['love from Mum','Mum'],['From Auntie Sue','Auntie Sue'],['With lots of love from Dad','Dad'],['Nanny and Grandad','Nanny and Grandad'],['Love','Love']])assert.equal(giver(i),o);});
 test('owner thank-you discount: £5 off applied at checkout, kept when switching size, open card page at old price retired',async()=>{
