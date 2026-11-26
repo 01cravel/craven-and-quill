@@ -54257,6 +54257,25 @@ You can stop offer emails here: ${unsubscribe}`;
     let o = await get(env2, id);
     const isAdmin = await authorise(req, env2, o);
     if (!action && req.method === "GET") return reply(publicOrder(o, isAdmin));
+    if (action === "viewed" && req.method === "POST") {
+      const b2 = await input(req);
+      requireThat(equal(await sha(b2.token || ""), o.token_hash), "Order not found.", 404);
+      if (o.payment_status !== "unpaid") return reply({ ok: true });
+      const kind = b2.buy ? "customer_tapped_buy" : "customer_opened_book";
+      const recent = await q(env2, "SELECT 1 FROM order_audit WHERE order_id=?1 AND kind=?2 AND created_at>?3 LIMIT 1", id, kind, new Date(Date.now() - 30 * 6e4).toISOString()).first();
+      if (recent) return reply({ ok: true });
+      await audit(env2, id, kind, "customer");
+      if (env2.RESEND_API_KEY && env2.ORDER_EMAIL_FROM) {
+        const who = safeText(o.data.names, 80) || "A shopper", what = b2.buy ? "tapped Order on" : "just opened";
+        try {
+          await (env2.fetch || fetch)("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${env2.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": `${id}:${kind}:${Math.floor(Date.now() / 18e5)}` }, body: JSON.stringify({ from: env2.ORDER_EMAIL_FROM, to: ["cravenluke@gmail.com"], subject: `${who}: ${o.email} ${what} their book`, text: `${o.email} ${what} ${who}'s book.
+
+Order desk: ${url.origin}/orders` }), signal: AbortSignal.timeout(1e4) });
+        } catch {
+        }
+      }
+      return reply({ ok: true });
+    }
     if (action === "session" && req.method === "POST") {
       const b2 = await input(req);
       requireThat(equal(await sha(b2.token || ""), o.token_hash), "Order not found.", 404);

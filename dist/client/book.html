@@ -159,6 +159,7 @@ async function buyControls(){$('bar').hidden=false;$('approve').hidden=true;$('b
   $('barText').textContent=(g?(g.percent?g.percent+'%':money(g.amountPence))+' off already taken off. ':'')+'A hardback, printed in the UK, delivery included.';
   try{cat=await fetch('/api/orders/catalog').then(r=>r.json());const p=cat.products.find(x=>x.id===size);if(p){const full=(order.fullPrice?p.regularPricePence:p.pricePence)+cat.shippingPence,off=g?(g.offBySize?.[size]??g.amountPence):0;$('buyOne').textContent='Order '+who+', '+money(full-off);if(off){const was=document.createElement('s');was.textContent=money(full);$('barText').replaceChildren(was,' Now '+money(full-off)+' with '+(g.percent?g.percent+'%':money(off))+' off. A hardback, printed in the UK, delivery included.');}}}catch{}}
 async function buy(size){// 26 Nov: the buy button works on the owner test copy too, so Luke can test the real payment page.
+  if(!testCopy)api('/viewed',{token:key,buy:true}).catch(()=>{});
   $('buyOne').disabled=true;$('barText').textContent='Opening the secure payment page…';
   try{await api('/session',{revision:order.revision,token:key}).catch(()=>{});order=await api('');const d=await api('/checkout',{revision:order.revision,size});location.href=d.url;}
   catch(e){$('barText').textContent=e.message;$('buyOne').disabled=false;}}
@@ -176,7 +177,7 @@ $('yes').onclick=async()=>{$('yes').disabled=true;try{order=await api('/approve-
   const title=order.story?.title||'Your book';document.title=title+' | Craven & Quill';$('title').textContent=title;$('confirmTitle').textContent='Approve '+poss(order.names)+' book?';
   if(!order.bookPages?.length)return fail('We’re putting the finishing touches to this book. We’ll email you as soon as it’s ready to see.');
   $('lede').textContent=narrow()?'Swipe or use the arrows. Turn your phone sideways for bigger pages.':'Click a page or use the arrows to turn.';
-  build();$('stage').hidden=false;show();controls();preload();})();
+  build();$('stage').hidden=false;show();controls();preload();if(!testCopy)api('/viewed',{token:key}).catch(()=>{});})();
 })();
 </script>
 </body>
