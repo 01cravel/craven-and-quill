@@ -338,16 +338,35 @@ export async function saveChaseLink(env,email,draftId,token,expires){
     return true;
   }catch{console.error('Chase link not saved');return false;}
 }
+// Opens a sealed saved-book link. Null if it is broken or the secret is missing.
+async function unsealLink(env,sealed){
+  try{
+    if(!env.ORDER_LINK_SECRET)return null;
+    const [iv,cipher]=String(sealed).split('.').map(unb64);
+    const [draftId,token]=new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv},await sealKey(env),cipher)).split(':');
+    return /^[a-f0-9-]{36}$/.test(draftId)&&/^[a-f0-9-]{64,80}$/.test(token||'')?{draftId,token}:null;
+  }catch{return null;}
+}
+// The shopper's saved book (draft id and key), while it has not expired.
+export async function openChaseLink(env,email){
+  try{
+    await ensureChaseTables(env);
+    const row=await db(env,'SELECT sealed,expires_at FROM chase_links WHERE email=?1',String(email||'').trim().toLowerCase()).first();
+    if(!row||Date.parse(row.expires_at)<=Date.now())return null;
+    const link=await unsealLink(env,row.sealed);return link&&{...link,email:String(email).trim().toLowerCase(),expiresAt:row.expires_at};
+  }catch{return null;}
+}
+// Owner desk (26 Nov 2026): every unexpired saved book, newest first, with its draft id and key. Server use only.
+export async function recentChaseLinks(env,limit=60){
+  await ensureChaseTables(env);
+  const rows=(await db(env,'SELECT email,sealed,expires_at FROM chase_links WHERE expires_at>?1 ORDER BY updated_at DESC LIMIT ?2',now(),limit).all()).results||[];
+  const out=[];for(const r of rows){const link=await unsealLink(env,r.sealed);if(link)out.push({email:r.email,expiresAt:r.expires_at,...link});}
+  return out;
+}
 async function chaseLink(env,email,step,code){
   const query=`${code?`offer=${encodeURIComponent(code)}&`:''}utm_source=email&utm_medium=email&utm_campaign=chase&utm_content=chase_${step}`;
-  try{
-    const row=await db(env,'SELECT sealed,expires_at FROM chase_links WHERE email=?1',email).first();
-    if(row&&Date.parse(row.expires_at)>Date.now()&&env.ORDER_LINK_SECRET){
-      const [iv,cipher]=row.sealed.split('.').map(unb64);
-      const [draftId,token]=new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv},await sealKey(env),cipher)).split(':');
-      if(/^[a-f0-9-]{36}$/.test(draftId)&&/^[a-f0-9-]{64,80}$/.test(token))return `https://cravenandquill.com/create?${query}#draft=${draftId}&key=${token}`;
-    }
-  }catch{}
+  const link=await openChaseLink(env,email);
+  if(link)return `https://cravenandquill.com/create?${query}#draft=${link.draftId}&key=${link.token}`;
   return `https://cravenandquill.com/create.html?${query}`;
 }
 // Which chase email is due. Latest one whose time has come; earlier ones that were missed are skipped, never

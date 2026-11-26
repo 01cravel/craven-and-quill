@@ -4530,24 +4530,6 @@ function copy(o, kind) {
       button: `See ${f.name ? f.poss : "your"} book`
     };
   }
-  if (kind === "preview") {
-    const x = (o.data || {}).emailExtra || {}, first = String((o.data || {}).recipient?.name || "").trim().split(/\s+/)[0] || "", hi = x.greeting || (first ? `Hi ${first},` : "Hello,"), book = f.name ? f.poss + " book" : "Your book";
-    const lines = [...x.note ? [x.note] : [], `${book} is ready. Tap the button below to flip through every page.`], after = "If you\u2019d like anything changed, just reply to this email. When you\u2019re happy, you can order the A4 or A5 hardback at the bottom of the page.";
-    return {
-      simple: true,
-      subject: `${book} is ready to see`,
-      preheader: "Flip through every page, then order the A4 or A5 hardback.",
-      kicker: "",
-      heading: "",
-      intro: [esc(hi), ...lines.map(esc)],
-      introText: [hi, ...lines],
-      after: [esc(after), "Thank you,<br>The Craven &amp; Quill team"],
-      afterText: [after, "Thank you,\nThe Craven & Quill team"],
-      steps: [],
-      note: "",
-      button: `See ${f.name ? f.poss : "your"} book`
-    };
-  }
   if (kind === "shipped") return {
     subject: `${f.name ? f.poss : "Your"} book has gone to the printer`,
     preheader: "Tracking will appear on your order page.",
@@ -4628,7 +4610,48 @@ function savedPreviewEmail(names, url) {
   const text = ["Hello,", ...lines, `${c.button}: ${url}`, after, "Thank you,\nThe Craven & Quill team", c.footer].join("\n\n");
   return { subject: "Craven & Quill: " + c.subject, text, html: html({ size: "a4", amount: 0, id: "", data: { names: name5 } }, c, url) };
 }
+var TITLES = /^(mr|mrs|ms|miss|dr)\.?$/i;
+var GOLD = "#ad843f";
+var poundsOff = (p) => "\xA3" + (p % 100 ? (p / 100).toFixed(2) : String(p / 100));
+function previewEmail(o, url, today = /* @__PURE__ */ new Date()) {
+  const d = o.data || {}, x = d.emailExtra || {}, f = facts(o), first = String(d.recipient?.name || "").trim().split(/\s+/)[0] || "";
+  const hi = x.greeting || (first && !TITLES.test(first) ? `Hi ${first},` : "Hello,"), who = f.name ? f.poss : "your", Who = f.name ? f.poss : "Your";
+  const g = d.discount?.ownerGift ? d.discount : null, off3 = g ? g.percent ? g.percent + "% off" : poundsOff(g.amountPence) + " off" : "";
+  const lines = [`I\u2019ve put together ${who} whole book so you can see exactly how it would look. Have a flick through below.`, "If anything needs changing, or you\u2019ve got any questions at all, just reply to this email and I\u2019ll sort it."];
+  const offer = g ? `As a thank you, here\u2019s ${off3} ${who} book. It\u2019s already taken off, so there\u2019s no code to remember.` : "";
+  const button = g ? g.percent ? `Order ${who} book with ${off3}` : `Order ${who} book, ${off3}` : `Order ${who} book`;
+  const small = `Printed as a hardback in the UK and posted to your door.${today < Date.parse("2026-12-15T00:00:00Z") ? " Order by 14 December for Christmas." : ""}`;
+  const subject = `${Who} book is ready to see`, pages = Array.isArray(x.pages) ? x.pages : [], n = pages.length;
+  const pic = (i4, alt, w) => `<a href="${esc(url)}" style="text-decoration:none;"><img src="${esc(pages[i4])}" width="${w}" alt="${esc(alt)}" style="display:block;width:100%;max-width:${w}px;height:auto;border:0;margin:0 auto;color:#7a6e60;font:13px ${sans};"></a>`;
+  const rows = [];
+  if (n) {
+    rows.push(`<tr><td colspan="2" align="center" style="padding:0 0 14px;">${pic(0, f.title ? f.title + ", front cover" : "Front cover", 340)}</td></tr>`);
+    for (let i4 = 2; i4 < n - 2; i4 += 2) {
+      const page = i4 / 2;
+      rows.push(`<tr><td width="50%" valign="top" style="padding:0 1px 12px 0;">${pic(i4, `Page ${page}, picture`, 290)}</td><td width="50%" valign="top" style="padding:0 0 12px 1px;">${pic(i4 + 1, `Page ${page}, words`, 290)}</td></tr>`);
+    }
+    rows.push(`<tr><td colspan="2" align="center" style="padding:2px 0 0;">${pic(n - 1, "Back cover", 340)}</td></tr>`);
+  }
+  const p = (t2, extra = "") => `<p style="margin:0 0 16px;color:#3c352f;font:16px/1.65 ${sans};${extra}">${t2}</p>`;
+  const html2 = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(subject)} | Craven &amp; Quill</title></head>
+<body style="margin:0;padding:0;background:#efeae0;color:#211d1a;-webkit-text-size-adjust:100%;">
+<div style="display:none;font-size:1px;color:#efeae0;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Every page of ${esc(who)} book, ready to see.</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#efeae0;"><tr><td align="center" style="padding:20px 8px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;max-width:600px;background:#fffdfa;">
+<tr><td align="center" style="padding:26px 20px 20px;border-bottom:1px solid #e9dec7;"><a href="https://cravenandquill.com"><img src="${LOGO}" width="140" alt="Craven &amp; Quill" style="display:block;width:140px;height:auto;border:0;color:#211d1a;font:21px ${serif};"></a></td></tr>
+<tr><td style="padding:30px 28px 8px;">${[hi, ...x.note ? [x.note] : [], ...lines].map((t2) => p(esc(t2))).join("")}</td></tr>
+${n ? `<tr><td style="padding:8px 10px 18px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">${rows.join("")}</table></td></tr>` : ""}
+<tr><td style="padding:8px 28px 34px;">${offer ? p(esc(offer), `color:#211d1a;font-size:17px;`) : ""}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:6px 0 12px;"><tr><td bgcolor="${GOLD}" align="center" style="border-radius:6px;background:${GOLD};"><a href="${esc(url)}" style="display:block;padding:20px 24px;color:#ffffff;text-decoration:none;font:700 19px/1.25 ${sans};">${esc(button)}</a></td></tr></table>
+${p(esc(small), "margin:0 0 28px;color:#655a50;font-size:14px;text-align:center;")}
+${p("Thank you,<br>The Craven &amp; Quill team")}</td></tr>
+<tr><td style="padding:22px 28px 30px;border-top:1px solid #e9dec7;background:#faf7f0;"><p style="margin:0 0 8px;color:#655a50;font:13px/1.55 ${sans};">Craven &amp; Quill. Personalised books, made for one reader at a time.</p><p style="margin:0;color:#8a7f73;font:12px/1.55 ${sans};">The pictures and button open your private book page. Please don\u2019t forward this email.</p></td></tr>
+</table></td></tr></table></body></html>`;
+  const text = [hi, ...x.note ? [x.note] : [], ...lines, `See every page: ${url}`, offer, `${button}: ${url}`, small, "Thank you,\nThe Craven & Quill team"].filter(Boolean).join("\n\n");
+  return { subject: "Craven & Quill: " + subject, text, html: html2, key: `${o.id}:preview:${d.preview?.hash}` };
+}
 function orderEmail(o, kind, url) {
+  if (kind === "preview") return previewEmail(o, url);
   const c = copy(o, kind), f = facts(o);
   const text = c.simple ? [...c.introText, `${c.button}: ${url}`, ...c.afterText].join("\n\n") : [
     c.heading,
@@ -4640,7 +4663,7 @@ function orderEmail(o, kind, url) {
     c.note,
     "This link is private to you. Please don\u2019t forward it.\nQuestions? Just reply to this email.\n\nCraven & Quill"
   ].filter(Boolean).join("\n\n");
-  return { subject: "Craven & Quill: " + c.subject, text, html: html(o, c, url), key: `${o.id}:${kind}:${kind === "proof" ? o.data.proof?.hash : kind === "preview" ? o.data.preview?.hash : "1"}` };
+  return { subject: "Craven & Quill: " + c.subject, text, html: html(o, c, url), key: `${o.id}:${kind}:${kind === "proof" ? o.data.proof?.hash : "1"}` };
 }
 async function sendOrderEmail(env2, o, kind, url, test = null) {
   if (!env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { sent: false, message: "Order email is not connected. Use your private order link." };
@@ -52930,7 +52953,7 @@ async function runFollowups(env2) {
 }
 var CHASE_NOTICE = "If you leave your book unfinished, we\u2019ll email you a few reminders about it over the next week, including a 10% offer. You can unsubscribe at any time.";
 var CHASE_HOURS = [3, 24, 72, 120, 144];
-var GOLD = "#8f6a2a";
+var GOLD2 = "#8f6a2a";
 function chaseMessage(step, { names = "", title: title2 = "", image = "", link, unsub, code: code2 = "", expires = null, today = /* @__PURE__ */ new Date(), content = null, footer = "" }) {
   const name5 = String(names).trim().slice(0, 60), t2 = String(title2).trim().slice(0, 120);
   const N = name5 || "your child", Np = name5 ? poss(name5) : "their", Cap = name5 ? poss(name5) : "Their";
@@ -52970,7 +52993,7 @@ function chaseMessage(step, { names = "", title: title2 = "", image = "", link, 
   }][step];
   const showCode = step >= 3 && code2;
   const prices = `Hardbacks \xA3${(PRODUCTS.a5.regularPricePence / 100).toFixed(2)} (A5) and \xA3${(PRODUCTS.a4.regularPricePence / 100).toFixed(2)} (A4), plus \xA33.99 UK postage.`;
-  const codeLine = showCode ? `<p style="margin:0 0 26px;color:#1f1b16;font:17px/1.5 ${SERIF};">Your code: <b style="font-weight:700;letter-spacing:1px;border-bottom:2px solid ${GOLD};padding-bottom:1px;">${e(code2)}</b></p>` : "";
+  const codeLine = showCode ? `<p style="margin:0 0 26px;color:#1f1b16;font:17px/1.5 ${SERIF};">Your code: <b style="font-weight:700;letter-spacing:1px;border-bottom:2px solid ${GOLD2};padding-bottom:1px;">${e(code2)}</b></p>` : "";
   const picture = image ? `<img src="${e(image)}" width="560" alt="${e(name5 ? name5 + "\u2019s character" : "Your character")}" style="display:block;width:100%;max-width:560px;height:auto;border:0;border-radius:6px;"><p style="margin:10px 0 26px;color:#6b6157;font:italic 15px/1.5 ${SERIF};">${e(name5 ? `${name5}, drawn from your photo` : "Drawn from your photo")}${t2 ? `, for <span style="color:#1f1b16;">${e(t2)}</span>` : ""}</p>` : "";
   const html2 = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${e(c.subject)} | Craven &amp; Quill</title><style>@media only screen and (max-width:600px){.content{padding:20px 20px 28px!important}.heading{font-size:30px!important}}</style></head>
 <body style="margin:0;padding:0;background:#ffffff;color:#1f1b16;-webkit-text-size-adjust:100%;">
@@ -52980,7 +53003,7 @@ function chaseMessage(step, { names = "", title: title2 = "", image = "", link, 
 <img src="${LOGO2}" width="46" alt="Craven &amp; Quill" style="display:block;width:46px;height:auto;border:0;margin:0 0 22px;color:#1f1b16;font:15px ${SERIF};">
 <h1 class="heading" style="margin:0 0 14px;color:#1f1b16;font:normal 36px/1.12 ${SERIF};letter-spacing:-.5px;">${e(c.heading)}</h1>
 <p style="margin:0 0 22px;color:#1f1b16;font:19px/1.5 ${SERIF};">${c.lead}</p>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 ${showCode ? "16" : "28"}px;"><tr><td bgcolor="${GOLD}" align="center" style="border-radius:6px;"><a class="button" href="${e(link)}" style="display:block;padding:18px 24px;color:#ffffff;text-decoration:none;font:700 18px/1.2 ${SANS};">${e(c.button)}</a></td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:0 0 ${showCode ? "16" : "28"}px;"><tr><td bgcolor="${GOLD2}" align="center" style="border-radius:6px;"><a class="button" href="${e(link)}" style="display:block;padding:18px 24px;color:#ffffff;text-decoration:none;font:700 18px/1.2 ${SANS};">${e(c.button)}</a></td></tr></table>
 ${codeLine}${picture}<p style="margin:0 0 18px;color:#1f1b16;font:17px/1.55 ${SERIF};">${e(c.after)}</p>
 <p style="margin:0 0 26px;color:#1f1b16;font:17px/1.55 ${SERIF};">Any questions, just reply. We read every one.<br>The Craven &amp; Quill team</p>
 <p style="margin:0 0 6px;padding:16px 0 0;border-top:1px solid #e6dfd0;color:#6b6157;font:13px/1.6 ${SANS};">${e(prices)}</p>
@@ -53022,17 +53045,41 @@ async function saveChaseLink(env2, email, draftId, token, expires) {
     return false;
   }
 }
+async function unsealLink(env2, sealed) {
+  try {
+    if (!env2.ORDER_LINK_SECRET) return null;
+    const [iv, cipher] = String(sealed).split(".").map(unb64);
+    const [draftId, token] = new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv }, await sealKey(env2), cipher)).split(":");
+    return /^[a-f0-9-]{36}$/.test(draftId) && /^[a-f0-9-]{64,80}$/.test(token || "") ? { draftId, token } : null;
+  } catch {
+    return null;
+  }
+}
+async function openChaseLink(env2, email) {
+  try {
+    await ensureChaseTables(env2);
+    const row = await db(env2, "SELECT sealed,expires_at FROM chase_links WHERE email=?1", String(email || "").trim().toLowerCase()).first();
+    if (!row || Date.parse(row.expires_at) <= Date.now()) return null;
+    const link = await unsealLink(env2, row.sealed);
+    return link && { ...link, email: String(email).trim().toLowerCase(), expiresAt: row.expires_at };
+  } catch {
+    return null;
+  }
+}
+async function recentChaseLinks(env2, limit = 60) {
+  await ensureChaseTables(env2);
+  const rows = (await db(env2, "SELECT email,sealed,expires_at FROM chase_links WHERE expires_at>?1 ORDER BY updated_at DESC LIMIT ?2", now(), limit).all()).results || [];
+  const out = [];
+  for (const r of rows) {
+    const link = await unsealLink(env2, r.sealed);
+    if (link) out.push({ email: r.email, expiresAt: r.expires_at, ...link });
+  }
+  return out;
+}
 async function chaseLink(env2, email, step, code2) {
   const query = `${code2 ? `offer=${encodeURIComponent(code2)}&` : ""}utm_source=email&utm_medium=email&utm_campaign=chase&utm_content=chase_${step}`;
-  try {
-    const row = await db(env2, "SELECT sealed,expires_at FROM chase_links WHERE email=?1", email).first();
-    if (row && Date.parse(row.expires_at) > Date.now() && env2.ORDER_LINK_SECRET) {
-      const [iv, cipher] = row.sealed.split(".").map(unb64);
-      const [draftId, token] = new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv }, await sealKey(env2), cipher)).split(":");
-      if (/^[a-f0-9-]{36}$/.test(draftId) && /^[a-f0-9-]{64,80}$/.test(token)) return `https://cravenandquill.com/create?${query}#draft=${draftId}&key=${token}`;
-    }
-  } catch {
-  }
+  const link = await openChaseLink(env2, email);
+  if (link) return `https://cravenandquill.com/create?${query}#draft=${link.draftId}&key=${link.token}`;
   return `https://cravenandquill.com/create.html?${query}`;
 }
 function chaseDue(hours, sent) {
@@ -53295,9 +53342,46 @@ function wishes(w) {
   return { details: safeText(w.details, 1500), ownIdea: safeText(w.ownIdea, 1500), mood: safeText(w.mood, 40), storyMode: safeText(w.storyMode, 20), idea: safeText(w.idea, 200) };
 }
 var shownBook = (o) => o.data.proof || o.payment_status === "unpaid" && o.data.preview || null;
+var giftOff = (d, size) => !d.discount?.ownerGift ? 0 : d.discount.percent ? Math.round(orderTotal(size, !!d.fullPrice) * d.discount.percent / 100) : d.discount.amountPence;
+var discountView = (d) => d.discount?.ownerGift ? { ...d.discount, offBySize: Object.fromEntries(Object.keys(PRODUCTS).map((k) => [k, giftOff(d, k)])) } : d.discount || null;
+var previewSig = (env2, id, n, hash) => hmac(env2.ORDER_LINK_SECRET, `${id}:preview:${n}:${hash}`);
+async function previewImageUrl(env2, origin, o, n) {
+  requireThat(env2.ORDER_LINK_SECRET && o.data.preview, "Private order links are being connected.", 503);
+  return `${origin}/api/orders/${o.id}/preview-image?n=${n}&sig=${await previewSig(env2, o.id, n, o.data.preview.hash)}`;
+}
+async function readDraft(env2, draftId, token) {
+  const key2 = "drafts/" + draftId + "/" + await sha(token), object = await env2.BOOK_ASSETS.get(key2);
+  const saved = object ? JSON.parse(await privateKey(env2, new TextDecoder().decode(await object.arrayBuffer()), true)) : null;
+  return { key: key2, saved };
+}
+function characterBytes(list) {
+  requireThat(Array.isArray(list) && list.length > 0 && list.length <= 2, "Add the approved character preview.");
+  return list.map((x) => {
+    requireThat(typeof x === "string" && x.length < 45e5 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x), "Character preview format is invalid.");
+    const bytes = Uint8Array.from(atob(x.split(",")[1]), (c) => c.charCodeAt(0));
+    requireThat(bytes[0] === 255 && bytes[1] === 216, "Invalid character image.");
+    return bytes;
+  });
+}
+async function storeOrder(env2, { id, token, email, size, preview, images, details, actor, kind }) {
+  const fullPrice = Date.now() > holdEnd(preview.created_at) + HOLD_GRACE_MS, o = { id }, characters = [];
+  for (const bytes of images) characters.push(await assetPut(env2, o, bytes, "image/jpeg", "character"));
+  const data2 = { privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, previewId: preview.id, fullPrice, holdEndedAt: new Date(holdEnd(preview.created_at)).toISOString(), characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now2(), storyApprovedAt: now2(), ...details };
+  requireThat(data2.names, "Add the main character name.");
+  const date = now2();
+  await q(env2, "INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,'saved','unpaid',1,?6,?7,?7)", id, await sha(token), email, size, orderTotal(size, fullPrice), JSON.stringify(data2), date).run();
+  await audit(env2, id, kind, actor, { size, fullPrice, catalogueVersion: CATALOG_VERSION, ...data2.fromDraft ? { draftId: data2.fromDraft.draftId } : {} });
+  return get(env2, id);
+}
+var draftNames = (st) => safeText([st.names, st.secondName].filter((x) => typeof x === "string" && x.trim()).join(" and "), 85);
+async function madeFromDraft(env2, draftId, st) {
+  return q(env2, "SELECT id FROM customer_orders WHERE id=?1 OR (?2<>'' AND json_extract(state,'$.previewId')=?2) ORDER BY created_at LIMIT 1", await draftOrderId(draftId), /^[a-f0-9-]{36}$/.test(st.previewId || "") ? st.previewId : "").first();
+}
+var emptyRecipient = () => ({ name: "", address: { line1: "", line2: "", townOrCity: "", stateOrCounty: "", postalOrZipCode: "", countryCode: "GB" } });
+var draftOrderId = async (draftId) => (await sha("from-draft:" + draftId)).slice(0, 32).replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
 function publicOrder(o, isAdmin = false) {
   const d = o.data;
-  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, fullPrice: !!d.fullPrice, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, bookPages: shownBook(o) && d.proofWeb?.hash === shownBook(o).hash && d.proofWeb.pages.every(Boolean) ? d.proofWeb.pages : null, previewBook: !d.proof && o.payment_status === "unpaid" && d.preview ? { hash: d.preview.hash, createdAt: d.preview.createdAt } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, supplierError: isAdmin ? d.supplierError || null : void 0, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: d.discount || null, peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, previewId: d.previewId || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: d.discount || null, autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
+  return { id: o.id, size: o.size, label: PRODUCTS[o.size].label, amount: o.amount, fullPrice: !!d.fullPrice, currency: "GBP", status: o.status, paymentStatus: o.payment_status, paymentMode: o.payment_mode, paymentProvider: d.payment?.provider || "stripe", revision: o.revision, createdAt: o.created_at, story: d.story, names: d.names, recipient: d.recipient, dedication: d.dedication, senderName: d.senderName || "", proof: d.proof ? { version: d.proof.version, preflight: d.proof.preflight, hash: d.proof.hash } : null, bookPages: shownBook(o) && d.proofWeb?.hash === shownBook(o).hash && d.proofWeb.pages.every(Boolean) ? d.proofWeb.pages : null, previewBook: !d.proof && o.payment_status === "unpaid" && d.preview ? { hash: d.preview.hash, createdAt: d.preview.createdAt } : null, contentVersion: d.contentVersion || 1, customerApproved: !!d.customerApproved, supplierId: d.supplierId || null, supplierStatus: d.supplierStatus || null, supplierError: isAdmin ? d.supplierError || null : void 0, shipments: d.shipments || [], emailStatus: d.emailStatus || null, holdReason: d.holdReason || null, discount: discountView(d), peek: d.prebuilt && o.payment_status === "unpaid" ? { cover: d.peekWeb?.cover || d.art.cover || null, scenes: d.art.scenes.map((x, i4) => d.peekWeb?.scenes?.[i4] || x || null) } : null, ...isAdmin ? { wishes: d.wishes || null, previewId: d.previewId || null, email: o.email, art: d.art, characters: d.characters, quote: d.quote, adminApproved: d.adminApproved, history: d.history || [], refund: d.refund || null, artAttempts: d.artAttempts || 0, artBudget: d.artBudget || 22, storyRewriteAttempts: d.storyRewriteAttempts || 0, generationError: d.generationError || null, discount: discountView(d), autoGeneration: d.autoGeneration || null, peekWeb: d.peekWeb || null, emailHistory: d.emails || {}, release: d.release || null } : {} };
 }
 var editable = (o) => o.payment_status === "paid" && ["awaiting_review", "building", "proof_ready", "awaiting_approval"].includes(o.status);
 function archiveContent(o, kind, actor) {
@@ -53947,13 +54031,45 @@ You can stop offer emails here: ${unsubscribe}`;
       if (existing) await audit(env2, existing.id, "offer_email_requested", "cravenluke@gmail.com", { code: code2, status: accepted ? "accepted" : "unknown" });
       return reply({ accepted, message: accepted ? "Email accepted by provider. Delivery is not yet confirmed." : "Email result is uncertain. Check Resend before trying again.", code: code2 });
     }
+    if (path === "/api/orders/recent-drafts" && req.method === "GET") {
+      requireThat(await admin(req, env2), "Owner access required.", 401);
+      const out = [];
+      for (const l of await recentChaseLinks(env2)) {
+        if (await q(env2, "SELECT 1 FROM customer_orders WHERE email=?1 AND payment_status='paid' LIMIT 1", l.email).first()) continue;
+        const { saved } = await readDraft(env2, l.draftId, l.token).catch(() => ({ saved: null }));
+        if (!saved || saved.expires < Date.now()) continue;
+        const st = saved.draft?.state || {};
+        if (await madeFromDraft(env2, l.draftId, st)) continue;
+        const receipt = /^[a-f0-9-]{36}$/.test(st.previewId || "") ? await q(env2, "SELECT created_at FROM preview_receipts WHERE id=?1", st.previewId).first() : null;
+        out.push({ email: l.email, names: draftNames(st), title: safeText(st.storyDraft?.title, 120), expiresAt: l.expiresAt, characterAt: receipt?.created_at || null });
+      }
+      return reply({ drafts: out });
+    }
+    if (path === "/api/orders/from-draft" && req.method === "POST") {
+      requireThat(await admin(req, env2), "Owner access required.", 401);
+      requireThat(req.headers.get("origin") === url.origin, "Reload this page before saving.", 403);
+      const b2 = await input(req), email = String(b2.email || "").trim().toLowerCase();
+      const link = await openChaseLink(env2, email);
+      requireThat(link, "This saved book has expired or is unavailable.", 404);
+      const { saved } = await readDraft(env2, link.draftId, link.token);
+      requireThat(saved && saved.expires >= Date.now(), "This saved book has expired or is unavailable.", 404);
+      const st = saved.draft?.state || {}, v2 = saved.draft?.values || {};
+      const made = await madeFromDraft(env2, link.draftId, st);
+      if (made) return reply({ order: publicOrder(await get(env2, made.id), true), existing: true });
+      const story = validStory(st.storyDraft);
+      requireThat(story, "This draft has no complete ten-page story.", 409);
+      requireThat(/^[a-f0-9-]{36}$/.test(st.previewId || ""), "This draft has no successful character preview.", 409);
+      const preview = await q(env2, "SELECT id,created_at FROM preview_receipts WHERE id=?1 AND status='succeeded'", st.previewId).first();
+      requireThat(preview, "This draft has no successful character preview.", 409);
+      const images = characterBytes(st.characterImages);
+      const o2 = await storeOrder(env2, { id: await draftOrderId(link.draftId), token: crypto.randomUUID() + crypto.randomUUID(), email, size: "a4", preview, images, actor: "cravenluke@gmail.com", kind: "created_from_draft", details: { measurement: null, names: draftNames(st), age: safeText(st.age, 20), story, recipient: emptyRecipient(), dedication: safeText(v2.dedication, 300), senderName: safeText(v2["sender-name"], 80), wishes: wishes({ details: st.details, ownIdea: st.ownIdea, mood: st.mood, storyMode: st.storyMode, idea: Array.isArray(st.ideas?.[st.selected]) ? st.ideas[st.selected][0] : "" }), fromDraft: { draftId: link.draftId, at: now2() } } });
+      return reply({ order: publicOrder(o2, true), existing: false }, 201);
+    }
     const draftRoute = path.match(/^\/api\/orders\/drafts\/([a-f0-9-]{36})$/);
     if (draftRoute) {
       const token = req.headers.get("authorization")?.replace(/^Bearer /, "") || "";
       requireThat(/^[a-f0-9-]{64,80}$/.test(token), "Private draft link not found.", 404);
-      const key2 = "drafts/" + draftRoute[1] + "/" + await sha(token);
-      const object = await env2.BOOK_ASSETS.get(key2);
-      let saved = object ? JSON.parse(await privateKey(env2, new TextDecoder().decode(await object.arrayBuffer()), true)) : null;
+      let { key: key2, saved } = await readDraft(env2, draftRoute[1], token);
       if (saved && saved.expires < Date.now()) {
         await env2.BOOK_ASSETS.delete(key2);
         saved = null;
@@ -54018,34 +54134,19 @@ You can stop offer emails here: ${unsubscribe}`;
       requireThat(typeof token === "string" && /^[a-f0-9-]{64,80}$/.test(token), "Invalid private order key.");
       const existing = await q(env2, "SELECT * FROM customer_orders WHERE id=?1", b2.requestId).first();
       if (existing) {
-        const o3 = { ...existing, data: JSON.parse(existing.state) };
-        await authorise(new Request(req.url, { headers: { Authorization: "Bearer " + token } }), env2, o3);
-        return reply({ order: publicOrder(o3), existing: true }, 200);
+        const o2 = { ...existing, data: JSON.parse(existing.state) };
+        await authorise(new Request(req.url, { headers: { Authorization: "Bearer " + token } }), env2, o2);
+        return reply({ order: publicOrder(o2), existing: true }, 200);
       }
       const preview = await q(env2, "SELECT id,created_at FROM preview_receipts WHERE id=?1 AND status='succeeded'", b2.previewId || "").first();
       requireThat(preview, "Create a successful character preview before saving a book.");
-      const fullPrice = Date.now() > holdEnd(preview.created_at) + HOLD_GRACE_MS;
       const recent = await q(env2, "SELECT count(*) AS n FROM customer_orders WHERE email=?1 AND created_at>?2", b2.email.toLowerCase(), new Date(Date.now() - 864e5).toISOString()).first();
       requireThat(recent.n < 3, "You already have saved books today. Use your private order links.", 429);
       const global2 = await q(env2, "SELECT count(*) AS n FROM customer_orders WHERE created_at>?1", new Date(Date.now() - 864e5).toISOString()).first();
       requireThat(global2.n < 25, "Today\u2019s pilot capacity is full. Please try again tomorrow.", 429);
-      requireThat(Array.isArray(b2.characters) && b2.characters.length > 0 && b2.characters.length <= 2, "Add the approved character preview.");
-      const images = b2.characters.map((x) => {
-        requireThat(typeof x === "string" && x.length < 45e5 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x), "Character preview format is invalid.");
-        return Uint8Array.from(atob(x.split(",")[1]), (c) => c.charCodeAt(0));
-      });
-      const o2 = { id: b2.requestId };
-      const characters = [];
-      for (const bytes of images) {
-        requireThat(bytes[0] === 255 && bytes[1] === 216, "Invalid character image.");
-        characters.push(await assetPut(env2, o2, bytes, "image/jpeg", "character"));
-      }
-      const data2 = { measurement: measurementContext(b2.measurement, req), privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, names: safeText(b2.names, 85), age: safeText(b2.age, 20), story, recipient: recipient(b2.recipient), dedication: safeText(b2.dedication, 300), senderName: safeText(b2.senderName, 80), wishes: wishes(b2.wishes), previewId: preview.id, fullPrice, holdEndedAt: new Date(holdEnd(preview.created_at)).toISOString(), characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now2(), storyApprovedAt: now2() };
-      requireThat(data2.names, "Add the main character name.");
-      const date = now2();
-      await q(env2, "INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,'saved','unpaid',1,?6,?7,?7)", o2.id, await sha(token), b2.email.toLowerCase(), b2.size, orderTotal(b2.size, fullPrice), JSON.stringify(data2), date).run();
-      await audit(env2, o2.id, "saved", "customer", { size: b2.size, fullPrice, catalogueVersion: CATALOG_VERSION });
-      return reply({ order: publicOrder(await get(env2, o2.id)), checkoutEnabled: checkoutReady(env2) }, 201);
+      const images = characterBytes(b2.characters);
+      const saved = await storeOrder(env2, { id: b2.requestId, token, email: b2.email.toLowerCase(), size: b2.size, preview, images, actor: "customer", kind: "saved", details: { measurement: measurementContext(b2.measurement, req), names: safeText(b2.names, 85), age: safeText(b2.age, 20), story, recipient: recipient(b2.recipient), dedication: safeText(b2.dedication, 300), senderName: safeText(b2.senderName, 80), wishes: wishes(b2.wishes) } });
+      return reply({ order: publicOrder(saved), checkoutEnabled: checkoutReady(env2) }, 201);
     }
     const m = path.match(/^\/api\/orders\/([a-f0-9-]{36})(?:\/([a-z-]+))?$/);
     requireThat(m, "Not found.", 404);
@@ -54056,6 +54157,12 @@ You can stop offer emails here: ${unsubscribe}`;
       requireThat(env2.PRODIGI_API_KEY && equal(await hmac(env2.PRODIGI_API_KEY, `${id}:${key2}:${exp}`), sig || ""), "File not found.", 404);
       const a = await assetRead(env2, o2, key2);
       return new Response(a.bytes, { headers: { "Content-Type": a.type, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
+    }
+    if (action === "preview-image" && ["GET", "HEAD"].includes(req.method)) {
+      const n = url.searchParams.get("n") || "", sig = url.searchParams.get("sig") || "", row = await q(env2, "SELECT * FROM customer_orders WHERE id=?1", id).first(), o2 = row && { ...row, data: JSON.parse(row.state) }, p = o2?.data.preview, web = o2?.data.proofWeb, key2 = /^\d{1,2}$/.test(n) ? web?.pages?.[Number(n)] : null;
+      requireThat(o2 && env2.ORDER_LINK_SECRET && o2.payment_status === "unpaid" && p && web?.hash === p.hash && key2 && sig.length === 64 && equal(await previewSig(env2, id, Number(n), p.hash), sig), "Not found.", 404);
+      const a = await assetRead(env2, o2, key2);
+      return new Response(req.method === "HEAD" ? null : a.bytes, { headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=604800", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" } });
     }
     let o = await get(env2, id);
     const isAdmin = await authorise(req, env2, o);
@@ -54169,7 +54276,9 @@ You can stop offer emails here: ${unsubscribe}`;
         o.data.failedPayments = [...o.data.failedPayments || [], { ...o.data.payment, sessionId: o.session_id, endedStatus: p.status, replacedForSize: b.size, clearedAt: now2() }];
         o.data.payment = null;
       }
-      const changed = await q(env2, "UPDATE customer_orders SET size=?1,amount=?2,session_id=NULL,status='saved',state=?3,revision=revision+1,updated_at=?4 WHERE id=?5 AND revision=?6 AND payment_status='unpaid' RETURNING id", b.size, orderTotal(b.size, !!o.data.fullPrice) - (o.data.discount?.ownerGift ? o.data.discount.amountPence : 0), JSON.stringify(o.data), now2(), id, o.revision).first();
+      const off3 = giftOff(o.data, b.size);
+      if (o.data.discount?.ownerGift) o.data.discount.amountPence = off3;
+      const changed = await q(env2, "UPDATE customer_orders SET size=?1,amount=?2,session_id=NULL,status='saved',state=?3,revision=revision+1,updated_at=?4 WHERE id=?5 AND revision=?6 AND payment_status='unpaid' RETURNING id", b.size, orderTotal(b.size, !!o.data.fullPrice) - off3, JSON.stringify(o.data), now2(), id, o.revision).first();
       requireThat(changed, "This order changed. Reload before checkout.", 409);
       await audit(env2, id, "size_changed", isAdmin ? "owner" : "customer", { size: b.size });
       o = await get(env2, id);
@@ -54287,8 +54396,12 @@ You can stop offer emails here: ${unsubscribe}`;
       return reply(publicOrder(await save(env2, fresh, fresh.data), true));
     }
     if (action === "gift-discount") {
-      const pence = Number(b.amountPence);
-      requireThat(b.confirm === true && Number.isInteger(pence) && pence >= 100 && pence <= 1e3, "Choose an amount between \xA31 and \xA310.");
+      const percent = b.percent === void 0 || b.percent === null ? null : b.percent;
+      if (percent === null) {
+        const p = Number(b.amountPence);
+        requireThat(b.confirm === true && Number.isInteger(p) && p >= 100 && p <= 1e3, "Choose an amount between \xA31 and \xA310.");
+      } else requireThat(b.confirm === true && Number.isInteger(percent) && percent >= 5 && percent <= 20, "Choose a percent between 5 and 20.");
+      const pence = percent === null ? Number(b.amountPence) : Math.round(orderTotal(o.size, !!o.data.fullPrice) * percent / 100);
       requireThat(o.payment_status === "unpaid" && ["saved", "awaiting_payment"].includes(o.status) && !o.data.discount, "Only an unpaid book with no other offer can be given this.", 409);
       if (o.session_id) {
         requireThat(o.data.payment?.provider === "ziina", "Check this order\u2019s payment first.", 409);
@@ -54297,10 +54410,10 @@ You can stop offer emails here: ${unsubscribe}`;
         o.data.failedPayments = [...o.data.failedPayments || [], { ...o.data.payment, sessionId: o.session_id, endedStatus: p.status, replacedForDiscount: pence, clearedAt: now2() }];
         o.data.payment = null;
       }
-      o.data.discount = { code: "THANKYOU" + Math.round(pence / 100), amountPence: pence, ownerGift: true, at: now2() };
+      o.data.discount = { code: percent === null ? "THANKYOU" + Math.round(pence / 100) : "THANKYOU" + percent + "PC", ...percent === null ? {} : { percent }, amountPence: pence, ownerGift: true, at: now2() };
       const changed = await q(env2, "UPDATE customer_orders SET amount=?1,session_id=NULL,status='saved',state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' RETURNING id", orderTotal(o.size, !!o.data.fullPrice) - pence, JSON.stringify(o.data), now2(), id, o.revision).first();
       requireThat(changed, "This order changed. Reload.", 409);
-      await audit(env2, id, "gift_discount", actor, { amountPence: pence });
+      await audit(env2, id, "gift_discount", actor, { amountPence: pence, ...percent === null ? {} : { percent } });
       return reply(publicOrder(await get(env2, id), true));
     }
     if (action === "preview-book") {
@@ -54324,7 +54437,7 @@ You can stop offer emails here: ${unsubscribe}`;
       requireThat(["owner", "customer"].includes(b.to), "Choose who receives this email.");
       requireThat(o.payment_status === "unpaid" && !o.data.proof && o.data.preview && o.data.proofWeb?.hash === o.data.preview.hash && o.data.proofWeb.pages.every(Boolean), "Make the preview book and its phone pages first.", 409);
       const token = await privateKey(env2, o.data.privateKey, true), link = `${url.origin}/book.html?id=${id}${b.to === "owner" ? "&test=1" : ""}#key=${token}`;
-      const extra = { greeting: safeText(b.greeting, 40), note: safeText(b.note, 400) };
+      const extra = { greeting: safeText(b.greeting, 40), note: safeText(b.note, 400), pages: await Promise.all(o.data.proofWeb.pages.map((_2, n) => previewImageUrl(env2, url.origin, o, n))) };
       const r = await notify(env2, { ...o, data: { ...o.data, emailExtra: extra } }, "preview", link, b.to === "owner" ? { to: actor } : null);
       if (b.to === "customer") {
         o.data.emails = { ...o.data.emails || {}, preview: { sent: r.sent, at: now2(), providerId: r.providerId || null } };
@@ -54647,6 +54760,7 @@ export {
   followupStatus,
   matchZiina,
   ordersApi,
+  previewImageUrl,
   quoteOrder,
   recordFollowupConsent,
   recordPreviewChoice,

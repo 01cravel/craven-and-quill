@@ -441,12 +441,17 @@ test('before payment: owner builds a whole-book preview, customer flips it and b
  assert.equal((await request(env,'/'+id+'/file?file='+cust.bookPages[0])).status,200,'customer opens a page');
  o=await state(env,id);r=await request(env,'/'+id+'/preview-email',{revision:o.revision,to:'owner'},{admin:true});assert.equal(r.status,200);let m=mails.at(-1);assert.ok(m.subject.startsWith('[Test] '));assert.ok(m.text.includes('/book.html?id='+id+'&test=1#key='));assert.notEqual(m.to[0],o.email);
  o=await state(env,id);r=await request(env,'/'+id+'/preview-email',{revision:o.revision,to:'customer',greeting:'Hi Jan,',note:'Sorry the last link didn’t work.'},{admin:true});assert.equal(r.status,200);m=mails.at(-1);
- assert.equal(m.to[0],o.email);assert.equal(m.from,'orders@example.test');assert.ok(m.text.includes('Hi Jan,')&&m.text.includes('Sorry the last link'));assert.ok(m.text.includes('A4 or A5'));assert.ok(!m.html.includes('<img src="cid:'),'no pictures in the email');assert.ok(m.text.includes('/book.html?id='+id+'#key='));
+ assert.equal(m.to[0],o.email);assert.equal(m.from,'orders@example.test');assert.ok(m.text.includes('Hi Jan,')&&m.text.includes('Sorry the last link'));assert.ok(m.text.includes('I’ve put together Jamie’s whole book'));assert.ok(m.text.includes('Order Jamie’s book: '));assert.ok(!m.html.includes('<img src="cid:'),'no attachments');assert.ok(m.text.includes('/book.html?id='+id+'#key='));
+ // The email shows the whole book: cover, ten spreads of two, back cover, all from signed public picture links.
+ const pics=[...m.html.matchAll(/src="([^"]*\/preview-image\?[^"]*)"/g)].map(x=>x[1].replaceAll('&amp;','&'));assert.equal(pics.length,22);assert.ok(pics[0].includes('n=0&')&&pics.at(-1).includes('n='+(total-1)+'&'));
+ const pub=u=>ordersApi(new Request(u),env);let im=await pub(pics[1]);assert.equal(im.status,200);assert.equal(im.headers.get('content-type'),'image/jpeg');assert.equal(im.headers.get('cache-control'),'public, max-age=604800');assert.equal(im.headers.get('referrer-policy'),'no-referrer');
+ assert.equal((await pub(pics[1].replace(/sig=./,'sig=0'))).status,404,'wrong signature');assert.equal((await pub(pics[1].replace('n=2&','n=3&'))).status,404,'signature is per page');assert.equal((await pub(origin+'/api/orders/'+id+'/preview-image?n=0')).status,404);
  // A4 from the book page: the open A5 card page is retired and a new A4 one made.
  o=await state(env,id);r=await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a4'});assert.equal(r.status,200,JSON.stringify(await r.clone().json()));assert.equal(made,2);
  o=await state(env,id);assert.equal(o.size,'a4');assert.equal(o.amount,PRODUCTS.a4.pricePence+399);assert.equal(o.session_id,'ziina-intent-2');assert.equal(o.status,'awaiting_payment');assert.equal(o.data.failedPayments.at(-1).replacedForSize,'a4');
  r=await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a4'});assert.equal(r.status,200);assert.equal(made,2,'same size reuses the open card page');
  ziinaStatus='pending';o=await state(env,id);assert.equal((await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a5'})).status,409);o=await state(env,id);assert.equal(o.size,'a4','a payment in progress keeps its size');
+ assert.equal((await pub(pics[0])).status,200,'still shows while unpaid');env.DB.sqlite.prepare("UPDATE customer_orders SET payment_status='paid' WHERE id=?").run(id);assert.equal((await pub(pics[0])).status,404,'public pictures stop once paid');
 });
 test('gift sender wording is not doubled in the book',()=>{for(const [i,o] of [['With love from Nanny and Grandad','Nanny and Grandad'],['love from Mum','Mum'],['From Auntie Sue','Auntie Sue'],['With lots of love from Dad','Dad'],['Nanny and Grandad','Nanny and Grandad'],['Love','Love']])assert.equal(giver(i),o);});
 test('owner thank-you discount: £5 off applied at checkout, kept when switching size, open card page at old price retired',async()=>{
@@ -496,4 +501,48 @@ test('one-hour price hold: offer price within the hour, regular price after it, 
  const view={email,previewId:preview,size:'a4'};
  assert.equal((await request(env,'/quote-view',{...view,pricePence:2999},{auth:false})).status,400);
  assert.equal((await request(env,'/quote-view',{...view,pricePence:3999},{auth:false})).status,200);
+});
+test('owner 10% thank-you is worked out per size, shown per size on the book page, and recalculated on a size change',async()=>{
+ const {orderTotal}=await import('../src/catalog.js');const env=environment(),{id,order}=await create(env);ziinaConnected(env);let amount=order.amount,made=0;
+ env.fetch=async(url,init)=>{if(url.includes('/payment_intent')&&init?.method==='POST'){made++;amount=JSON.parse(init.body).amount;return Response.json({...intent(env,amount),id:'ziina-intent-'+made});}return Response.json({...intent(env,amount),id:'ziina-intent-'+made});};
+ let o=await state(env,id);assert.equal((await request(env,'/'+id+'/gift-discount',{revision:o.revision,percent:10,confirm:true})).status,403);
+ for(const percent of [4,25,10.5,'10'])assert.equal((await request(env,'/'+id+'/gift-discount',{revision:o.revision,percent,confirm:true},{admin:true})).status,400,'percent '+percent);
+ assert.equal((await request(env,'/'+id+'/gift-discount',{revision:o.revision,percent:10,confirm:true},{admin:true})).status,200);
+ const tenth=size=>Math.round(orderTotal(size)*10/100);o=await state(env,id);assert.equal(o.size,'a5');assert.equal(o.amount,orderTotal('a5')-tenth('a5'));assert.deepEqual([o.data.discount.code,o.data.discount.percent,o.data.discount.amountPence],['THANKYOU10PC',10,tenth('a5')]);
+ const pub=await (await request(env,'/'+id)).json();assert.deepEqual(pub.discount.offBySize,{a4:tenth('a4'),a5:tenth('a5')});
+ assert.equal((await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a4'})).status,200);o=await state(env,id);assert.equal(o.amount,orderTotal('a4')-tenth('a4'));assert.equal(amount,o.amount,'Ziina charges 10% off the A4 price');assert.equal(o.data.discount.amountPence,tenth('a4'));
+ const html=readFileSync(new URL('../dist/client/book.html',import.meta.url),'utf8');assert.match(html,/g\.percent\+'%'/);assert.match(html,/offBySize\?\.\[b\.dataset\.size\]/);
+});
+test('recent characters: owner lists emailed drafts without keys, turns one into a saved A4 book once, and can draw it',async()=>{
+ const {orderTotal}=await import('../src/catalog.js');const env=environment();connected(env);env.OPENAI_API_KEY='test-image-key';
+ env.fetch=async(url)=>{url=String(url);if(url.includes('api.resend.com'))return Response.json({id:'mail'});if(url.includes('/v1/responses'))return Response.json({output_text:JSON.stringify({items:[]})});if(url.includes('/images/'))return Response.json({data:[{b64_json:jpeg.toString('base64')}],usage:{}});throw Error('unexpected '+url);};
+ const receipt=(ago=0)=>{const pid=crypto.randomUUID();env.DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,created_at) VALUES (?,'succeeded',?)").run(pid,new Date(Date.now()-ago).toISOString());return pid;};
+ const put=async(email,pid,names)=>{const draftId=crypto.randomUUID(),draft={state:{names,age:'3-5',storyDraft:story,characterImages:[dataUrl],previewId:pid,details:'Loves owls',mood:'adventure',storyMode:'invent',ideas:[['The owl who lost her hoot','x']],selected:0},values:{names,dedication:'For '+names,'sender-name':'Gran'}};assert.equal((await request(env,'/drafts/'+draftId,{draft,previewId:pid,email},{method:'PUT'})).status,200);return draftId;};
+ const mayaDraft=await put('maya@example.test',receipt(2*3600000),'Maya');await put('buyer@example.test',receipt(),'Ben');
+ env.DB.sqlite.prepare("INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").run(crypto.randomUUID(),'x','buyer@example.test','a4',4398,'awaiting_review','paid',1,'{}',new Date().toISOString(),new Date().toISOString());
+ assert.equal((await request(env,'/recent-drafts')).status,401);
+ let r=await request(env,'/recent-drafts',null,{admin:true});assert.equal(r.status,200);let d=await r.json();
+ assert.deepEqual(d.drafts.map(x=>[x.email,x.names,x.title]),[['maya@example.test','Maya',story.title]],'buyers are left out');assert.ok(d.drafts[0].expiresAt&&d.drafts[0].characterAt);
+ const raw=JSON.stringify(d);assert.ok(!raw.includes(mayaDraft)&&!raw.includes('data:image')&&!raw.includes('key'),'no draft ids, keys or pictures');
+ assert.equal((await request(env,'/from-draft',{email:'maya@example.test'})).status,401);
+ assert.equal((await request(env,'/from-draft',{email:'maya@example.test'},{admin:true,headers:{Origin:'https://evil.test'}})).status,403);
+ assert.equal((await request(env,'/from-draft',{email:'nobody@example.test'},{admin:true})).status,404);
+ r=await request(env,'/from-draft',{email:'Maya@Example.test'},{admin:true});assert.equal(r.status,201);const made=(await r.json()).order;
+ let o=await state(env,made.id);assert.equal(o.status,'saved');assert.equal(o.payment_status,'unpaid');assert.equal(o.size,'a4');assert.equal(o.email,'maya@example.test');assert.equal(o.session_id,null);
+ assert.equal(o.amount,orderTotal('a4',true),'the price hold from their preview has ended');assert.equal(o.data.fullPrice,true);
+ assert.equal(o.data.names,'Maya');assert.equal(o.data.senderName,'Gran');assert.equal(o.data.dedication,'For Maya');assert.equal(o.data.wishes.idea,'The owl who lost her hoot');assert.equal(o.data.recipient.name,'');assert.equal(o.data.fromDraft.draftId,mayaDraft);assert.equal(o.data.characters.length,1);assert.equal(o.data.story.title,story.title);
+ assert.equal(env.DB.sqlite.prepare("SELECT COUNT(*) n FROM order_audit WHERE order_id=? AND kind='created_from_draft'").get(made.id).n,1);
+ r=await request(env,'/from-draft',{email:'maya@example.test'},{admin:true});assert.equal(r.status,200);const again=await r.json();assert.equal(again.existing,true);assert.equal(again.order.id,made.id);
+ assert.equal(env.DB.sqlite.prepare("SELECT COUNT(*) n FROM customer_orders WHERE email='maya@example.test'").get().n,1,'one book per draft');
+ d=await (await request(env,'/recent-drafts',null,{admin:true})).json();assert.equal(d.drafts.length,0,'made drafts drop off the list');
+ r=await request(env,'/'+made.id+'/prebuild',{revision:o.revision,page:'cover',confirm:true},{admin:true});assert.equal(r.status,200);o=await state(env,made.id);assert.ok(o.data.art.cover);assert.equal(o.data.prebuilt,true);
+ const link=await request(env,'/'+made.id+'/customer-link',{revision:o.revision},{admin:true});const key=(await link.json()).url.split('#key=')[1];assert.equal((await ordersApi(new Request(origin+'/api/orders/'+made.id,{headers:{Authorization:'Bearer '+key}}),env)).status,200,'the new book has its own private key');
+});
+test('order desk watermarks unpaid preview phone pages only',async()=>{
+ const {runInNewContext}=await import('node:vm');const src=readFileSync(new URL('../dist/client/orders-admin.js',import.meta.url),'utf8');
+ const ctx={Math};runInNewContext(src.match(/const markPages=[^\n]*/)[0].replace('const markPages','markPages')+'\n'+src.match(/function stampPreview[^\n]*/)[0],ctx);
+ assert.equal(ctx.markPages({paymentStatus:'unpaid',proof:null,previewBook:{hash:'h'}}),true);assert.equal(ctx.markPages({paymentStatus:'paid',proof:{hash:'p'},previewBook:null}),false);assert.equal(ctx.markPages({paymentStatus:'unpaid',proof:{hash:'p'},previewBook:null}),false);
+ const calls=[];const g=new Proxy({},{get:(t,k)=>k in t?t[k]:(k==='measureText'?()=>({width:400}):(...a)=>calls.push([k,...a])),set:(t,k,v)=>{t[k]=v;return true;}});
+ ctx.stampPreview(g,1000,1414);const texts=calls.filter(c=>c[0]==='fillText');assert.ok(texts.length>=15,'repeated across the page');assert.ok(texts.every(c=>c[1]==='Craven & Quill'));assert.equal(g.fillStyle,'rgba(255,255,255,.14)');assert.match(g.strokeStyle,/rgba\(30,24,18/);assert.ok(calls.some(c=>c[0]==='rotate'));
+ assert.match(src,/if\(mark\)stampPreview\(/);
 });
