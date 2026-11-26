@@ -353,14 +353,14 @@ export async function openChaseLink(env,email){
   try{
     await ensureChaseTables(env);
     const row=await db(env,'SELECT sealed,expires_at FROM chase_links WHERE email=?1',String(email||'').trim().toLowerCase()).first();
-    if(!row||Date.parse(row.expires_at)<=Date.now())return null;
+    if(!row)return null;// 26 Nov 2026: saved books never expire
     const link=await unsealLink(env,row.sealed);return link&&{...link,email:String(email).trim().toLowerCase(),expiresAt:row.expires_at};
   }catch{return null;}
 }
 // Owner desk (26 Nov 2026): every unexpired saved book, newest first, with its draft id and key. Server use only.
-export async function recentChaseLinks(env,limit=60){
+export async function recentChaseLinks(env,limit=300){
   await ensureChaseTables(env);
-  const rows=(await db(env,'SELECT email,sealed,expires_at FROM chase_links WHERE expires_at>?1 ORDER BY updated_at DESC LIMIT ?2',now(),limit).all()).results||[];
+  const rows=(await db(env,'SELECT email,sealed,expires_at FROM chase_links ORDER BY updated_at DESC LIMIT ?1',limit).all()).results||[];
   const out=[];for(const r of rows){const link=await unsealLink(env,r.sealed);if(link)out.push({email:r.email,expiresAt:r.expires_at,...link});}
   return out;
 }

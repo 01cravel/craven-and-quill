@@ -53058,16 +53058,16 @@ async function openChaseLink(env2, email) {
   try {
     await ensureChaseTables(env2);
     const row = await db(env2, "SELECT sealed,expires_at FROM chase_links WHERE email=?1", String(email || "").trim().toLowerCase()).first();
-    if (!row || Date.parse(row.expires_at) <= Date.now()) return null;
+    if (!row) return null;
     const link = await unsealLink(env2, row.sealed);
     return link && { ...link, email: String(email).trim().toLowerCase(), expiresAt: row.expires_at };
   } catch {
     return null;
   }
 }
-async function recentChaseLinks(env2, limit = 60) {
+async function recentChaseLinks(env2, limit = 300) {
   await ensureChaseTables(env2);
-  const rows = (await db(env2, "SELECT email,sealed,expires_at FROM chase_links WHERE expires_at>?1 ORDER BY updated_at DESC LIMIT ?2", now(), limit).all()).results || [];
+  const rows = (await db(env2, "SELECT email,sealed,expires_at FROM chase_links ORDER BY updated_at DESC LIMIT ?1", limit).all()).results || [];
   const out = [];
   for (const r of rows) {
     const link = await unsealLink(env2, r.sealed);
@@ -53413,7 +53413,7 @@ async function recentDrafts(env2) {
   for (const l of await recentChaseLinks(env2)) {
     if (await q(env2, "SELECT 1 FROM customer_orders WHERE email=?1 AND payment_status='paid' LIMIT 1", l.email).first()) continue;
     const { saved } = await readDraft(env2, l.draftId, l.token).catch(() => ({ saved: null }));
-    if (!saved || saved.expires < Date.now()) continue;
+    if (!saved) continue;
     const st = saved.draft?.state || {};
     if (await madeFromDraft(env2, l.draftId, st)) continue;
     const receipt = /^[a-f0-9-]{36}$/.test(st.previewId || "") ? await q(env2, "SELECT created_at FROM preview_receipts WHERE id=?1", st.previewId).first() : null;
@@ -54115,7 +54115,7 @@ You can stop offer emails here: ${unsubscribe}`;
       const link = await openChaseLink(env2, email);
       requireThat(link, "This saved book has expired or is unavailable.", 404);
       const { saved } = await readDraft(env2, link.draftId, link.token);
-      requireThat(saved && saved.expires >= Date.now(), "This saved book has expired or is unavailable.", 404);
+      requireThat(saved, "This saved book is unavailable.", 404);
       const st = saved.draft?.state || {}, v2 = saved.draft?.values || {};
       const made = await madeFromDraft(env2, link.draftId, st);
       if (made) return reply({ order: publicOrder(await get(env2, made.id), true), existing: true });
@@ -54164,10 +54164,6 @@ You can stop offer emails here: ${unsubscribe}`;
       const token = req.headers.get("authorization")?.replace(/^Bearer /, "") || "";
       requireThat(/^[a-f0-9-]{64,80}$/.test(token), "Private draft link not found.", 404);
       let { key: key2, saved } = await readDraft(env2, draftRoute[1], token);
-      if (saved && saved.expires < Date.now()) {
-        await env2.BOOK_ASSETS.delete(key2);
-        saved = null;
-      }
       if (req.method === "GET") {
         requireThat(saved, "This draft link has expired or is unavailable.", 404);
         return reply(saved.draft);
@@ -54188,7 +54184,7 @@ You can stop offer emails here: ${unsubscribe}`;
       b2.draft.state.photos = [];
       b2.draft.state.photoChecks = [];
       b2.draft.orderRequest = null;
-      b2.draft.expires = saved?.expires || Date.now() + 7 * 864e5;
+      b2.draft.expires = Date.now() + 3650 * 864e5;
       const stored = { draft: b2.draft, expires: b2.draft.expires, emailedAt: Date.now() };
       await env2.BOOK_ASSETS.put(key2, new TextEncoder().encode(await privateKey(env2, JSON.stringify(stored))), { httpMetadata: { contentType: "text/plain" } });
       await saveChaseLink(env2, b2.email, draftRoute[1], token, stored.expires);
