@@ -12,7 +12,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=onebutton-1">
+  <link rel="preload" href="assets/first-book.webp" as="image" fetchpriority="high">
+  <link rel="stylesheet" href="create.css?v=firstscreen-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -49,14 +50,14 @@
     <section class="step-panel">
       <form id="story-maker" novalidate>
         <section class="step active" data-step="1" aria-labelledby="step-1-title">
-          <figure class="example-pair" aria-label="Example: a photo of Oliver, and Oliver drawn into his storybook"><span class="example-photo"><img src="assets/example-photo.webp" width="250" height="300" alt="A photo of a boy called Oliver"><i>Their photo</i></span><span class="example-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></span><span class="example-art"><img src="assets/example-character.webp" width="600" height="440" alt="Oliver drawn as a storybook character, carrying a cake beside a fox cub"><i>Their storybook</i></span></figure>
-          <h1 id="step-1-title">How old is the star of the book?</h1>
+          <figure class="hook" aria-label="Example: a photo of Oliver, and the hardback storybook made from it"><img class="hook-book" src="assets/first-book.webp" width="680" height="658" alt="Oliver and the Birthday Star, a hardback storybook with Oliver drawn as the hero" fetchpriority="high"><span class="hook-photo"><img src="assets/example-photo.webp" width="250" height="300" alt="The photo of Oliver it was made from"><i>From this photo</i></span></figure>
+          <h1 id="step-1-title">Their photo becomes their own storybook</h1>
           <p id="starting-story" hidden></p>
-          <p class="intro">One photo becomes a ten-page illustrated hardback. Free preview, no card.</p><p class="proof"><span class="proof-stars" aria-hidden="true"></span><b>4.9</b><span class="visually-hidden">out of 5 rating,</span><span class="proof-rule" aria-hidden="true"></span><span>3,000+ of our books sold</span></p>
+          <p class="intro">A ten-page hardback with them as the hero. See their character free first, no card.</p><p class="proof"><span class="proof-stars" aria-hidden="true"></span><b>4.9</b><span class="visually-hidden">out of 5 rating,</span><span class="proof-rule" aria-hidden="true"></span><span>3,000+ of our books sold</span></p>
           
           
           <fieldset>
-            <legend>Tap their age to start</legend>
+            <legend>Who is it for? Tap their age to start</legend>
             <div class="choice-grid four age-grid compact-choices">
               <label class="choice"><input type="radio" name="age" value="3-5"><span><b>Age 3–5</b><small>Short, simple sentences</small></span></label>
               <label class="choice"><input type="radio" name="age" value="6-8"><span><b>Age 6–8</b><small>Clear, lively story</small></span></label>

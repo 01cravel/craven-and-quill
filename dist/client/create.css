@@ -1118,3 +1118,17 @@ body.hold-on .top-back{visibility:visible}
 .arrives span{grid-column:2;font-size:.86rem;color:var(--muted);line-height:1.35}
 .size-switch{margin:10px 0 0;text-align:center;font-size:.88rem;color:var(--muted)}
 .size-switch .text-link{font-size:.88rem;min-height:0;padding:0 0 0 2px}
+
+/* First screen (26 Nov): lead with the real hardback, not a question */
+.hook{position:relative;margin:0 0 14px;height:clamp(190px,35vh,280px);max-width:470px}
+.hook-book{display:block;height:100%;width:auto;max-width:74%;margin-left:auto;object-fit:cover;object-position:50% 40%;border-radius:16px;box-shadow:0 18px 30px -18px rgba(23,51,44,.55)}
+.hook-photo{position:absolute;z-index:1;left:0;bottom:10px;width:31%;max-width:130px;padding:6px 6px 24px;background:#fff;border-radius:6px;transform:rotate(-5deg);box-shadow:0 1px 2px rgba(23,51,44,.15),0 12px 20px -10px rgba(23,51,44,.5)}
+.hook-photo img{display:block;width:100%;aspect-ratio:5/6;object-fit:cover;object-position:50% 30%;border-radius:3px}
+.hook-photo i{position:absolute;left:0;right:0;bottom:5px;text-align:center;font-style:normal;font-size:.68rem;font-weight:600;color:#17332c;white-space:nowrap}
+.step[data-step="1"] h1{text-wrap:balance}
+.step[data-step="1"] fieldset{margin-top:10px}
+.step[data-step="1"] .step-actions.step-actions-single{display:none!important}
+.step[data-step="1"] .trust-line{display:none}
+@media(max-height:600px){.hook{height:160px;margin-bottom:10px}}
+@media(min-width:781px){.hook{margin-bottom:24px}}
+.step[data-step="1"].active{animation:none!important}
