@@ -144,7 +144,7 @@ test('owner-approved one-off: past preview contacts get both reminders, opt-outs
 test('five-email chase: right email at the right time, saved-book link, one 10% code from email 3, never two close together',async()=>{
   const {CHASE_NOTICE,chaseDue,saveChaseLink}=await import('../dist/server/orders.js');
   const DB=testDb(),sent=[],email='chaser@somewhere.invalid',id=crypto.randomUUID();
-  const env={DB,FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',ORDER_LINK_SECRET:'s'.repeat(40),
+  const env={DB,FOLLOWUP_EMAILS_ENABLED:'true',CHASE_MAX_STEP:'5',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',ORDER_LINK_SECRET:'s'.repeat(40),
     async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'sent'+sent.length});}};
   DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,email,created_at) VALUES (?,'succeeded',?,?)").run(id,email,new Date().toISOString());
   assert.equal(await recordPreviewChoice(env,email,id,false,CHASE_NOTICE),true);
@@ -177,7 +177,7 @@ test('five-email chase: right email at the right time, saved-book link, one 10% 
 
 test('chase stops for buyers and unsubscribers, and falls back to the plain link without a saved book',async()=>{
   const {CHASE_NOTICE}=await import('../dist/server/orders.js');
-  const DB=testDb(),sent=[],env={DB,FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
+  const DB=testDb(),sent=[],env={DB,FOLLOWUP_EMAILS_ENABLED:'true',CHASE_MAX_STEP:'5',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
     async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'sent'+sent.length});}};
   const people=['plain@somewhere.invalid','gone@somewhere.invalid'];
   for(const email of people){const id=crypto.randomUUID();
@@ -217,4 +217,10 @@ test('Christmas emails: everyone we hold an email for, once each, only inside th
   assert.equal(seasonDue(Date.parse('2026-12-14T09:00:00Z')),null);
   const m=seasonMessage('xmas26-2',{names:'Mia',image:'https://x/y.jpg',link:'https://l',unsub:'https://u'});
   assert.equal(m.subject,'Mia opening this on Christmas morning');assert.ok(m.html.includes('Make Mia’s book'));assert.ok(!m.html.includes('of 5'));
+});
+
+test('by default only the 3-hour chase email goes; later ones are the owner personal email',async()=>{
+  const {chaseDue}=await import('../dist/server/orders.js');
+  const src=await import('node:fs').then(f=>f.readFileSync(new URL('../src/followups.js',import.meta.url),'utf8'));
+  assert.ok(src.includes("step>Number(env.CHASE_MAX_STEP||1)"));assert.equal(chaseDue(25,[{step:1,sent_at:'2020-01-01T00:00:00.000Z'}]),2,'step 2 would be due, so the cap is what stops it');
 });

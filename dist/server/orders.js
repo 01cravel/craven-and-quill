@@ -53102,7 +53102,7 @@ async function runChase(env2) {
   for (const row of rows) {
     const sent = (await db(env2, "SELECT step,sent_at FROM chase_steps WHERE email=?1", row.email).all()).results || [];
     const step = chaseDue((Date.now() - Date.parse(row.consent_at)) / 36e5, sent);
-    if (!step) continue;
+    if (!step || step > Number(env2.CHASE_MAX_STEP || 1)) continue;
     const claimed = await db(env2, "INSERT INTO chase_steps (email,step,status) VALUES (?1,?2,'sending') ON CONFLICT(email,step) DO NOTHING RETURNING step", row.email, step).first();
     if (!claimed) continue;
     const expires = new Date(Date.parse(row.consent_at) + 7 * DAY).toISOString();

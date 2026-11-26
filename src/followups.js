@@ -390,7 +390,8 @@ async function runChase(env){
   for(const row of rows){
     const sent=(await db(env,'SELECT step,sent_at FROM chase_steps WHERE email=?1',row.email).all()).results||[];
     const step=chaseDue((Date.now()-Date.parse(row.consent_at))/3600000,sent);
-    if(!step)continue;
+    // 26 Nov 2026: only the 3-hour "come and look" email goes automatically. Later chasing is the owner's personal whole-book email (set CHASE_MAX_STEP=5 to bring the old five back).
+    if(!step||step>Number(env.CHASE_MAX_STEP||1))continue;
     const claimed=await db(env,"INSERT INTO chase_steps (email,step,status) VALUES (?1,?2,'sending') ON CONFLICT(email,step) DO NOTHING RETURNING step",row.email,step).first();
     if(!claimed)continue;
     const expires=new Date(Date.parse(row.consent_at)+7*DAY).toISOString();
