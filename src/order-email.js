@@ -105,7 +105,7 @@ export function previewEmail(o,url,today=new Date()){
   const offer=g?`As a thank you, here’s ${off} ${who} book. It’s already taken off, so there’s no code to remember.`:'';
   const button=`See ${who} book`;
   const small='Printed as a hardback in the UK and posted to your door.';
-  const nm=(String(x.greeting||'').match(/^(?:hi|hello|hey|dear)\s+([^,!.]+)/i)?.[1]||(first&&!TITLES.test(first)?first:'')).trim(),subject=nm?`${nm}, how cute is the book you created?`:'How cute is the book you created?',pages=[],n=0;// 26 Nov: Luke wants a link like Jan's email, not every page in the email.
+  const subject=f.name?`We created ${f.poss} full book, look how cute it is`:'We created your full book, look how cute it is',pages=[],n=0;// 26 Nov: Luke wants a link like Jan's email, not every page in the email.
 
   const pic=(i,alt,w)=>`<a href="${esc(url)}" style="text-decoration:none;"><img src="${esc(pages[i])}" width="${w}" alt="${esc(alt)}" style="display:block;width:100%;max-width:${w}px;height:auto;border:0;margin:0 auto;color:#7a6e60;font:13px ${sans};"></a>`;
   const rows=[];if(n){rows.push(`<tr><td colspan="2" align="center" style="padding:0 0 14px;">${pic(0,f.title?f.title+', front cover':'Front cover',340)}</td></tr>`);
