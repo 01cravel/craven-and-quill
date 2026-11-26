@@ -110,6 +110,7 @@ ${details.image?`<table role="presentation" cellpadding="0" cellspacing="0" bord
 }
 // Child's name and book title, so every reminder is about their book.
 const DETAILS='CREATE TABLE IF NOT EXISTS followup_details (email TEXT PRIMARY KEY, names TEXT, title TEXT, updated_at TEXT NOT NULL)';
+export const ensureDetailsTable=env=>env.DB.prepare(DETAILS).run();
 export async function saveFollowupDetails(env,email,names,title){
   const n=String(names||'').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,60),t=String(title||'').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,120);
   if(!n&&!t)return;

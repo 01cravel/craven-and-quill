@@ -43,6 +43,24 @@ async function readInput(request){
   return {names,secondName,age:input.age,mood:input.mood,details,idea,changes,previousStory};
 }
 
+// One call to the story writer with already-checked inputs ({names,secondName,age,mood,details,idea,changes,previousStory}).
+// Used by the create page (below, after its budgets) and by the owner desk for older characters (26 Nov 2026). No budgets here.
+export async function writeStory(env,input){
+  let response,data;
+  try{
+    response=await (env.fetch||fetch)('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini',store:false,instructions,input:[{role:'user',content:JSON.stringify(input)}],max_output_tokens:8000,text:{format:{type:'json_schema',name:'storybook',strict:true,schema}}}),signal:AbortSignal.timeout(75000)});
+    data=await response.json();
+  }catch{return {status:502,error:'The story could not finish this time. Your draft has not changed. Try again when you’re ready.'};}
+  if(!response.ok)return {status:502,error:'The story could not be written this time. Your draft has not changed. Please try again later.'};
+  const content=(Array.isArray(data?.output)?data.output:[]).filter(item=>item?.type==='message').flatMap(item=>Array.isArray(item.content)?item.content:[]);
+  if(content.some(item=>item.type==='refusal'))return {status:422,error:'We could not write that story. Try a different idea or change the details. Your draft has not changed.'};
+  if(data?.status!=='completed')return {status:502,error:'The story did not finish. Your draft has not changed. Please try again.'};
+  const text=content.filter(item=>item.type==='output_text').map(item=>item.text||'').join('');
+  let story;try{story=validStory(JSON.parse(text));}catch{}
+  if(!story)return {status:502,error:'The story did not come back complete. Your draft has not changed. Please try again.'};
+  return {story};
+}
+
 export async function storyApi(request,env){
   if(new URL(request.url).pathname!=='/api/generate-story')return null;
   if(request.method!=='POST')return reply({error:'Use Generate a story to write your draft.'},405,{Allow:'POST'});
@@ -73,18 +91,9 @@ export async function storyApi(request,env){
     const row=await env.DB.prepare('INSERT INTO story_daily_usage (day, attempts) VALUES (?1, 1) ON CONFLICT(day) DO UPDATE SET attempts=attempts+1 WHERE attempts<?2 RETURNING attempts').bind(day,DAILY_LIMIT).first();
     if(!row)return respond({error:'Today’s story-writing limit has been reached. Your draft is still here to edit. Please try again tomorrow.'},429);
   }catch{return respond({error:'Story writing is temporarily unavailable. Your current draft has not changed.'},503);}
-  let response,data;
-  try{
-    response=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini',store:false,instructions,input:[{role:'user',content:JSON.stringify(input)}],max_output_tokens:8000,text:{format:{type:'json_schema',name:'storybook',strict:true,schema}}}),signal:AbortSignal.timeout(75000)});
-    data=await response.json();
-  }catch{return respond({error:'The story could not finish this time. Your draft has not changed. Try again when you’re ready.'},502);}
-  if(!response.ok)return respond({error:'The story could not be written this time. Your draft has not changed. Please try again later.'},502);
-  const content=(Array.isArray(data?.output)?data.output:[]).filter(item=>item?.type==='message').flatMap(item=>Array.isArray(item.content)?item.content:[]);
-  if(content.some(item=>item.type==='refusal'))return respond({error:'We could not write that story. Try a different idea or change the details. Your draft has not changed.'},422);
-  if(data?.status!=='completed')return respond({error:'The story did not finish. Your draft has not changed. Please try again.'},502);
-  const text=content.filter(item=>item.type==='output_text').map(item=>item.text||'').join('');
-  let story;try{story=validStory(JSON.parse(text));}catch{}
-  if(!story)return respond({error:'The story did not come back complete. Your draft has not changed. Please try again.'},502);
+  const written=await writeStory(env,input);
+  if(written.error)return respond({error:written.error},written.status);
+  const story=written.story;
   // The title is an editable customer choice, not something a revision may silently rename.
   if(input.previousStory)story.title=input.previousStory.title;
   return respond({ok:true,story});
