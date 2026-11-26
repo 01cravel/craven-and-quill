@@ -419,7 +419,7 @@ $('#email').addEventListener('change',updatePhotoGate);
 
 function renderPhotoThumbnails(files){
   photoUrls.forEach(URL.revokeObjectURL);photoUrls=[];$('#photo-list').replaceChildren();
-  files.forEach((file,index)=>{const url=URL.createObjectURL(file);photoUrls.push(url);const thumb=document.createElement('img');thumb.src=url;thumb.alt=`Selected photo ${index+1}`;const item=document.createElement('div');item.className='photo-reference';const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.setAttribute('aria-label',`Remove photo ${index+1}`);remove.addEventListener('click',()=>void selectPhotos(state.photos.filter((_,i)=>i!==index)));item.append(thumb,remove);$('#photo-list').append(item);});
+  files.forEach((file,index)=>{const url=URL.createObjectURL(file);photoUrls.push(url);const thumb=document.createElement('img');thumb.src=url;thumb.alt=`Selected photo ${index+1}`;thumb.title='Tap to change this photo';thumb.style.cursor='pointer';thumb.addEventListener('click',()=>$('#photos').click());/* 26 Nov: Clarity showed people tapping their photo expecting to change it */const item=document.createElement('div');item.className='photo-reference';const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.setAttribute('aria-label',`Remove photo ${index+1}`);remove.addEventListener('click',()=>void selectPhotos(state.photos.filter((_,i)=>i!==index)));item.append(thumb,remove);$('#photo-list').append(item);});
   $('.upload-wrap').classList.toggle('has-photo',files.length>0);$('.upload strong').textContent=files.length?(files.length>1?'Photos added':'Photo added'):'Add a clear photo';$('.upload small').textContent=files.length?'Tap to change':'Face forward, both eyes clear, no sunglasses.';$('.upload-icon').style.backgroundImage=files.length?`url(${photoUrls[0]})`:'';
 }
 let photoSelection=0;
@@ -1157,3 +1157,6 @@ async function drawPages(){
   });
   await Promise.all(jobs);
 }
+
+// 26 Nov 2026: Clarity showed people tapping the red error message. Tapping it now jumps to the field that needs fixing.
+document.addEventListener('click',event=>{const err=event.target.closest('.error');if(!err||!err.textContent.trim())return;const step=err.closest('section')||document;const f=step.querySelector('input:invalid,textarea:invalid,select:invalid')||step.querySelector('input:not([type=hidden]):not([type=file]),textarea,select');if(f){f.scrollIntoView({block:'center',behavior:'smooth'});try{f.focus({preventScroll:true});}catch{}}});
