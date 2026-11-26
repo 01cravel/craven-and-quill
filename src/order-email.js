@@ -101,10 +101,10 @@ export function previewEmail(o,url,today=new Date()){
   const d=o.data||{},x=d.emailExtra||{},f=facts(o),first=String(d.recipient?.name||'').trim().split(/\s+/)[0]||'';
   const hi=x.greeting||(first&&!TITLES.test(first)?`Hi ${first},`:'Hello,'),who=f.name?f.poss:'your',Who=f.name?f.poss:'Your';
   const g=d.discount?.ownerGift?d.discount:null,off=g?(g.percent?g.percent+'% off':poundsOff(g.amountPence)+' off'):'';
-  const lines=[`I’ve put together ${who} whole book so you can see exactly how it would look. Tap the button below to flip through every page, and order it if you love it.`,'If anything needs changing, or you’ve got any questions at all, just reply to this email and I’ll sort it.'];
+  const lines=[`I’ve put together ${who} whole book so you can see exactly how it would look. Tap the button below to flip through every page, and order it if you love it.`],after='If anything needs changing, or you’ve got any questions at all, just reply to this email and I’ll sort it.';
   const offer=g?`As a thank you, here’s ${off} ${who} book. It’s already taken off, so there’s no code to remember.`:'';
-  const button=g?(g.percent?`Order ${who} book with ${off}`:`Order ${who} book, ${off}`):`Order ${who} book`;
-  const small=`Printed as a hardback in the UK and posted to your door.${today<Date.parse('2026-12-15T00:00:00Z')?' Order by 14 December for Christmas.':''}`;
+  const button=`See ${who} book`;
+  const small='Printed as a hardback in the UK and posted to your door.';
   const nm=(String(x.greeting||'').match(/^(?:hi|hello|hey|dear)\s+([^,!.]+)/i)?.[1]||(first&&!TITLES.test(first)?first:'')).trim(),subject=nm?`${nm}, how cute is the book you created?`:'How cute is the book you created?',pages=[],n=0;// 26 Nov: Luke wants a link like Jan's email, not every page in the email.
 
   const pic=(i,alt,w)=>`<a href="${esc(url)}" style="text-decoration:none;"><img src="${esc(pages[i])}" width="${w}" alt="${esc(alt)}" style="display:block;width:100%;max-width:${w}px;height:auto;border:0;margin:0 auto;color:#7a6e60;font:13px ${sans};"></a>`;
@@ -118,15 +118,13 @@ export function previewEmail(o,url,today=new Date()){
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#efeae0;"><tr><td align="center" style="padding:20px 8px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;max-width:600px;background:#fffdfa;">
 <tr><td align="center" style="padding:26px 20px 20px;border-bottom:1px solid #e9dec7;"><a href="https://cravenandquill.com"><img src="${LOGO}" width="140" alt="Craven &amp; Quill" style="display:block;width:140px;height:auto;border:0;color:#211d1a;font:21px ${serif};"></a></td></tr>
-<tr><td style="padding:30px 28px 8px;">${[hi,...(x.note?[x.note]:[]),...lines].map(t=>p(esc(t))).join('')}</td></tr>
-${n?`<tr><td style="padding:8px 10px 18px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">${rows.join('')}</table></td></tr>`:''}
-<tr><td style="padding:8px 28px 34px;">${offer?p(esc(offer),`color:#211d1a;font-size:17px;`):''}
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:6px 0 12px;"><tr><td bgcolor="${GOLD}" align="center" style="border-radius:6px;background:${GOLD};"><a href="${esc(url)}" style="display:block;padding:20px 24px;color:#ffffff;text-decoration:none;font:700 19px/1.25 ${sans};">${esc(button)}</a></td></tr></table>
-${p(esc(small),'margin:0 0 28px;color:#655a50;font-size:14px;text-align:center;')}
+<tr><td style="padding:30px 28px 34px;">${[hi,...(x.note?[x.note]:[]),...lines].map(t=>p(esc(t))).join('')}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="border-collapse:separate;margin:4px auto 22px;"><tr><td bgcolor="${GOLD}" align="center" style="border-radius:999px;background:${GOLD};"><a href="${esc(url)}" style="display:inline-block;padding:16px 34px;border-radius:999px;color:#ffffff;text-decoration:none;white-space:nowrap;font:700 18px/1.2 ${sans};">${esc(button)}</a></td></tr></table>
+${offer?p(esc(offer),`color:#211d1a;font-size:17px;`):''}${p(esc(after))}${p(esc(small),'margin:0 0 24px;color:#655a50;font-size:14px;')}
 ${p('Thank you,<br>The Craven &amp; Quill team')}</td></tr>
 <tr><td style="padding:22px 28px 30px;border-top:1px solid #e9dec7;background:#faf7f0;"><p style="margin:0 0 8px;color:#655a50;font:13px/1.55 ${sans};">Craven &amp; Quill. Personalised books, made for one reader at a time.</p><p style="margin:0;color:#8a7f73;font:12px/1.55 ${sans};">The button opens your private book page. Please don’t forward this email.</p></td></tr>
 </table></td></tr></table></body></html>`;
-  const text=[hi,...(x.note?[x.note]:[]),...lines,offer,`${button}: ${url}`,small,'Thank you,\nThe Craven & Quill team'].filter(Boolean).join('\n\n');
+  const text=[hi,...(x.note?[x.note]:[]),...lines,`${button}: ${url}`,offer,after,small,'Thank you,\nThe Craven & Quill team'].filter(Boolean).join('\n\n');
   return {subject,text,html,key:`${o.id}:preview:${d.preview?.hash}`};
 }
 

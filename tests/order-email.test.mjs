@@ -7,13 +7,13 @@ test('preview email links to the book (no pictures inline), greets kindly, and n
  const m=previewEmail(base,'https://cq.test/book.html?id=x#key=k',new Date('2026-11-26T12:00:00Z'));
  assert.equal(m.subject,'Jan, how cute is the book you created?');assert.equal(m.key,'x:preview:h1');
  assert.match(m.text,/^Hi Jan,/);assert.match(m.text,/I’ve put together Jamie’s whole book so you can see exactly how it would look\. Tap the button below to flip through every page, and order it if you love it\./);assert.match(m.text,/just reply to this email and I’ll sort it\./);
- assert.match(m.text,/Order Jamie’s book: https:\/\/cq\.test\/book\.html/);assert.match(m.text,/Printed as a hardback in the UK and posted to your door\. Order by 14 December for Christmas\./);assert.match(m.html,/Thank you,<br>The Craven &amp; Quill team/);
+ assert.match(m.text,/See Jamie’s book: https:\/\/cq\.test\/book\.html/);assert.match(m.text,/Printed as a hardback in the UK and posted to your door\./);assert.match(m.html,/Thank you,<br>The Craven &amp; Quill team/);
  const srcs=[...m.html.matchAll(/<img src="([^"]+)"/g)].map(x=>x[1]).filter(x=>x.includes('preview-image')).map(x=>Number(x.match(/n=(\d+)/)[1]));
  assert.deepEqual(srcs,[],'no book pictures inline');
  assert.equal((m.html.match(/<a href="https:\/\/cq\.test\/book\.html[^"]*"/g)||[]).length,1,'the button opens the book page');
  assert.ok(!/<link |<style/.test(m.html),'no external or embedded CSS');assert.ok(!/—/.test(m.html+m.text),'no em dashes');assert.ok(!/% off/.test(m.text),'no offer without a discount');
  const pc=previewEmail({...base,data:{...base.data,recipient:{name:'Mrs Smith'},discount:{ownerGift:true,percent:10,amountPence:396,code:'THANKYOU10PC'}}},'https://cq.test/b',new Date('2026-12-20T12:00:00Z'));
- assert.match(pc.text,/^Hello,/);assert.equal(pc.subject,'How cute is the book you created?');assert.match(pc.text,/As a thank you, here’s 10% off Jamie’s book\. It’s already taken off, so there’s no code to remember\./);assert.match(pc.html,/>Order Jamie’s book with 10% off<\/a>/);assert.ok(!pc.text.includes('Christmas'),'no Christmas date once it has passed');
- const fixed=previewEmail({...base,data:{...base.data,recipient:{},discount:{ownerGift:true,amountPence:500,code:'THANKYOU5'}}},'https://cq.test/b');assert.match(fixed.text,/^Hello,/);assert.match(fixed.text,/here’s £5 off Jamie’s book/);assert.match(fixed.text,/Order Jamie’s book, £5 off: /);
+ assert.match(pc.text,/^Hello,/);assert.equal(pc.subject,'How cute is the book you created?');assert.match(pc.text,/As a thank you, here’s 10% off Jamie’s book\. It’s already taken off, so there’s no code to remember\./);assert.match(pc.html,/>See Jamie’s book<\/a>/);assert.ok(!pc.text.includes('Christmas'),'no Christmas date once it has passed');
+ const fixed=previewEmail({...base,data:{...base.data,recipient:{},discount:{ownerGift:true,amountPence:500,code:'THANKYOU5'}}},'https://cq.test/b');assert.match(fixed.text,/^Hello,/);assert.match(fixed.text,/here’s £5 off Jamie’s book/);assert.match(fixed.text,/See Jamie’s book: /);
  const own=previewEmail({...base,data:{...base.data,emailExtra:{pages,greeting:'Dear Jan,',note:'Sorry for the wait.'}}},'https://cq.test/b');assert.match(own.text,/^Dear Jan,\n\nSorry for the wait\./);
 });
