@@ -508,7 +508,7 @@ test('owner 10% thank-you is worked out per size, shown per size on the book pag
  const tenth=size=>Math.round(orderTotal(size)*10/100);o=await state(env,id);assert.equal(o.size,'a5');assert.equal(o.amount,orderTotal('a5')-tenth('a5'));assert.deepEqual([o.data.discount.code,o.data.discount.percent,o.data.discount.amountPence],['THANKYOU10PC',10,tenth('a5')]);
  const pub=await (await request(env,'/'+id)).json();assert.deepEqual(pub.discount.offBySize,{a4:tenth('a4'),a5:tenth('a5')});
  assert.equal((await request(env,'/'+id+'/checkout',{revision:o.revision,size:'a4'})).status,200);o=await state(env,id);assert.equal(o.amount,orderTotal('a4')-tenth('a4'));assert.equal(amount,o.amount,'Ziina charges 10% off the A4 price');assert.equal(o.data.discount.amountPence,tenth('a4'));
- const html=readFileSync(new URL('../dist/client/book.html',import.meta.url),'utf8');assert.match(html,/g\.percent\+'%'/);assert.match(html,/offBySize\?\.\[b\.dataset\.size\]/);
+ const html=readFileSync(new URL('../dist/client/book.html',import.meta.url),'utf8');assert.match(html,/g\.percent\+'%'/);assert.match(html,/offBySize\?\.\[size\]/);
 });
 test('recent characters: owner lists emailed drafts without keys, turns one into a saved A4 book once, and can draw it',async()=>{
  const {orderTotal}=await import('../src/catalog.js');const env=environment();connected(env);env.OPENAI_API_KEY='test-image-key';

@@ -47,6 +47,7 @@ main{display:flex;flex-direction:column;align-items:center;padding:14px 0 120px}
 .bar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;align-items:center;gap:16px;flex-wrap:wrap;
   padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:rgba(8,26,21,.92);backdrop-filter:blur(6px);border-top:1px solid rgba(201,164,92,.25)}
 .bar p{margin:0;color:var(--muted);font-size:.92rem;max-width:34ch}
+.bar p s{opacity:.7;margin-right:4px}.buy .buyone,.buy .approve.buyone{padding:16px 40px;font-size:1.08rem;border-radius:999px;white-space:nowrap;box-shadow:0 6px 18px rgba(150,110,40,.28)}
 .approve{appearance:none;border:0;border-radius:999px;background:var(--gold);color:var(--gold-ink);font:700 1.05rem/1 Arial,Helvetica,sans-serif;padding:16px 42px;cursor:pointer;letter-spacing:.01em}
 .approve:hover{filter:brightness(1.06)}.approve:disabled{opacity:.5;cursor:default}
 .buy{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
@@ -55,7 +56,7 @@ main{display:flex;flex-direction:column;align-items:center;padding:14px 0 120px}
 .buy .approve{padding:15px 26px;font-size:1rem}
 .approve.alt{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--gold)}
 @media (hover:hover){.approve.alt:hover{background:var(--gold);color:var(--gold-ink);filter:none}}
-@media (max-width:760px){.buy{width:100%}.buy .approve{flex:1 1 0;padding:14px 10px;font-size:.95rem}.bar p{text-align:center;max-width:none;width:100%}}
+@media (max-width:760px){.buy{width:100%}.buy .approve{flex:1 1 0;padding:14px 10px;font-size:.95rem}.buy .approve.buyone{flex:0 1 auto;padding:15px 30px;font-size:1rem}.bar p{text-align:center;max-width:none;width:100%}}
 .done{color:var(--ink);font-size:1rem;text-align:center}
 .done b{color:var(--gold);font-weight:400}
 dialog{border:0;border-radius:10px;padding:26px 24px;max-width:420px;width:calc(100% - 32px);background:var(--paper);color:#1f2a25;font:16px/1.55 Georgia,serif}
@@ -105,7 +106,7 @@ dialog .approve{padding:14px 26px;font-size:.98rem}
 <div class="bar" id="bar" hidden>
   <p id="barText">Happy with every page?</p>
   <button class="approve" id="approve" type="button">Approve</button>
-  <div class="buy" id="buy" hidden><button class="approve" id="buyA4" type="button" data-size="a4">Buy the A4 hardback</button><button class="approve alt" id="buyA5" type="button" data-size="a5">Buy the A5 hardback</button></div>
+  <div class="buy" id="buy" hidden><button class="approve buyone" id="buyOne" type="button">Order this book</button></div>
 </div>
 <dialog id="confirm">
   <h2 id="confirmTitle">Approve this book?</h2>
@@ -154,13 +155,14 @@ let wasPhone=phone();addEventListener('resize',()=>{if(phone()===wasPhone||!orde
 function approved(){$('bar').hidden=false;$('bar').replaceChildren();const p=document.createElement('p');p.className='done';p.innerHTML='<b>Approved.</b> Thank you, we’re getting '+(order.names?order.names.replace(/[<&>]/g,'')+'’s':'your')+' book ready to print.';$('bar').append(p);}
 // Before payment: two buy buttons that go straight to the payment page. (19 Nov 2026)
 let cat=null;const money=p=>'£'+(p/100).toFixed(2);
-async function buyControls(){$('bar').hidden=false;$('approve').hidden=true;$('buy').hidden=false;const g=order.discount?.ownerGift?order.discount:null;$('barText').textContent=g?'Happy with it? '+(g.percent?g.percent+'%':money(g.amountPence))+' off is already taken off, and UK delivery is included.':'Happy with it? UK delivery is included.';
-  try{cat=await fetch('/api/orders/catalog').then(r=>r.json());for(const b of [$('buyA4'),$('buyA5')]){const p=cat.products.find(x=>x.id===b.dataset.size);const off=g?(g.offBySize?.[b.dataset.size]??g.amountPence):0;if(p)b.textContent='Buy the '+b.dataset.size.toUpperCase()+' hardback, '+money((order.fullPrice?p.regularPricePence:p.pricePence)+cat.shippingPence-off);}}catch{}}
-async function buy(size){if(testCopy){$('barText').textContent='Test copy: the buy buttons are switched off here. The customer’s buttons go straight to payment.';return;}
-  for(const b of [$('buyA4'),$('buyA5')])b.disabled=true;$('barText').textContent='Opening the secure payment page…';
+async function buyControls(){$('bar').hidden=false;$('approve').hidden=true;$('buy').hidden=false;const g=order.discount?.ownerGift?order.discount:null,size=order.size==='a5'?'a5':'a4',who=order.names?poss(order.names)+' book':'this book';$('buyOne').textContent='Order '+who;
+  $('barText').textContent=(g?(g.percent?g.percent+'%':money(g.amountPence))+' off already taken off. ':'')+'A hardback, printed in the UK, delivery included.';
+  try{cat=await fetch('/api/orders/catalog').then(r=>r.json());const p=cat.products.find(x=>x.id===size);if(p){const full=(order.fullPrice?p.regularPricePence:p.pricePence)+cat.shippingPence,off=g?(g.offBySize?.[size]??g.amountPence):0;$('buyOne').textContent='Order '+who+', '+money(full-off);if(off){const was=document.createElement('s');was.textContent=money(full);$('barText').replaceChildren(was,' Now '+money(full-off)+' with '+(g.percent?g.percent+'%':money(off))+' off. A hardback, printed in the UK, delivery included.');}}}catch{}}
+async function buy(size){if(testCopy){$('barText').textContent='This is your test copy, so the button is switched off. On the customer’s link it goes straight to the payment page.';return;}
+  $('buyOne').disabled=true;$('barText').textContent='Opening the secure payment page…';
   try{await api('/session',{revision:order.revision,token:key}).catch(()=>{});order=await api('');const d=await api('/checkout',{revision:order.revision,size});location.href=d.url;}
-  catch(e){$('barText').textContent=e.message;for(const b of [$('buyA4'),$('buyA5')])b.disabled=false;}}
-$('buyA4').onclick=()=>buy('a4');$('buyA5').onclick=()=>buy('a5');
+  catch(e){$('barText').textContent=e.message;$('buyOne').disabled=false;}}
+$('buyOne').onclick=()=>buy(order.size==='a5'?'a5':'a4');
 function controls(){if(order.paymentStatus==='unpaid'&&order.previewBook)return buyControls();
   if(order.paymentStatus==='unpaid'){$('bar').hidden=true;return;}
   if(order.customerApproved||['awaiting_approval','approved','submitting','submitted','supplier_unknown'].includes(order.status))return approved();
