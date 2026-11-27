@@ -1213,3 +1213,4 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 #love-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 .step[data-step="9"] .field-head{justify-content:flex-start}
 .hb-name{overflow-wrap:normal;word-break:normal;hyphens:manual}
+.hb-hero{white-space:nowrap;font-size:clamp(.56rem,2.4vw,.8rem)}
