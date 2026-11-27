@@ -1132,3 +1132,14 @@ body.hold-on .top-back{visibility:visible}
 @media(max-height:600px){.hook{height:160px;margin-bottom:10px}}
 @media(min-width:781px){.hook{margin-bottom:24px}}
 .step[data-step="1"].active{animation:none!important}
+/* Message inside the book now sits on the pay page, folded away (27 Nov) */
+.gift-optional{margin:14px 0 4px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 14px}
+.gift-optional summary{cursor:pointer;list-style:none;padding:13px 0;font-weight:600;display:flex;justify-content:space-between;gap:10px}
+.gift-optional summary::-webkit-details-marker{display:none}
+.gift-optional summary::after{content:"+";font-weight:500;font-size:1.2rem;line-height:1}
+.gift-optional[open] summary::after{content:"−"}
+.gift-optional summary span{color:var(--muted);font-weight:500;font-size:.85rem;margin-left:auto}
+.gift-optional-note{margin:0 0 8px;font-size:.85rem;color:var(--muted)}
+.gift-optional textarea{margin-bottom:14px}
+.step[data-step="11"]:not([data-stage="where"]) .gift-optional{display:none}
+.gift-optional label span{color:var(--muted);font-weight:500;font-size:.85rem;margin-left:4px}

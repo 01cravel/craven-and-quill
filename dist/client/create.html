@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="assets/first-book.webp" as="image" fetchpriority="high">
-  <link rel="stylesheet" href="create.css?v=firstscreen-1">
+  <link rel="stylesheet" href="create.css?v=straightpay-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -211,7 +211,7 @@
               <div id="locked-dots" hidden></div>
             </section>
 <div class="error" id="step-5-error" role="alert"></div>
-            <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="choose-book" type="button" data-next="13" disabled>Order their A4 hardback</button></div>
+            <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="choose-book" type="button" data-next="11" disabled>Order their A4 hardback</button></div>
             <p class="size-switch"><span id="size-now">A4 is 21 × 29.7 cm.</span> <button type="button" class="text-link" id="size-toggle">Prefer the smaller A5?</button></p>
           </div>
         </section>
@@ -221,8 +221,6 @@
 <section class="step gift-step" data-step="13" data-clarity-mask="true" aria-labelledby="step-13-title" hidden><h1 id="step-13-title">Add a message inside</h1>
           <p class="intro">It goes on the first page, the moment they open the cover.</p>
           <div class="gift-book" id="gift-book" aria-hidden="true"></div>
-          <label for="sender-name">Who is it from? <span>Optional</span></label><input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad">
-          <label for="dedication">Your message <span>Optional</span></label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea>
           <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" type="button" data-next="11">Continue <span>→</span></button></div></section>
 <section class="step" data-step="11" data-clarity-mask="true" aria-labelledby="step-11-title" hidden><h1 id="step-11-title">Where should it go?</h1>
           <div class="pay-who">
@@ -256,6 +254,7 @@
             </div>
             <button type="button" class="address-mode" id="address-mode" hidden>Enter the address myself</button>
 
+<details class="gift-optional" id="gift-optional"><summary>Add a message inside <span>Optional</span></summary><p class="gift-optional-note">Printed on the first page, the moment they open the cover.</p><label for="sender-name">Who is it from? <span>Optional</span></label><input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad"><label for="dedication">Your message <span>Optional</span></label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea></details>
 <div class="error" id="step-11-error" role="alert"></div>
           <p class="hold-clock" data-hold-clock role="timer" hidden></p>
           <section class="order-total" aria-label="Your order"><div class="order-lines"><span class="order-line"><span id="order-label">A4 hardback</span><span><del id="order-was" hidden></del> <span id="order-book-price">£29.99</span></span></span><span class="order-line order-postage"><span>UK postage</span><span id="order-postage">£3.99</span></span></div><div class="order-sum"><span>Total</span><strong id="order-price">£33.98</strong></div><p class="order-offer" id="order-offer" hidden><span id="order-offer-what">£10 off</span> held for <b id="order-offer-time">60:00</b></p></section>
@@ -280,7 +279,7 @@
             </div>
           </div>
           </div>
-          <div class="step-actions"><button class="back" type="button" data-back="13">Back</button><button class="back" type="button" id="back-who">Back</button><button class="next" type="button" id="to-address">Continue <span>→</span></button><button class="next checkout-button" id="join-launch" type="button"><span class="cta-text">Pay securely</span> <span class="cta-price" data-cta-price>£29.99</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="back" type="button" id="back-who">Back</button><button class="next" type="button" id="to-address">Continue <span>→</span></button><button class="next checkout-button" id="join-launch" type="button"><span class="cta-text">Pay securely</span> <span class="cta-price" data-cta-price>£29.99</span></button></div>
           <div hidden><span id="review-art"></span><span id="review-text"></span><span id="review-folio"></span><span id="review-pos"></span><button id="review-prev" type="button"></button><button id="review-next" type="button"></button><span id="review-spread"></span><span id="review-chapter"></span><span class="review-art-page"></span><span class="art-badge"></span><span id="delivery-summary"></span><button id="open-examples" type="button"></button></div>
         </section>
         <dialog class="examples-dialog" id="examples-dialog" aria-labelledby="examples-title">
