@@ -1333,3 +1333,4 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 }
 .hb-art{mix-blend-mode:multiply}
 @media(max-width:780px){.step[data-step="1"] .hardback{width:clamp(200px,calc((var(--app-height,100dvh) - 420px)*1.16),350px)}}
+.step[data-step="8"] .step-actions .next{display:inline-flex!important}@media(max-width:780px){.step[data-step="8"] .step-actions{display:grid;grid-template-columns:auto 1fr}}
