@@ -345,6 +345,19 @@ async function sendPreviewLink(){
   }catch{state.previewEmailed=null;}
 }
 $('#email').addEventListener('blur',()=>{void saveEmailOnce();});
+// 28 Nov (Luke): for shoppers not ready to buy. Emails the private link to their saved book (same email as the
+// automatic one); the chase emails follow from there. The server allows one send a minute.
+$('#email-book').addEventListener('click',async()=>{
+  const button=$('#email-book'),label=$('#email-book-text'),email=$('#email').value.trim().toLowerCase();
+  if(!validPreviewEmail()||!state.previewId){label.textContent='Add your email on the photo page first';return;}
+  button.disabled=true;label.textContent='Sending…';track('email_book_tap');
+  try{
+    if(state.emailNeedsLink||email!==savedEmail){await capturePreviewEmail(state.emailNeedsLink);savedEmail=email;}
+    const sent=await window.cqEmailDraft();
+    label.textContent=sent?`Sent to ${email}. Check your inbox.`:'Saved, but the email failed. Tap to try again.';
+    button.classList.toggle('done',sent);if(!sent)button.disabled=false;
+  }catch(e){label.textContent=/minute/.test(e.message)?'Already sent. Check your inbox.':'Could not send. Tap to try again.';button.disabled=false;}
+});
 $('#edit-words').addEventListener('click',()=>{$('#story-editor').open=true;showStep(4);});
 $('#revise-story').addEventListener('click',()=>{void writeStory(true);});
 $('#story-previous').addEventListener('click',()=>turnStoryPage(state.storyPage-1));
@@ -732,7 +745,7 @@ function updateProduct(){
 }
 $$('input[name="product"]').forEach(input=>input.addEventListener('change',()=>{orderRequest=null;updateProduct();observeBookPrice();recordQuote();}));
 // Book page: one button for the A4, the smaller A5 behind a quiet link, so there is one decision, not two.
-function showSizeChoice(){const a5=state.product==='a5';$('#choose-book').textContent=`Order their ${a5?'A5':'A4'} hardback`;$('#size-now').textContent=a5?'A5 is 14.8 × 21 cm.':'A4 is 21 × 29.7 cm.';$('#size-toggle').textContent=a5?'Prefer the bigger A4?':'Prefer the smaller A5?';}
+function showSizeChoice(){const a5=state.product==='a5';$('#choose-book').textContent='Next';$('#size-now').textContent=a5?'A5 is 14.8 × 21 cm.':'A4 is 21 × 29.7 cm.';$('#size-toggle').textContent=a5?'Prefer the bigger A4?':'Prefer the smaller A5?';}
 $('#size-toggle').addEventListener('click',()=>{const next=$(`input[name="product"][value="${state.product==='a5'?'a4':'a5'}"]`);next.checked=true;next.dispatchEvent(new Event('change'));});
 $$('input[name="product"]').forEach(input=>input.addEventListener('change',showSizeChoice));showSizeChoice();
 $('#join-launch').addEventListener('click',async()=>{

@@ -84,9 +84,9 @@ ${c.note?p(esc(c.note),'margin:24px 0 0;color:#655a50;font-size:14px;'):''}
 // Same short shape as the 'book is ready' email: no pictures, one button back to their preview.
 export function savedPreviewEmail(names,url){
   const name=String(names||'').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,60),book=name?possessive(name)+' book':'your book',Book=name?book:'Your book';
-  const lines=[`Here is ${book}, saved for 7 days.`,'Tap the button to see the cover, the first painted pages and the whole story.'];
+  const lines=[`Here is ${book}, saved for you.`,'Tap the button to see the cover, the first painted pages and the whole story.'];
   const after='You see the whole finished book before we print it. When you’re ready, you can order the A4 or A5 hardback from that page.';
-  const c={simple:true,subject:`${Book} is saved`,preheader:'Your free preview, saved for 7 days.',kicker:'',heading:'',
+  const c={simple:true,subject:`${Book} is saved`,preheader:'Your free preview, saved for you.',kicker:'',heading:'',
     intro:['Hello,',...lines].map(esc),after:[esc(after),'Thank you,<br>The Craven &amp; Quill team'],steps:[],note:'',button:`See ${name?possessive(name):'your'} book`,
     footer:'The button opens your private preview. Anyone with the link can see the story and character, so please don’t forward this email.'};
   const text=['Hello,',...lines,`${c.button}: ${url}`,after,'Thank you,\nThe Craven & Quill team',c.footer].join('\n\n');

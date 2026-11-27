@@ -4593,12 +4593,12 @@ ${c.note ? p(esc(c.note), "margin:24px 0 0;color:#655a50;font-size:14px;") : ""}
 }
 function savedPreviewEmail(names, url) {
   const name5 = String(names || "").replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, 60), book = name5 ? possessive(name5) + " book" : "your book", Book = name5 ? book : "Your book";
-  const lines = [`Here is ${book}, saved for 7 days.`, "Tap the button to see the cover, the first painted pages and the whole story."];
+  const lines = [`Here is ${book}, saved for you.`, "Tap the button to see the cover, the first painted pages and the whole story."];
   const after = "You see the whole finished book before we print it. When you\u2019re ready, you can order the A4 or A5 hardback from that page.";
   const c = {
     simple: true,
     subject: `${Book} is saved`,
-    preheader: "Your free preview, saved for 7 days.",
+    preheader: "Your free preview, saved for you.",
     kicker: "",
     heading: "",
     intro: ["Hello,", ...lines].map(esc),

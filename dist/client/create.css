@@ -1351,3 +1351,10 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 .xmas-strip svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;flex:none}
 .step[data-step="5"]{padding-bottom:150px}
 @media(prefers-reduced-motion:reduce){.pbook-words.fresh,.pbook-paint.just-painted,.reveal-sub.busy .paint-dot{animation:none}}
+
+/* 28 Nov: 'Not ready? Email me my book' under the Next button */
+.email-book{grid-column:1/-1;flex-basis:100%;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0 0;padding:6px;border:0;background:none;color:var(--ink);font:inherit;font-size:.92rem;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.email-book svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;flex:none}
+.email-book.done{text-decoration:none;color:#2f6b45}
+.email-book:disabled{cursor:default}
+.step[data-step="5"]{padding-bottom:180px}
