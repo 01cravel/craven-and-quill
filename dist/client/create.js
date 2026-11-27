@@ -788,6 +788,7 @@ function paintHardback(){
  el.textContent=name||'Their name';el.classList.toggle('empty',!name);
  const first=name.split(/\s+/)[0]||'';
  $('#step-8-title').textContent=first?`How old is ${first}?`:'How old are they?';
+ document.querySelectorAll('.age-sample').forEach(el=>{el.textContent='“'+el.dataset.s.split('{n}').join(first||'Your hero')+'”';});
  $('#step-9-title').textContent=first?`What does ${first} love?`:'What do they love?';
  el.style.fontSize='';const box=el.parentElement;let size=parseFloat(getComputedStyle(el).fontSize);
  while(size>12&&(el.scrollWidth>el.clientWidth+1||el.offsetHeight>box.clientHeight*.44)){size-=1;el.style.fontSize=size+'px';}
