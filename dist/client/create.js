@@ -579,7 +579,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
     if(!state.names){$('#step-1-error').textContent='Type their first name to start.';$('#names').focus();return;}
     $('#step-1-error').textContent='';$('#names').blur();
   }
-  if(state.step===8&&!$('input[name="age"]:checked')){$('#step-8-error').textContent='Tap their age to continue.';$('.age-grid input')?.focus();return;}
+  if(state.step===8&&!$('input[name="age"]:checked')){$('#step-8-error').textContent='Tap their age to continue.';$('.age-list input')?.focus();return;}
   if(state.step===9&&!$('input[name="age"]:checked')){showStep(8);$('#step-8-error').textContent='Tap their age to continue.';return;}
   if(state.step===9){updateLive();if(!state.names){showStep(1);$('#step-1-error').textContent='Type their first name to start.';$('#names').focus();return;}}
   if(state.step===9){state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';}
@@ -788,7 +788,7 @@ function paintHardback(){
  el.textContent=name||'Their name';el.classList.toggle('empty',!name);
  const first=name.split(/\s+/)[0]||'';
  $('#step-8-title').textContent=first?`How old is ${first}?`:'How old are they?';
- document.querySelectorAll('.age-sample').forEach(el=>{el.textContent='“'+el.dataset.s.split('{n}').join(first||'Your hero')+'”';});
+ document.querySelectorAll('.age-sample').forEach(el=>{el.textContent='“'+el.dataset.s.split('{n}').join(first||'Your hero')+'”';}); fitAgeSamples();
  $('#step-9-title').textContent=first?`What does ${first} love?`:'What do they love?';
  el.style.fontSize='';const box=el.parentElement;let size=parseFloat(getComputedStyle(el).fontSize);
  while(size>12&&(el.scrollWidth>el.clientWidth+1||el.offsetHeight>box.clientHeight*.44)){size-=1;el.style.fontSize=size+'px';}
@@ -1181,3 +1181,13 @@ async function drawPages(){
 
 // 26 Nov 2026: Clarity showed people tapping the red error message. Tapping it now jumps to the field that needs fixing.
 document.addEventListener('click',event=>{const err=event.target.closest('.error');if(!err||!err.textContent.trim())return;const step=err.closest('section')||document;const f=step.querySelector('input:invalid,textarea:invalid,select:invalid')||step.querySelector('input:not([type=hidden]):not([type=file]),textarea,select');if(f){f.scrollIntoView({block:'center',behavior:'smooth'});try{f.focus({preventScroll:true});}catch{}}});
+
+// Keep every age example on one line, all at the same size (shrinks together for long names)
+function fitAgeSamples(){
+ const els=[...document.querySelectorAll('.age-sample')];if(!els.length||!els[0].offsetParent)return;
+ els.forEach(e=>e.style.fontSize='');
+ let size=parseFloat(getComputedStyle(els[0]).fontSize);
+ while(size>11&&els.some(e=>e.scrollWidth>e.clientWidth+1)){size-=.5;els.forEach(e=>e.style.fontSize=size+'px');}
+}
+window.addEventListener('resize',fitAgeSamples);
+new MutationObserver(()=>fitAgeSamples()).observe(document.querySelector('.step[data-step="8"]'),{attributes:true,attributeFilter:['hidden','class']});
