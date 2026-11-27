@@ -1230,3 +1230,22 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 .hardback .hb-plate{width:52%}
 .draft-storage-controls{display:none!important}
 .hb-for{white-space:nowrap}
+/* Phone: the name screen fills the screen like an app. Title, book, name box and button sit evenly spaced,
+   and the book sizes itself to the screen height so all of it fits in the first view on iPhone and Samsung. */
+@media(max-width:780px){
+ .step[data-step="1"].active{display:flex;flex-direction:column;justify-content:space-evenly;min-height:100%;gap:10px}
+ .step[data-step="1"] h1{text-align:center;margin:0;font-size:clamp(1.7rem,7.6vw,2.15rem)}
+ .step[data-step="1"] .hardback{flex:none;margin:0 auto;width:clamp(230px,calc((var(--app-height,100dvh) - 420px)*1.48),400px);max-width:100%}
+ .step[data-step="1"] .hb-field{flex:none}
+ .step[data-step="1"] .hb-label{margin:0 0 6px}
+ .step[data-step="1"] .proof{justify-content:center;margin:10px 0 0}
+ .step[data-step="1"] .step-actions{position:static;margin:0;padding:0;background:none;flex:none}
+}
+@media(max-width:780px) and (max-height:600px){.step[data-step="1"] h1{font-size:1.55rem}.step[data-step="1"] .proof{margin-top:6px}}
+@media(max-width:780px){body[data-step="1"] .step-panel form{display:flex;flex-direction:column}body[data-step="1"] .step[data-step="1"].active{flex:1 0 auto}}
+@media(max-width:780px){body[data-step="1"] .step[data-step="1"].active{padding-bottom:4px}}
+/* The words on the page scale with the book, so they never clip on small phones. */
+.hardback{container-type:inline-size}
+.hardback .hb-for{font-size:4.1cqw}
+.hardback .hb-name{font-size:9.4cqw}
+.hardback .hb-hero{font-size:3.1cqw}
