@@ -1273,3 +1273,4 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 @media(min-width:781px){.hardback{width:min(100%,420px)}}
 @media(max-width:780px){.step[data-step="1"] .hardback{width:clamp(210px,calc((var(--app-height,100dvh) - 400px)*1.16),350px)}}
 .hardback:after,.hardback::before{content:none!important}
+.hardback{transform:none!important;animation:none!important}
