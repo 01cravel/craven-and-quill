@@ -1319,3 +1319,9 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
  .step[data-step="9"] .like-chips{gap:7px;margin:0 0 12px}
  .step[data-step="9"] .like-chip{min-height:38px;padding:6px 13px;font-size:.9rem}
 }
+/* Same pinned button bar at the bottom of the screen on every page (name, age, loves match photo and checkout) */
+@media(max-width:780px){
+ .step[data-step="1"] .step-actions,.step[data-step="8"] .step-actions,.step[data-step="9"] .step-actions{position:fixed;left:0;right:0;bottom:0;z-index:35;margin:0;padding:12px 16px max(12px,env(safe-area-inset-bottom));background:linear-gradient(to top,var(--mist,#f7f4ed) 78%,rgba(247,244,237,0))}
+ .step[data-step="1"].active,.step[data-step="8"].active,.step[data-step="9"].active{padding-bottom:84px}
+}
+@media(max-width:780px){.step[data-step="1"] .hardback{width:clamp(190px,calc((var(--app-height,100dvh) - 455px)*1.16),350px)}}
