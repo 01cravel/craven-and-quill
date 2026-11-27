@@ -52985,11 +52985,11 @@ function chaseMessage(step, { names = "", title: title2 = "", image = "", link, 
     button: name5 ? `Order ${Np} book` : "Order their book",
     after: `Your 10% code still works, until ${when}.`
   }, {
-    subject: `Tomorrow, ${Np} book is gone`,
-    heading: `Tomorrow, ${Np} book is gone.`,
-    lead: "We only keep it for 7 days, and tomorrow is day 7. The drawing, the story, all of it. One tap keeps it.",
-    button: name5 ? `Keep ${Np} book` : "Keep their book",
-    after: "Your 10% code ends tomorrow too."
+    subject: "Your 10% off ends tomorrow",
+    heading: "Your 10% off ends tomorrow.",
+    lead: `${Cap} book is saved and ready: the drawing, the story, all of it. Your code takes 10% off until ${when}.`,
+    button: name5 ? `Order ${Np} book` : "Order their book",
+    after: xmas ? "Order by 14 December to have it for Christmas. You see every page before we print." : "You see every page before we print."
   }][step];
   const showCode = step >= 3 && code2;
   const prices = `Hardbacks \xA3${(PRODUCTS.a5.regularPricePence / 100).toFixed(2)} (A5) and \xA3${(PRODUCTS.a4.regularPricePence / 100).toFixed(2)} (A4), plus \xA33.99 UK postage.`;

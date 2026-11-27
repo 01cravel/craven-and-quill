@@ -251,7 +251,8 @@ export {message as followupMessage};
 // ---------------------------------------------------------------------------------------------------
 // Five-email chase (OWNER-APPROVED copy and timing, Luke, 21 Nov 2026). Short, one thought each, with the
 // button high enough to show without scrolling. The 10% code first appears in email 3 and is repeated in
-// 4 and 5. Email 5 is honest: saved previews really are deleted after 7 days.
+// 4 and 5. Email 5 (rewritten 28 Nov, Luke): the code really ends the next day. Saved books are never deleted,
+// so never say the book will be gone.
 export const CHASE_NOTICE='If you leave your book unfinished, we’ll email you a few reminders about it over the next week, including a 10% offer. You can unsubscribe at any time.';
 // Hours after the email was given before each chase email is due.
 export const CHASE_HOURS=[3,24,72,120,144];
@@ -288,11 +289,11 @@ export function chaseMessage(step,{names='',title='',image='',link,unsub,code=''
     button:name?`Order ${Np} book`:'Order their book',
     after:`Your 10% code still works, until ${when}.`
   },{
-    subject:`Tomorrow, ${Np} book is gone`,
-    heading:`Tomorrow, ${Np} book is gone.`,
-    lead:'We only keep it for 7 days, and tomorrow is day 7. The drawing, the story, all of it. One tap keeps it.',
-    button:name?`Keep ${Np} book`:'Keep their book',
-    after:'Your 10% code ends tomorrow too.'
+    subject:'Your 10% off ends tomorrow',
+    heading:'Your 10% off ends tomorrow.',
+    lead:`${Cap} book is saved and ready: the drawing, the story, all of it. Your code takes 10% off until ${when}.`,
+    button:name?`Order ${Np} book`:'Order their book',
+    after:xmas?'Order by 14 December to have it for Christmas. You see every page before we print.':'You see every page before we print.'
   }][step];
   const showCode=step>=3&&code;
   const prices=`Hardbacks £${(PRODUCTS.a5.regularPricePence/100).toFixed(2)} (A5) and £${(PRODUCTS.a4.regularPricePence/100).toFixed(2)} (A4), plus £3.99 UK postage.`;

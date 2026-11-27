@@ -169,7 +169,7 @@ test('five-email chase: right email at the right time, saved-book link, one 10% 
   assert.match(code.discount_code,/^CQ[A-Z0-9]{10}$/);assert.equal(code.email_status,'accepted');assert.ok(sent[2].html.includes(code.discount_code));
   assert.ok(sent[2].text.includes(`create?offer=${code.discount_code}&utm_source=email`));
   // Missed day 5 entirely: day 6 sends the last email, not a late bunch, with the same code.
-  rest();age(150);await runFollowups(env);assert.equal(sent.length,4);assert.equal(sent[3].subject,'Tomorrow, Mia’s book is gone');assert.ok(sent[3].html.includes(code.discount_code));
+  rest();age(150);await runFollowups(env);assert.equal(sent.length,4);assert.equal(sent[3].subject,'Your 10% off ends tomorrow');assert.ok(!/gone|deleted|7 days/.test(sent[3].text||sent[3].html));assert.ok(sent[3].html.includes(code.discount_code));
   rest();await runFollowups(env);assert.equal(sent.length,4,'nothing after the last email');
   assert.deepEqual((await followupStatus(env)).chase,{enrolled:1,sent:[1,1,1,0,1]});
   assert.equal(chaseDue(170,[]),0,'nothing once the saved book has been deleted');assert.equal(chaseDue(2,[]),0);assert.equal(chaseDue(121,[]),4);
