@@ -1334,3 +1334,20 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 .hb-art{mix-blend-mode:multiply}
 @media(max-width:780px){.step[data-step="1"] .hardback{width:clamp(200px,calc((var(--app-height,100dvh) - 420px)*1.16),350px)}}
 .step[data-step="8"] .step-actions .next{display:inline-flex!important}@media(max-width:780px){.step[data-step="8"] .step-actions{display:grid;grid-template-columns:auto 1fr}}
+
+/* 28 Nov: book page opens on page 1, words shown big, pages develop in, Christmas strip in the pinned bar */
+.pbook-words{margin:14px auto 0;max-width:34ch;padding:14px 18px;border-radius:14px;background:#fbf6ea;border:1px solid #eadfc6;font-family:var(--story,'Story Serif',Georgia,serif);font-size:1.12rem;line-height:1.5;color:var(--ink);text-align:center}
+.pbook-words[hidden]{display:none}
+.pbook-words.fresh{animation:wordsIn .45s ease-out}
+@keyframes wordsIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.reveal-sub{display:flex;align-items:center;gap:8px}
+.paint-dot{display:none;width:8px;height:8px;border-radius:50%;background:#b88c34;flex:none}
+.reveal-sub.busy .paint-dot{display:inline-block;animation:paintPulse 1.2s ease-in-out infinite}
+@keyframes paintPulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+.pbook-paint.just-painted{animation:develop 1.6s ease-out}
+@keyframes develop{from{filter:blur(8px) sepia(1) saturate(.4);opacity:.2}60%{filter:blur(1px) sepia(.2);opacity:1}to{filter:none;opacity:1}}
+.xmas-strip{position:absolute;left:16px;right:16px;bottom:calc(100% - 4px);display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 8px;padding:8px 12px;border-radius:12px;background:#9b2c2c;color:#fff;font-size:.9rem;font-weight:600}
+.xmas-strip[hidden]{display:none}
+.xmas-strip svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;flex:none}
+.step[data-step="5"]{padding-bottom:150px}
+@media(prefers-reduced-motion:reduce){.pbook-words.fresh,.pbook-paint.just-painted,.reveal-sub.busy .paint-dot{animation:none}}

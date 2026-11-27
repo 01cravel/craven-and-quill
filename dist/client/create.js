@@ -544,9 +544,10 @@ function updateReveal(){
 function updateXmas(){
   const line=$('#xmas-line');if(!line)return;
   const now=new Date(),year=now.getMonth()===11&&now.getDate()>14?null:now.getFullYear();
-  if(year===null||now.getMonth()<9){line.hidden=true;return;}
+  if(year===null||now.getMonth()<9){line.hidden=true;if($('#xmas-strip'))$('#xmas-strip').hidden=true;return;}
   const cutoff=new Date(year,11,14,23,59,59),days=Math.ceil((cutoff-now)/86400000);
   line.textContent=days<=1?'Order today to have it for Christmas.':`Order by 14 December to have it for Christmas. ${days} days left.`;line.hidden=false;
+  const strip=$('#xmas-strip');if(strip){$('#xmas-strip-text').textContent=days<=1?'Last day to order for Christmas':`Order by 14 Dec for Christmas. ${days} days left`;strip.hidden=false;line.hidden=true;}
 }
 async function preparePreview(){
   if(generationBusy)return;generationBusy=true;
@@ -839,7 +840,7 @@ $('#show-offer-code').addEventListener('click',()=>{const field=$('#offer-code-f
 // Free preview book: the cover with their character, then each spread laid out like the printed book
 // (src/print-book.js): picture on the left, words on the right. The picture is a sketch placeholder
 // because we only paint the pages after an order. Folios match the printed interior page numbers.
-let previewBookPage=0;
+let previewBookPage=0,previewOpenedFor=null;
 // Pages whose free painting failed are left out of the preview book rather than shown half-made.
 const pageFailed=new Set();
 // The free preview is shown as a real 3D hardback: it lies closed showing the cover, opens itself and
@@ -937,6 +938,7 @@ function renderPreviewBook(){
  const {rights,lefts}=previewBookFaces();
  track.replaceChildren(buildBook3d(rights,lefts));
  $('.pbook-nav').hidden=rights.length<2;
+ if(previewOpenedFor!==state.previewId&&rights.length>1){previewOpenedFor=state.previewId;previewBookPage=1;}
  previewBookPage=Math.min(previewBookPage,rights.length-1);
  sizePreviewBook();turnPreviewBook(previewBookPage,'instant');
  startAutoFlip();
@@ -1025,10 +1027,20 @@ async function runAutoShow(){
   await wait(PB_TWIRL_MS);
   clearTimeout(backOn);clearTimeout(backOff);
   $('#pbook-track .pb3')?.classList.remove('twirl','from-back');
+  if(ready())turnPreviewBook(1);
  }
 }
 function stopAutoFlip(){autoFlipStopped=true;clearTimeout(autoFlip);autoFlip=null;$('#pbook-track .pb3')?.classList.remove('twirl','from-back');}
 ['pointerdown','touchstart','wheel','keydown'].forEach(type=>$('#preview-book').addEventListener(type,stopAutoFlip,{passive:true}));
+// The words on the little book are too small to read on a phone, so the page they are on is shown big underneath.
+function showBookWords(){
+ const box=$('#pbook-words');if(!box)return;
+ const leaf=$$('#pbook-track .pb3-leaf')[previewBookPage];
+ const i=previewBookPage>0&&!leaf?.querySelector('.pb3-more')?previewBookPage-1:-1;
+ const text=i>=0?state.storyDraft?.spreads?.[i]?.text:'';
+ box.hidden=!text;
+ if(text&&box.textContent!==text){box.textContent=text;box.classList.toggle('fresh',false);void box.offsetWidth;box.classList.add('fresh');}
+}
 function updatePreviewBook(index){
  const leaves=$$('#pbook-track .pb3-leaf');if(!leaves.length)return;
  const n=leaves.length,stage=$('#pbook-track .pb3');
@@ -1036,6 +1048,7 @@ function updatePreviewBook(index){
  $('#pbook-pos').textContent=previewBookPage===0?'Cover':leaves[previewBookPage].querySelector('.pb3-more')?'The rest':`Page ${previewBookPage} of ${state.storyDraft?.spreads?.length||n-1}`;
  $('#pbook-prev').disabled=previewBookPage===0;$('#pbook-next').disabled=previewBookPage===n-1;
  layoutBook3d(stage,previewBookPage);
+ showBookWords();
  leaves.forEach((leaf,i)=>{
   leaf.querySelector('.pb3-front').setAttribute('aria-hidden',String(i!==previewBookPage));
   leaf.querySelector('.pb3-rear').setAttribute('aria-hidden',String(i!==previewBookPage-1));
@@ -1154,6 +1167,14 @@ $('#address-add-line').addEventListener('click',()=>{$('#address-line2-wrap').hi
 $('#postcode').addEventListener('blur',()=>{const v=$('#postcode').value;if(v.trim())$('#postcode').value=tidyPostcode(v);});
 
 // Free preview pages: pages 1 to 3 drawn for real while they read, so they see the actual book before paying.
+// When a page finishes painting while they are looking, the book turns to it and the picture develops in.
+function revealPainted(i){
+ requestAnimationFrame(()=>{paintPageArt();
+  const img=document.querySelector(`#pbook-track .pbook-art[data-page="${i}"] img.pbook-paint`);
+  if(img){img.classList.toggle('just-painted',false);void img.offsetWidth;img.classList.add('just-painted');}
+  if(state.step===5&&!autoFlipStopped&&previewBookPage!==i+1)turnPreviewBook(i+1);
+ });
+}
 function paintPageArt(){
   const fresh=state.pageArtFor===pageArtKey();
   $$('#story-pages .page-art').forEach(fig=>{const i=Number(fig.dataset.page);if(i>2)return;const src=fresh&&state.pageArt[i];
@@ -1163,7 +1184,7 @@ function paintPageArt(){
     else if(!fig.querySelector('.sketching')){fig.innerHTML=`<span class="sketching">Drawing page ${i+1}<i></i></span>`;}});
   $$('#pbook-track .pbook-art[data-page]').forEach(art=>{const i=Number(art.dataset.page),src=fresh&&state.pageArt[i];if(src&&!art.querySelector('img.pbook-paint')){const img=document.createElement('img');img.className='pbook-paint';img.alt=`Page ${i+1}, illustrated`;img.src=src;art.querySelector('.pbook-sketch')?.remove();art.prepend(img);}});
   const drawn=fresh?[0,1,2].filter(i=>state.pageArt[i]).length:0;
-  const sub=$('.reveal-sub');if(sub)sub.textContent=drawn===3?'Tap the book to turn the pages.':'Tap the book to open it. Pages 1 to 3 are being painted now.';$('#story-choice-intro').textContent=drawn===3?'Pages 1 to 3 are drawn. Swipe to read the whole story.':pageJobs.size?'We’re drawing the first three pages now. Swipe to read while you wait.':'Swipe to read. Tap Edit text to make it yours.';
+  const sub=$('#reveal-text');if(sub){const busy=pageJobs.size>0&&drawn<3;$('.reveal-sub').classList.toggle('busy',busy);sub.textContent=drawn===3?'Pages 1 to 3 are painted. The rest are painted when you order.':busy?(drawn?`${drawn} of 3 pages painted. Painting the next one now.`:'Painting pages 1 to 3 now. Watch them appear.'):'Swipe to turn the pages.';}$('#story-choice-intro').textContent=drawn===3?'Pages 1 to 3 are drawn. Swipe to read the whole story.':pageJobs.size?'We’re drawing the first three pages now. Swipe to read while you wait.':'Swipe to read. Tap Edit text to make it yours.';
   if(state.step===7)renderReviewPage();
 }
 async function drawPages(){
@@ -1176,7 +1197,7 @@ async function drawPages(){
       for(let attempt=0;attempt<2&&!done;attempt++){
         const r=await fetch('/api/preview-page/reference-1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({previewId:forId,page:i,characters:state.characterImages.filter(Boolean),scene:spread.image_scene||'',text:spread.text,title:state.storyDraft.title}),signal:AbortSignal.timeout(170000)});
         const d=await r.json().catch(()=>({}));
-        if(r.ok&&d.image){if(state.previewId===forId){state.pageArt[i]=d.image;window.dispatchEvent(new Event('cq-draft-change'));track('preview_page_drawn');}done=true;}
+        if(r.ok&&d.image){if(state.previewId===forId){state.pageArt[i]=d.image;window.dispatchEvent(new Event('cq-draft-change'));track('preview_page_drawn');revealPainted(i);}done=true;}
         else if([400,403,409].includes(r.status))break;
       }
     }catch{}
