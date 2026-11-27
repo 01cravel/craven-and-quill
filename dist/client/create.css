@@ -1260,3 +1260,16 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 .hardback .hb-plate{width:70%}
 @media(min-width:781px){.hardback{width:min(100%,380px)}}
 @media(max-width:780px){.step[data-step="1"] .hardback{width:clamp(200px,calc((var(--app-height,100dvh) - 400px)*1.05),330px)}}
+/* real photo of an open hardback, name sits on the right page */
+.hardback{aspect-ratio:1234/1060}
+.hb-art{object-fit:contain;display:block}
+.hardback .hb-left,.hardback .hb-right{top:3%;bottom:16%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.hardback .hb-left{left:4%;right:51%}
+.hardback .hb-right{left:51.5%;right:4%;padding:0 3%}
+.hardback .hb-plate{width:46%;mix-blend-mode:multiply}
+.hardback .hb-for{font-size:4.2cqw}
+.hardback .hb-name{font-size:8.6cqw}
+.hardback .hb-hero{font-size:3.2cqw}
+@media(min-width:781px){.hardback{width:min(100%,420px)}}
+@media(max-width:780px){.step[data-step="1"] .hardback{width:clamp(210px,calc((var(--app-height,100dvh) - 400px)*1.16),350px)}}
+.hardback:after,.hardback::before{content:none!important}
