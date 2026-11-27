@@ -69,6 +69,10 @@ function syncLikes(){
   for(const chip of box.children)chip.setAttribute('aria-pressed',String(chosen.has(chip.dataset.like)));
   const picked=[...box.children].filter(chip=>chosen.has(chip.dataset.like)).length,count=$('#love-count');
   if(count)count.textContent=picked?`${picked} picked`:'Tap two or three';
+  const first=(niceName($('#names').value.trim()).split(/\s+/)[0])||'them',line=$('#love-line');
+  if(line){const items=readLikes(field.value).items.map(v=>v.toLowerCase());const list=items.length>1?items.slice(0,-1).join(', ')+' and '+items[items.length-1]:items[0];
+   line.textContent=list?`A story about ${first}, ${list}.`:`A story about ${first} and…`;line.classList.toggle('empty',!list);}
+  const extra=$('#love-extra');if(extra){extra.placeholder=`For example, ${first==='them'?'they':first} wants to be a vet.`;if(document.activeElement!==extra)extra.value=readLikes(field.value).rest;}
 }
 function toggleLike(like){
   const field=$('#personal-details'),{items,rest}=readLikes(field.value);
@@ -298,6 +302,8 @@ function defaultSendTo(){if(sendToChosen)return;const want=state.age==='teen-adu
 document.querySelectorAll('input[name="send-to"]').forEach(r=>r.addEventListener('change',event=>{if(event.isTrusted)sendToChosen=true;updateSendTo(false);}));
 $('#recipient-name').addEventListener('input',e=>{if(e.isTrusted)delete $('#recipient-name').dataset.autofill;});
 $('#personal-details').addEventListener('input',updateLive);
+// The visible box holds only the extra words; the picked loves live in the chips, and both are joined into the one stored field.
+$('#love-extra')?.addEventListener('input',e=>{const field=$('#personal-details');field.value=writeLikes(readLikes(field.value).items,e.target.value).slice(0,800);$('#step-9-error').textContent='';field.dispatchEvent(new Event('input',{bubbles:true}));});
 $('#own-idea').addEventListener('input',updateLive);
 $('#story-title').addEventListener('input',editDraft);$('#story-synopsis').addEventListener('input',editDraft);
 $('#generate-story').addEventListener('click',()=>{
