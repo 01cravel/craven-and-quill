@@ -94,9 +94,9 @@
           <div id="extra-photo-wrap" hidden><label class="extra-photo-label" for="extra-photos">+ Add up to 2 more for a better likeness <span>Optional</span></label><input id="extra-photos" type="file" accept="image/*,.heic,.heif,.avif" multiple aria-label="Add more photos of the same person"><p class="extra-photo-help">Same person, recent photos. Try a front view and a slight side angle.</p></div>
           <div class="photo-check" id="photo-check" hidden aria-live="polite" data-clarity-mask="true"></div>
 
-          <p class="photo-promise"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>We use the photo only to draw their character. The original is not stored on our servers.</p>
+          <p class="photo-promise"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>We use the photo only to draw their character. The original is not stored on our servers. By adding a photo you confirm you’re allowed to use it.</p>
 
-          <label class="face-confirm"><input id="photo-permission" type="checkbox"><span><b>I have permission to use these photos</b><small>I’m an adult, with parent or guardian permission for a child.</small></span></label>
+          <input id="photo-permission" type="checkbox" checked hidden aria-hidden="true" tabindex="-1">
 
 
           <div class="early-email" id="early-email-wrap">
@@ -300,6 +300,6 @@
   <script src="preview-progress.js?v=magic-2" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=hardback-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=hardback-2" defer></script><script src="draft-save.js?v=save-preview-2" defer></script>
 </body>
 </html>
