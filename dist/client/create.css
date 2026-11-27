@@ -1221,3 +1221,12 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 .hb-left{border-radius:2px 0 0 2px;box-shadow:inset -22px 0 26px -14px rgba(40,30,10,.36),-1px 1px 0 var(--page-edge),-2px 2px 0 var(--page),-3px 3px 0 var(--page-edge),-4px 4px 0 #d9ceb5}
 .hb-right{border-radius:0 2px 2px 0;box-shadow:1px 1px 0 var(--page-edge),2px 2px 0 var(--page),3px 3px 0 var(--page-edge),4px 4px 0 #d9ceb5}
 .hb-spread::after{content:'';position:absolute;left:50%;top:-1%;bottom:-1%;width:2px;transform:translateX(-50%);background:linear-gradient(rgba(30,22,8,.25),rgba(30,22,8,.4),rgba(30,22,8,.25))}
+/* Hardback v4: drawn as a real open book (cloth boards, page block, pages curving into the spine). */
+.hardback{aspect-ratio:400/270;perspective:none}
+.hb-art{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.hardback .hb-left,.hardback .hb-right{position:absolute;top:8%;bottom:10%;background:none;box-shadow:none;border-radius:0}
+.hardback .hb-left{left:6%;right:52%}
+.hardback .hb-right{left:52%;right:6%;padding:4% 4%}
+.hardback .hb-plate{width:52%}
+.draft-storage-controls{display:none!important}
+.hb-for{white-space:nowrap}

@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=hardback-3">
+  <link rel="stylesheet" href="create.css?v=hardback-5">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -53,11 +53,24 @@
           <h1 id="step-1-title">Who is this book for?</h1>
           <p id="starting-story" hidden></p>
           <figure class="hardback" id="hardback" aria-label="The first page of their hardback, showing the name you type">
-            <div class="hb-cover"></div>
-            <div class="hb-spread">
-              <div class="hb-left" aria-hidden="true"><span class="hb-plate"><img src="assets/logo-mark-on-white.png?v=gold-alpha-20261026" width="420" height="401" alt=""></span></div>
-              <div class="hb-right"><p class="hb-for">A story just for</p><strong class="hb-name empty" id="hb-name">Their name</strong><span class="hb-flourish" aria-hidden="true"></span><p class="hb-hero">the hero of every page</p></div>
-            </div>
+            <svg class="hb-art" viewBox="0 0 400 270" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="hbPageL" x1="0" x2="1"><stop offset="0" stop-color="#f6efdf"/><stop offset=".78" stop-color="#fbf6ea"/><stop offset=".93" stop-color="#eadfc6"/><stop offset="1" stop-color="#cdbf9f"/></linearGradient>
+                <linearGradient id="hbPageR" x1="1" x2="0"><stop offset="0" stop-color="#f6efdf"/><stop offset=".78" stop-color="#fdf9ef"/><stop offset=".93" stop-color="#ece2ca"/><stop offset="1" stop-color="#cdbf9f"/></linearGradient>
+                <linearGradient id="hbCloth" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#244a40"/><stop offset="1" stop-color="#163029"/></linearGradient>
+                <filter id="hbShadow" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#0f201b" flood-opacity=".35"/></filter>
+              </defs>
+              <rect x="6" y="14" width="388" height="246" rx="7" fill="url(#hbCloth)" filter="url(#hbShadow)"/>
+              <path d="M200 30 C186 20 130 16 20 19 L20 249 C130 246 186 250 200 258 Z" fill="#e2d6bb"/>
+              <path d="M200 30 C214 20 270 16 380 19 L380 249 C270 246 214 250 200 258 Z" fill="#e2d6bb"/>
+              <path d="M200 28 C186 18 130 14 22 16 L22 245 C130 242 186 246 200 254 Z" fill="#efe6d1"/>
+              <path d="M200 28 C214 18 270 14 378 16 L378 245 C270 242 214 246 200 254 Z" fill="#efe6d1"/>
+              <path d="M200 26 C186 15 130 11 24 13 L24 241 C130 238 186 242 200 250 Z" fill="url(#hbPageL)"/>
+              <path d="M200 26 C214 15 270 11 376 13 L376 241 C270 238 214 242 200 250 Z" fill="url(#hbPageR)"/>
+              <path d="M200 26 L200 250" stroke="#b9a983" stroke-width="1.2" opacity=".7"/>
+            </svg>
+            <div class="hb-left" aria-hidden="true"><span class="hb-plate"><img src="assets/logo-mark-on-white.png?v=gold-alpha-20261026" width="420" height="401" alt=""></span></div>
+            <div class="hb-right"><p class="hb-for">A story just for</p><strong class="hb-name empty" id="hb-name">Their name</strong><span class="hb-flourish" aria-hidden="true"></span><p class="hb-hero">the hero of every page</p></div>
           </figure>
           <label class="hb-label" for="names">Their first name</label>
           <input id="names" enterkeyhint="next" name="names" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Type it here" required>
