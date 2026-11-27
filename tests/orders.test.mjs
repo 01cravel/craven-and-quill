@@ -478,26 +478,18 @@ test('paid book draws itself from the order desk loop, and every picture gets th
  assert.ok(draws.every(d=>d.prompt.includes('Do not add any pet, animal or person')));
  const nothing=await (await request(env,'/artwork-step',{},{admin:true})).json();assert.equal(nothing.worked,false);});
 
-test('one-hour price hold: offer price within the hour, regular price after it, and the timer the shopper sees is the server\'s',async()=>{
+test('no price hold (28 Nov): every book costs the offer price however long ago the preview was made, and no timer is sent',async()=>{
  const env=environment();ziinaConnected(env);
- // Inside the hour: the usual offer price, and the catalogue reports when the hold ends.
  const early=await create(env,'a4');assert.equal(early.order.amount,2999+399);assert.equal(early.order.fullPrice,false);
- const c=await (await request(env,'/catalog?preview='+early.body.previewId,null,{auth:false})).json();
- assert.ok(Math.abs(Date.parse(c.hold.endsAt)-Date.parse(c.hold.now)-3600000)<5000);
- assert.equal((await (await request(env,'/catalog',null,{auth:false})).json()).hold,undefined);
- // After the hour: a book saved from that preview costs the regular price, and stays there across sizes.
+ const c=await (await request(env,'/catalog?preview='+early.body.previewId,null,{auth:false})).json();assert.equal(c.hold,undefined);
  const preview=crypto.randomUUID(),id=crypto.randomUUID(),email='late@example.test',old=new Date(Date.now()-2*3600000).toISOString();
  env.DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,created_at,email) VALUES (?,'succeeded',?,?)").run(preview,old,email);
  env.DB.sqlite.prepare("INSERT INTO preview_contacts(email,source,medium,campaign,creative,country,created_at,updated_at) VALUES (?,'direct','none','none','none','GB',?,?)").run(email,old,old);
  const r=await request(env,'',{...early.body,requestId:id,previewId:preview,email,size:'a4'});assert.equal(r.status,201);
- let late=(await r.json()).order;assert.equal(late.amount,3999+399);assert.equal(late.fullPrice,true);
- let amount=0;env.fetch=async(url,init)=>{if(url.includes('/payment_intent')&&init?.method==='POST')amount=JSON.parse(init.body).amount;return Response.json({...intent(env,amount||late.amount),id:'ziina-late'});};
- assert.equal((await request(env,'/'+id+'/checkout',{revision:late.revision,size:'a5'})).status,200);
- late=await state(env,id);assert.equal(late.amount,3499+399);
- // The price the page reports must match the hold: the offer price is refused once the hour is up.
+ const late=(await r.json()).order;assert.equal(late.amount,2999+399);assert.equal(late.fullPrice,false);
  const view={email,previewId:preview,size:'a4'};
- assert.equal((await request(env,'/quote-view',{...view,pricePence:2999},{auth:false})).status,400);
- assert.equal((await request(env,'/quote-view',{...view,pricePence:3999},{auth:false})).status,200);
+ assert.equal((await request(env,'/quote-view',{...view,pricePence:2999},{auth:false})).status,200);
+ assert.equal((await request(env,'/quote-view',{...view,pricePence:3999},{auth:false})).status,400);
 });
 test('owner 10% thank-you is worked out per size, shown per size on the book page, and recalculated on a size change',async()=>{
  const {orderTotal}=await import('../src/catalog.js');const env=environment(),{id,order}=await create(env);ziinaConnected(env);let amount=order.amount,made=0;
@@ -526,7 +518,7 @@ test('recent characters: owner lists emailed drafts without keys, turns one into
  assert.equal((await request(env,'/from-draft',{email:'nobody@example.test'},{admin:true})).status,404);
  r=await request(env,'/from-draft',{email:'Maya@Example.test'},{admin:true});assert.equal(r.status,201);const made=(await r.json()).order;
  let o=await state(env,made.id);assert.equal(o.status,'saved');assert.equal(o.payment_status,'unpaid');assert.equal(o.size,'a4');assert.equal(o.email,'maya@example.test');assert.equal(o.session_id,null);
- assert.equal(o.amount,orderTotal('a4',true),'the price hold from their preview has ended');assert.equal(o.data.fullPrice,true);
+ assert.equal(o.amount,orderTotal('a4'),'no price hold: old drafts get the offer price');assert.equal(o.data.fullPrice,false);
  assert.equal(o.data.names,'Maya');assert.equal(o.data.senderName,'Gran');assert.equal(o.data.dedication,'For Maya');assert.equal(o.data.wishes.idea,'The owl who lost her hoot');assert.equal(o.data.recipient.name,'');assert.equal(o.data.fromDraft.draftId,mayaDraft);assert.equal(o.data.characters.length,1);assert.equal(o.data.story.title,story.title);
  assert.equal(env.DB.sqlite.prepare("SELECT COUNT(*) n FROM order_audit WHERE order_id=? AND kind='created_from_draft'").get(made.id).n,1);
  r=await request(env,'/from-draft',{email:'maya@example.test'},{admin:true});assert.equal(r.status,200);const again=await r.json();assert.equal(again.existing,true);assert.equal(again.order.id,made.id);
@@ -558,7 +550,7 @@ test('older characters: owner lists kept character pictures with no book, writes
  storyFails=true;assert.equal((await request(env,'/from-character',{email:'olivia@family.co.uk'},{admin:true})).status,502);assert.equal(env.DB.sqlite.prepare("SELECT COUNT(*) n FROM customer_orders WHERE email='olivia@family.co.uk'").get().n,0,'a failed story saves nothing');storyFails=false;stories=0;
  r=await request(env,'/from-character',{email:' Olivia@Family.co.uk ',age:7},{admin:true});assert.equal(r.status,201);const made=(await r.json()).order;
  assert.deepEqual([sent.names,sent.secondName,sent.age,sent.mood,sent.details,sent.previousStory],['Olivia','','6-8','classic','',null]);assert.match(sent.idea,/everyday adventure/);
- let o=await state(env,made.id);assert.deepEqual([o.status,o.payment_status,o.size,o.email,o.session_id],['saved','unpaid','a4','olivia@family.co.uk',null]);assert.equal(o.amount,orderTotal('a4',true));
+ let o=await state(env,made.id);assert.deepEqual([o.status,o.payment_status,o.size,o.email,o.session_id],['saved','unpaid','a4','olivia@family.co.uk',null]);assert.equal(o.amount,orderTotal('a4'));
  assert.deepEqual([o.data.names,o.data.age,o.data.story.title,o.data.recipient.name,o.data.dedication,o.data.previewId,o.data.fromCharacter.previewId,o.data.wishes.storyMode],['Olivia','6-8','Olivia and the Lost Wellington','','',oliviaPreview,oliviaPreview,'from-character']);assert.ok(o.data.fromCharacter.at);
  assert.equal(o.data.characters.length,1);assert.equal(env.objects.get(`orders/${made.id}/${o.data.characters[0]}`).type,'image/png','the kept picture is the drawing reference');
  assert.equal(env.DB.sqlite.prepare("SELECT COUNT(*) n FROM order_audit WHERE order_id=? AND kind='created_from_character'").get(made.id).n,1);

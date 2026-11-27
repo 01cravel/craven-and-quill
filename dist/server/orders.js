@@ -4305,6 +4305,7 @@ async function sendMetaPurchase(env2, o) {
 // src/catalog.js
 var CATALOG_VERSION = "2026-11-17-postage";
 var SHIPPING_PENCE = 399;
+var HOLD_ON = false;
 var HOLD_MS = 36e5;
 var HOLD_GRACE_MS = 12e4;
 var holdEnd = (createdAt) => Date.parse(createdAt) + HOLD_MS;
@@ -53394,7 +53395,7 @@ function characterBytes(list) {
   });
 }
 async function storeOrder(env2, { id, token, email, size, preview, images, imageType = "image/jpeg", details, actor, kind }) {
-  const fullPrice = Date.now() > holdEnd(preview.created_at) + HOLD_GRACE_MS, o = { id }, characters = [];
+  const fullPrice = HOLD_ON && Date.now() > holdEnd(preview.created_at) + HOLD_GRACE_MS, o = { id }, characters = [];
   for (const bytes of images) characters.push(await assetPut(env2, o, bytes, imageType, "character"));
   const data2 = { privateKey: await privateKey(env2, token), catalogueVersion: CATALOG_VERSION, previewId: preview.id, fullPrice, holdEndedAt: new Date(holdEnd(preview.created_at)).toISOString(), characters, art: { cover: null, scenes: Array(10).fill(null) }, proof: null, customerApproved: null, adminApproved: null, history: [], photoPermissionAt: now2(), storyApprovedAt: now2(), ...details };
   requireThat(data2.names, "Add the main character name.");
@@ -53958,7 +53959,7 @@ async function ordersApi(req, env2) {
     if (path === "/api/orders/live-payment-test") return await livePaymentTest(req, env2, { admin, ziina, matchZiina });
     if (path === "/api/orders/catalog" && req.method === "GET") {
       const c = catalogue(checkoutReady(env2)), pid = url.searchParams.get("preview") || "";
-      if (/^[a-f0-9-]{36}$/.test(pid) && env2.DB) {
+      if (HOLD_ON && /^[a-f0-9-]{36}$/.test(pid) && env2.DB) {
         const p = await q(env2, "SELECT created_at FROM preview_receipts WHERE id=?1 AND status='succeeded'", pid).first().catch(() => null);
         if (p) c.hold = { endsAt: new Date(holdEnd(p.created_at)).toISOString(), now: now2() };
       }
@@ -54025,7 +54026,7 @@ async function ordersApi(req, env2) {
         return reply({ ok: true });
       }
       {
-        const left = holdEnd(preview.created_at) - Date.now();
+        const left = HOLD_ON ? holdEnd(preview.created_at) - Date.now() : Infinity;
         requireThat(Object.hasOwn(PRODUCTS, b2.size) && (left > -HOLD_GRACE_MS && b2.pricePence === priceOf(b2.size) || left < HOLD_GRACE_MS && b2.pricePence === priceOf(b2.size, true)), "Refresh to see the current book price.");
       }
       await q(env2, `INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,confirmed_view_at,unsubscribe_token)

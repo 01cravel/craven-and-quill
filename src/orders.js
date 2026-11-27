@@ -2,7 +2,7 @@ import {adConsent,internalTraffic,sendMetaPurchase} from './ad-measurement.js';
 import {livePaymentTest} from './live-payment-test.js';
 import {ownerSession} from './owner-auth.js';
 import {sendOrderEmail,savedPreviewEmail} from './order-email.js';
-import {PRODUCTS,OWNER_TEST,BOOK,CATALOG_VERSION,catalogue,recipient,safeText,sha,requireThat,OrderError,checkoutReady,referenceBrief,SHIPPING_PENCE,orderTotal,priceOf,holdEnd,HOLD_GRACE_MS} from './catalog.js';
+import {PRODUCTS,OWNER_TEST,BOOK,CATALOG_VERSION,catalogue,recipient,safeText,sha,requireThat,OrderError,checkoutReady,referenceBrief,SHIPPING_PENCE,orderTotal,priceOf,holdEnd,HOLD_GRACE_MS,HOLD_ON} from './catalog.js';
 // Everyone gets 10% off the book on their first paid order (Luke, 27 Nov). Shown pre-filled at checkout.
 export const FIRST_ORDER_CODE='FIRST10';
 import {printBook,validatePdf,makeSpine} from './print-book.js';
@@ -37,7 +37,7 @@ export async function previewImageUrl(env,origin,o,n){requireThat(env.ORDER_LINK
 async function readDraft(env,draftId,token){const key='drafts/'+draftId+'/'+await sha(token),object=await env.BOOK_ASSETS.get(key);const saved=object?JSON.parse(await privateKey(env,new TextDecoder().decode(await object.arrayBuffer()),true)):null;return {key,saved};}
 function characterBytes(list){requireThat(Array.isArray(list)&&list.length>0&&list.length<=2,'Add the approved character preview.');return list.map(x=>{requireThat(typeof x==='string'&&x.length<4500000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x),'Character preview format is invalid.');const bytes=Uint8Array.from(atob(x.split(',')[1]),c=>c.charCodeAt(0));requireThat(bytes[0]===255&&bytes[1]===216,'Invalid character image.');return bytes;});}
 // Saves a new unpaid book: the shopper's own save, or the owner turning a shopper's emailed draft into a book.
-async function storeOrder(env,{id,token,email,size,preview,images,imageType='image/jpeg',details,actor,kind}){const fullPrice=Date.now()>holdEnd(preview.created_at)+HOLD_GRACE_MS,o={id},characters=[];for(const bytes of images)characters.push(await assetPut(env,o,bytes,imageType,'character'));const data={privateKey:await privateKey(env,token),catalogueVersion:CATALOG_VERSION,previewId:preview.id,fullPrice,holdEndedAt:new Date(holdEnd(preview.created_at)).toISOString(),characters,art:{cover:null,scenes:Array(10).fill(null)},proof:null,customerApproved:null,adminApproved:null,history:[],photoPermissionAt:now(),storyApprovedAt:now(),...details};requireThat(data.names,'Add the main character name.');const date=now();await q(env,"INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,'saved','unpaid',1,?6,?7,?7)",id,await sha(token),email,size,orderTotal(size,fullPrice),JSON.stringify(data),date).run();await audit(env,id,kind,actor,{size,fullPrice,catalogueVersion:CATALOG_VERSION,...(data.fromDraft?{draftId:data.fromDraft.draftId}:{})});return get(env,id);}
+async function storeOrder(env,{id,token,email,size,preview,images,imageType='image/jpeg',details,actor,kind}){const fullPrice=HOLD_ON&&Date.now()>holdEnd(preview.created_at)+HOLD_GRACE_MS,o={id},characters=[];for(const bytes of images)characters.push(await assetPut(env,o,bytes,imageType,'character'));const data={privateKey:await privateKey(env,token),catalogueVersion:CATALOG_VERSION,previewId:preview.id,fullPrice,holdEndedAt:new Date(holdEnd(preview.created_at)).toISOString(),characters,art:{cover:null,scenes:Array(10).fill(null)},proof:null,customerApproved:null,adminApproved:null,history:[],photoPermissionAt:now(),storyApprovedAt:now(),...details};requireThat(data.names,'Add the main character name.');const date=now();await q(env,"INSERT INTO customer_orders (id,token_hash,email,size,amount,status,payment_status,revision,state,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,'saved','unpaid',1,?6,?7,?7)",id,await sha(token),email,size,orderTotal(size,fullPrice),JSON.stringify(data),date).run();await audit(env,id,kind,actor,{size,fullPrice,catalogueVersion:CATALOG_VERSION,...(data.fromDraft?{draftId:data.fromDraft.draftId}:{})});return get(env,id);}
 const draftNames=st=>safeText([st.names,st.secondName].filter(x=>typeof x==='string'&&x.trim()).join(' and '),85);
 // A book already made from this draft: by the owner (fixed id), or saved by the shopper from the same character preview.
 async function madeFromDraft(env,draftId,st){return q(env,"SELECT id FROM customer_orders WHERE id=?1 OR (?2<>'' AND json_extract(state,'$.previewId')=?2) ORDER BY created_at LIMIT 1",await draftOrderId(draftId),/^[a-f0-9-]{36}$/.test(st.previewId||'')?st.previewId:'').first();}
@@ -171,7 +171,7 @@ export async function ordersApi(req,env){const url=new URL(req.url),path=url.pat
  if(path==='/api/orders/live-payment-test')return await livePaymentTest(req,env,{admin,ziina,matchZiina});
  if(path==='/api/orders/catalog'&&req.method==='GET'){const c=catalogue(checkoutReady(env)),pid=url.searchParams.get('preview')||'';
   // Tells the book maker when this shopper's one-hour price hold ends, with the server's clock so a wrong phone clock cannot stretch it.
-  if(/^[a-f0-9-]{36}$/.test(pid)&&env.DB){const p=await q(env,"SELECT created_at FROM preview_receipts WHERE id=?1 AND status='succeeded'",pid).first().catch(()=>null);if(p)c.hold={endsAt:new Date(holdEnd(p.created_at)).toISOString(),now:now()};}
+  if(HOLD_ON&&/^[a-f0-9-]{36}$/.test(pid)&&env.DB){const p=await q(env,"SELECT created_at FROM preview_receipts WHERE id=?1 AND status='succeeded'",pid).first().catch(()=>null);if(p)c.hold={endsAt:new Date(holdEnd(p.created_at)).toISOString(),now:now()};}
   return reply(c);}
  if(path==='/api/orders/offer-one-click'&&req.method==='POST'){
   requireThat(env.DB,'Email preferences are unavailable.',503);const token=url.searchParams.get('token')||'';requireThat(/^[a-f0-9-]{36}$/.test(token),'Invalid unsubscribe link.');
@@ -215,7 +215,7 @@ export async function ordersApi(req,env){const url=new URL(req.url),path=url.pat
    await recordFollowupConsent(env,email,b.optIn?'yes':'no');
    return reply({ok:true});
   }
-  {const left=holdEnd(preview.created_at)-Date.now();requireThat(Object.hasOwn(PRODUCTS,b.size)&&((left>-HOLD_GRACE_MS&&b.pricePence===priceOf(b.size))||(left<HOLD_GRACE_MS&&b.pricePence===priceOf(b.size,true))),'Refresh to see the current book price.');}
+  {const left=HOLD_ON?holdEnd(preview.created_at)-Date.now():Infinity;requireThat(Object.hasOwn(PRODUCTS,b.size)&&((left>-HOLD_GRACE_MS&&b.pricePence===priceOf(b.size))||(left<HOLD_GRACE_MS&&b.pricePence===priceOf(b.size,true))),'Refresh to see the current book price.');}
   await q(env,`INSERT INTO customer_quotes (email,size,price_pence,catalogue_version,first_shown_at,last_shown_at,confirmed_view_at,unsubscribe_token)
     VALUES (?1,?2,?3,?4,?5,?5,?5,?6)
     ON CONFLICT(email) DO UPDATE SET size=excluded.size,price_pence=excluded.price_pence,catalogue_version=excluded.catalogue_version,

@@ -4,6 +4,9 @@ export const SHIPPING_PENCE=399;
 // Personal price hold (19 Nov 2026, Luke): the £10-off price is held for one hour from the moment a
 // shopper's free preview is made. After that the book really costs the regular price. The pay screen
 // timer counts down to this, so it must stay true: do not show the timer without charging the higher price.
+// 28 Nov 2026 (Luke): the countdown bar is removed, so the hold is off. Everyone gets the offer price, no expiry.
+// Turning HOLD_ON back on brings back both the timer and the higher price after the hour.
+export const HOLD_ON=false;
 export const HOLD_MS=3600000,HOLD_GRACE_MS=120000;
 export const holdEnd=createdAt=>Date.parse(createdAt)+HOLD_MS;
 export const priceOf=(size,full=false)=>full?PRODUCTS[size].regularPricePence:PRODUCTS[size].pricePence;
