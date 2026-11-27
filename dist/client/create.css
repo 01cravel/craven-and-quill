@@ -1147,3 +1147,72 @@ body.hold-on .top-back{visibility:visible}
 #join-launch .cta-lock{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .order-discount{color:#2f6b3f;font-weight:600}
 .order-discount small{font-weight:500;opacity:.8;margin-left:4px}
+
+/* First screen: an open hardback. Their name sets on the opening page as they type. */
+.step[data-step="1"] h1{margin-bottom:14px}
+.hardback{--cloth:#1d3b33;--page:#fbf6ea;--page-edge:#e6dcc6;--gold:#b08a3e;position:relative;margin:0 auto 18px;width:min(100%,420px);aspect-ratio:1.5;perspective:1400px}
+.hb-cover{position:absolute;inset:-3.2% -2.6% -4.2%;border-radius:6px 6px 8px 8px;background:
+ repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px),
+ repeating-linear-gradient(0deg,rgba(0,0,0,.06) 0 1px,transparent 1px 3px),
+ linear-gradient(90deg,#183229 0%,var(--cloth) 18%,#22443b 48%,#14291f 50%,#22443b 52%,var(--cloth) 82%,#183229 100%);
+ box-shadow:0 1px 0 rgba(255,255,255,.08) inset,0 34px 38px -26px rgba(15,32,27,.75),0 10px 14px -10px rgba(15,32,27,.5);transform:rotateX(9deg);transform-origin:50% 100%}
+.hb-spread{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;transform:rotateX(9deg);transform-origin:50% 100%}
+.hb-left,.hb-right{position:relative;overflow:hidden}
+.hb-left{border-radius:3px 0 0 3px;background:
+ radial-gradient(circle at 25% 25%,rgba(176,138,62,.22) 0 1.4px,transparent 1.6px) 0 0/16px 16px,
+ radial-gradient(circle at 75% 75%,rgba(176,138,62,.14) 0 1px,transparent 1.2px) 0 0/16px 16px,#e9e3d3;
+ box-shadow:inset -18px 0 22px -12px rgba(40,30,10,.32),-1px 0 0 var(--page-edge),-2px 0 0 var(--page),-3px 0 0 var(--page-edge)}
+.hb-plate{position:absolute;left:50%;top:50%;width:46%;aspect-ratio:1;transform:translate(-50%,-50%);display:grid;place-items:center;border-radius:50%;background:var(--page);box-shadow:0 0 0 1px rgba(176,138,62,.5),0 0 0 4px var(--page),0 0 0 5px rgba(176,138,62,.35)}
+.hb-plate img{width:62%;height:auto;opacity:.9}
+.hb-right{border-radius:0 3px 3px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8% 9%;text-align:center;font-family:Story,Georgia,serif;color:#173f35;background:
+ linear-gradient(90deg,rgba(60,45,15,.24) 0,rgba(60,45,15,.08) 7%,transparent 16%),
+ radial-gradient(120% 90% at 60% 30%,#fffdf6 0%,var(--page) 62%,#f2e8d2 100%);
+ box-shadow:1px 0 0 var(--page-edge),2px 0 0 var(--page),3px 0 0 var(--page-edge),4px 0 0 var(--page),5px 0 0 #d9ceb5}
+.hb-for{margin:0 0 6%;font-size:clamp(.72rem,3.3vw,.95rem);font-style:italic;color:#5b6b65}
+.hb-name{display:block;max-width:100%;font-weight:400;font-size:clamp(1.5rem,8.4vw,2.5rem);line-height:1.08;letter-spacing:-.01em;overflow-wrap:anywhere;text-wrap:balance;transition:color .25s,opacity .25s}
+.hb-name.empty{color:#a59c88;font-style:italic;opacity:.75}
+.hb-name.set{animation:hb-ink .45s ease-out}
+@keyframes hb-ink{from{opacity:.35;filter:blur(1.5px)}to{opacity:1;filter:none}}
+body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2px;height:.9em;margin-left:3px;vertical-align:-.08em;background:var(--gold);animation:hb-caret 1s steps(2) infinite}
+@keyframes hb-caret{50%{opacity:0}}
+.hb-flourish{display:block;width:38%;height:9px;margin:7% 0 5%;background:
+ radial-gradient(circle,var(--gold) 0 2px,transparent 2.5px) 50% 50%/9px 9px no-repeat,
+ linear-gradient(var(--gold),var(--gold)) 0 50%/calc(50% - 9px) 1px no-repeat,
+ linear-gradient(var(--gold),var(--gold)) 100% 50%/calc(50% - 9px) 1px no-repeat;opacity:.85}
+.hb-hero{margin:0;font-size:clamp(.62rem,2.7vw,.8rem);color:#7b8a84;letter-spacing:.02em}
+.hb-label{display:block;font-weight:700;margin:6px 0 6px}
+.step[data-step="1"] #names{font:400 1.25rem Story,Georgia,serif;border-radius:12px;border:1.5px solid #9fb0a8;padding:13px 16px;transition:border-color .2s,box-shadow .2s}
+.step[data-step="1"] #names:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 4px rgba(176,138,62,.22)}
+.step[data-step="1"] #names::placeholder{color:#9aa69f;font-style:italic}
+.step[data-step="1"] .proof{margin:12px 0 0}
+.step[data-step="1"] .step-actions.step-actions-single{display:block!important}
+.step[data-step="1"] .error:empty{min-height:0;margin:0}
+/* The age screen: four big taps, two by two. */
+.step[data-step="8"] .age-grid{grid-template-columns:1fr 1fr!important;gap:10px}
+.step[data-step="8"] .age-grid .choice>span{padding:20px 12px;text-align:center;border-radius:14px}
+.step[data-step="8"] .age-grid .choice b{font-size:1.1rem}
+.step[data-step="8"] .step-actions .next{display:none}
+/* Desktop: the hardback is the whole first screen, no side panel. */
+@media(min-width:781px){
+ body[data-step="1"] .maker-shell{grid-template-columns:1fr}
+ body[data-step="1"] .story-side{display:none}
+ body[data-step="1"] .step-panel form{width:min(520px,100%)}
+ .step[data-step="1"] h1{text-align:center;font-size:clamp(2.6rem,4.2vw,3.6rem)}
+ .hardback{margin-bottom:30px}
+}
+/* Phone: keep the book, the box and the button in the first view, and keep the book in sight while typing. */
+@media(max-width:780px){
+ .step[data-step="1"] h1{font-size:clamp(1.75rem,8vw,2.2rem);margin:0 0 12px}
+ .hardback{width:min(92%,360px);margin-bottom:16px}
+ body.naming .step[data-step="1"] h1{display:none}
+ body.naming .hardback{width:min(74%,300px);margin-bottom:10px}
+ body.naming .step[data-step="1"] .proof{display:none}
+ .step[data-step="1"] .step-actions{margin-top:10px}
+}
+@media(max-width:780px) and (max-height:640px){.hardback{width:min(80%,300px)}}
+@media(prefers-reduced-motion:reduce){.hb-name.set{animation:none}body.naming .hb-name::after{animation:none}}
+.step[data-step="1"] #names{background:#fff}
+@media(max-width:780px){.hardback{width:min(96%,380px);margin-top:6px;margin-bottom:20px}}
+#love-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.step[data-step="9"] .field-head{justify-content:flex-start}
+.hb-name{overflow-wrap:normal;word-break:normal;hyphens:manual}

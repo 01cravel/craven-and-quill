@@ -12,8 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="preload" href="assets/first-book.webp" as="image" fetchpriority="high">
-  <link rel="stylesheet" href="create.css?v=first10-1">
+  <link rel="stylesheet" href="create.css?v=hardback-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -22,10 +21,11 @@
     <span class="brand"><img src="assets/logo-mark-on-white.png?v=gold-alpha-20261026" width="420" height="401" alt=""><span>Craven &amp; Quill</span></span>
     <nav class="journey" aria-label="Your progress">
       <span class="journey-step active" data-progress="1"><b>1</b><em>Name</em></span>
-      <span class="journey-step" data-progress="9"><b>2</b><em>Loves</em></span>
-      <span class="journey-step" data-progress="2"><b>3</b><em>Photo</em></span>
-      <span class="journey-step" data-progress="5"><b>4</b><em>Their book</em></span>
-      <span class="journey-step" data-progress="11"><b>5</b><em>Delivery &amp; pay</em></span>
+      <span class="journey-step" data-progress="8"><b>2</b><em>Age</em></span>
+      <span class="journey-step" data-progress="9"><b>3</b><em>Loves</em></span>
+      <span class="journey-step" data-progress="2"><b>4</b><em>Photo</em></span>
+      <span class="journey-step" data-progress="5"><b>5</b><em>Their book</em></span>
+      <span class="journey-step" data-progress="11"><b>6</b><em>Delivery &amp; pay</em></span>
     </nav>
     <div class="top-flip">
       <div class="top-face top-front"><div class="progress-mini" aria-hidden="true"><span class="progress-label"><b id="progress-num" hidden>1</b><em id="progress-name">Their name</em></span><span class="progress-bar"><i id="progress-fill"></i></span></div></div>
@@ -50,14 +50,25 @@
     <section class="step-panel">
       <form id="story-maker" novalidate>
         <section class="step active" data-step="1" aria-labelledby="step-1-title">
-          <figure class="hook" aria-label="Example: a photo of Oliver, and the hardback storybook made from it"><img class="hook-book" src="assets/first-book.webp" width="680" height="658" alt="Oliver and the Birthday Star, a hardback storybook with Oliver drawn as the hero" fetchpriority="high"><span class="hook-photo"><img src="assets/example-photo.webp" width="250" height="300" alt="The photo of Oliver it was made from"><i>From this photo</i></span></figure>
-          <h1 id="step-1-title">Their photo becomes their own storybook</h1>
+          <h1 id="step-1-title">Who is this book for?</h1>
           <p id="starting-story" hidden></p>
-          <p class="intro">A ten-page hardback with them as the hero. See their character free first, no card.</p><p class="proof"><span class="proof-stars" aria-hidden="true"></span><b>4.9</b><span class="visually-hidden">out of 5 rating,</span><span class="proof-rule" aria-hidden="true"></span><span>3,000+ of our books sold</span></p>
-          
-          
+          <figure class="hardback" id="hardback" aria-label="The first page of their hardback, showing the name you type">
+            <div class="hb-cover"></div>
+            <div class="hb-spread">
+              <div class="hb-left" aria-hidden="true"><span class="hb-plate"><img src="assets/logo-mark-on-white.png?v=gold-alpha-20261026" width="420" height="401" alt=""></span></div>
+              <div class="hb-right"><p class="hb-for">A story just for</p><strong class="hb-name empty" id="hb-name">Their name</strong><span class="hb-flourish" aria-hidden="true"></span><p class="hb-hero">the hero of every page</p></div>
+            </div>
+          </figure>
+          <label class="hb-label" for="names">Their first name</label>
+          <input id="names" enterkeyhint="next" name="names" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Type it here" required>
+          <p class="proof"><span class="proof-stars" aria-hidden="true"></span><b>4.9</b><span class="visually-hidden">out of 5 rating,</span><span class="proof-rule" aria-hidden="true"></span><span>3,000+ of our books sold</span></p>
+          <div class="error" id="step-1-error" role="alert"></div>
+          <div class="step-actions step-actions-single"><button class="next" type="button" data-next="8">Continue <span>→</span></button></div>
+        </section>
+
+<section class="step" data-step="8" aria-labelledby="step-8-title" hidden><h1 id="step-8-title">How old are they?</h1><p class="intro">We write the story to suit their age. Tap one.</p>
           <fieldset>
-            <legend>Who is it for? Tap their age to start</legend>
+            <legend>Their age</legend>
             <div class="choice-grid four age-grid compact-choices">
               <label class="choice"><input type="radio" name="age" value="3-5"><span><b>Age 3–5</b><small>Short, simple sentences</small></span></label>
               <label class="choice"><input type="radio" name="age" value="6-8"><span><b>Age 6–8</b><small>Clear, lively story</small></span></label>
@@ -65,13 +76,6 @@
               <label class="choice"><input type="radio" name="age" value="teen-adult"><span><b>Teen or adult</b><small>More detail and depth</small></span></label>
             </div>
           </fieldset>
-                    <div class="error" id="step-1-error" role="alert"></div>
-          <div class="step-actions step-actions-single"><button class="next" type="button" data-next="9">Continue <span>→</span></button></div>
-          <p class="trust-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.2 5.2 7.6 4.7 4 5v13c3.6-.3 6.2.2 8 1.5 1.8-1.3 4.4-1.8 8-1.5V5c-3.6-.3-6.2.2-8 1.5zM12 6.5v13"/></svg><span><b>Free preview.</b> See their character before you pay anything.</span></p>
-        </section>
-
-<section class="step" data-step="8" aria-labelledby="step-8-title" hidden><h1 id="step-8-title">What’s their reading level?</h1><p class="intro">We’ll pitch the words to suit them. Tap one to continue.</p>
-
 <div class="error" id="step-8-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" type="button" data-next="9">Continue <span>→</span></button></div></section>
         <section class="step" data-step="2" aria-labelledby="step-2-title" hidden>
                     <h1 id="step-2-title">Drop in a photo.</h1>
@@ -105,9 +109,7 @@
           <div class="step-actions"><button class="back" type="button" data-back="9">Back</button><button class="next" id="photo-continue" type="button" data-next="5" disabled>Continue <span>→</span></button></div>
         </section>
 
-<section class="step" data-step="9" aria-labelledby="step-9-title" hidden><h1 id="step-9-title">Who is the star?</h1>
-          <label for="names">Their first name</label>
-          <input id="names" enterkeyhint="done" name="names" maxlength="40" autocomplete="off" placeholder="For example, Leo" required>
+<section class="step" data-step="9" aria-labelledby="step-9-title" hidden><h1 id="step-9-title">What do they love?</h1>
           
 <p class="brief-label" id="brief-intro" hidden>What do they love? Tap a few.</p>
 <div id="interests-options"><div class="field-head"><span class="field-label" id="love-label">What do they love?</span><span class="field-hint" id="love-count" aria-live="polite">Tap two or three</span></div><div class="like-chips" id="like-chips" role="group" aria-labelledby="love-label"></div><label for="personal-details">Anything else about them? <span>Optional</span></label><textarea id="personal-details" name="personal-details" rows="2" maxlength="800" placeholder="Alfie would love to score the winning goal for Leeds." aria-describedby="personal-details-note"></textarea><p class="privacy-line" id="personal-details-note">Leave out surnames, school names and other private details.</p></div>
@@ -127,7 +129,7 @@
 
             </div>
           </fieldset>
-          <div class="error" id="step-9-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="1">Back</button><button class="next" type="button" data-next="2">Continue <span>→</span></button></div></section>
+          <div class="error" id="step-9-error" role="alert"></div><div class="step-actions"><button class="back" type="button" data-back="8">Back</button><button class="next" type="button" data-next="2">Continue <span>→</span></button></div></section>
         <section class="step" data-step="3" aria-labelledby="step-3-title" hidden>
           <p class="eyebrow">Story direction</p>
           <h1 id="step-3-title">How should the story feel?</h1>
@@ -298,6 +300,6 @@
   <script src="preview-progress.js?v=magic-2" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=first10-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=hardback-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
 </body>
 </html>

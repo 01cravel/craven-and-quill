@@ -12,7 +12,7 @@ let onFirstScreen=true,firstScreenSeconds=0;
 window.cqMeasurement?.record('timer_on');
 setInterval(()=>{if(!onFirstScreen||document.visibilityState!=='visible')return;firstScreenSeconds++;if([5,15,30,60].includes(firstScreenSeconds))window.cqMeasurement?.record('stay_'+firstScreenSeconds+'s');},1000);
 $('#names').addEventListener('input',()=>window.cqMeasurement?.record('name_typed'),{once:true});
-$('.step[data-step="1"] [data-next="9"]').addEventListener('click',()=>window.cqMeasurement?.record('start_tapped'));
+$('.step[data-step="1"] [data-next="8"]').addEventListener('click',()=>window.cqMeasurement?.record('start_tapped'));
 // Record what went wrong, not just that something did, so the owner can tell a broken page from in-app browser noise.
 addEventListener('error',e=>window.cqMeasurement?.record('page_error',`${e.message||'Error'} at ${String(e.filename||'unknown').split('/').pop().split('?')[0]||'unknown'}:${e.lineno||0}`));
 addEventListener('unhandledrejection',e=>window.cqMeasurement?.record('page_error',`Promise: ${String(e.reason?.message||e.reason||'unknown')}`));
@@ -80,7 +80,7 @@ function toggleLike(like){
 }
 
 function updateLive(){
-  updateGiftPage();
+  updateGiftPage();if(typeof paintHardback==='function')paintHardback();
   state.names=niceName($('#names').value.trim());
   state.secondName=$('#second-person').hidden?'':$('#second-name').value.trim();
   state.age=($('input[name="age"]:checked')||{}).value||'';
@@ -110,8 +110,8 @@ function scrollToStepTop(number){
 // Names typed in lower case ("luke craven") show and print as "Luke Craven". Capitals already typed are kept.
 function niceName(v){return v.replace(/(^|[\s\-'’])(\p{Ll})/gu,(m,a,b)=>a+b.toUpperCase());}
 function showStep(number){
-  const order=[1,9,2,5,13,11];
-  number={8:1,3:9,12:9,6:5,7:11,10:5}[number]||number;
+  const order=[1,8,9,2,5,11];
+  number={3:9,13:11,12:9,6:5,7:11,10:5}[number]||number;
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
   if(number===2)syncEarlyEmail();
@@ -122,7 +122,7 @@ function showStep(number){
   if(number===9)configureBrief();
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);const at=order.indexOf(number===4?5:number);item.classList.toggle('active',order.indexOf(n)===at);item.classList.toggle('done',order.indexOf(n)<at);});
-  const names={1:'Their age',2:'Their photo',9:'About them',4:'Their story',5:'Their book',13:'Your message',11:'Delivery & pay'};
+  const names={1:'Their name',8:'Their age',2:'Their photo',9:'What they love',4:'Their story',5:'Their book',13:'Your message',11:'Delivery & pay'};
   const visibleStep=order.indexOf(number===4?5:number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
   $('.journey').setAttribute('aria-label',`Step ${visibleStep} of ${order.length}: ${names[number]}`);
   if(number===11)queueMicrotask(()=>void prepareAddressStep());
@@ -216,8 +216,8 @@ async function writeStory(revision=false){
   updateLive();if(!validBrief())return;
   const error=$('#step-4-error');error.textContent='';
   const basis=JSON.parse(storyBasis());
-  if(!basis.age){showStep(1);$('#step-1-error').textContent='Choose a reading age first.';return;}
-  if(!basis.names){error.textContent='Add their first name before generating a story.';showStep(9);$('#names').focus();return;}
+  if(!basis.age){showStep(8);$('#step-8-error').textContent='Tap their age first.';return;}
+  if(!basis.names){showStep(1);$('#step-1-error').textContent='Type their first name to start.';$('#names').focus();return;}
   if(!basis.idea){error.textContent='Add a starting idea before generating the story.';$('#own-idea').focus();return;}
   if(revision&&!draftValid(state.storyDraft)){error.textContent='Keep a title, storyline and words on all ten pages before updating the story.';return;}
   const changes=revision?$('#story-changes').value.trim():'';
@@ -573,15 +573,15 @@ $('#change-story').addEventListener('click',()=>{state.characterImages=[];showSt
 
 $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   const next=Number(button.dataset.next);
+  // First screen: their name, printed live on the opening page of the hardback.
   if(state.step===1){
     updateLive();
-    if(!$('input[name="age"]:checked')){$('#step-1-error').textContent='Choose a reading age.';$('.age-grid input')?.focus();return;}
-    $('#step-1-error').textContent='';
+    if(!state.names){$('#step-1-error').textContent='Type their first name to start.';$('#names').focus();return;}
+    $('#step-1-error').textContent='';$('#names').blur();
   }
-  if(state.step===8&&!$('input[name="age"]:checked')){$('#step-8-error').textContent='Choose a reading level.';return;}
-  if(state.step===9&&!$('input[name="age"]:checked')){$('#step-9-error').textContent='Choose a reading age.';$('.age-grid input').focus();return;}
-  // The name is asked here, on the second screen, so the first screen is a single tap.
-  if(state.step===9){updateLive();if(!state.names){$('#step-9-error').textContent='Add their first name to continue.';$('#names').focus();return;}}
+  if(state.step===8&&!$('input[name="age"]:checked')){$('#step-8-error').textContent='Tap their age to continue.';$('.age-grid input')?.focus();return;}
+  if(state.step===9&&!$('input[name="age"]:checked')){showStep(8);$('#step-8-error').textContent='Tap their age to continue.';return;}
+  if(state.step===9){updateLive();if(!state.names){showStep(1);$('#step-1-error').textContent='Type their first name to start.';$('#names').focus();return;}}
   if(state.step===9){state.mood=($('input[name="mood"]:checked')||{}).value||'adventure';}
   if(state.step===9){updateLive();const own=state.storyMode==='plot';const field=own?$('#own-idea'):$('#personal-details');if(!field.value.trim()){$('#step-9-error').textContent=own?'Give us a sentence about what should happen.':'Tap one thing they love, or write a line about them.';field.focus();return;}$('#step-9-error').textContent='';buildIdeas();state.storyError='';if(!storyWriting&&(!draftValid(state.storyDraft)||state.storyBasis!==storyBasis()))void writeStory(false);}
   if(state.step===11){
@@ -773,14 +773,30 @@ new ResizeObserver(fitCoverName).observe($('#mini-cover'));
 document.fonts.ready.then(fitCoverName);
 
 let quickAdvanceTimer;
-for(const [name,step,next] of [['age',1,9],['mood',3,2],['story-mode',12,9]]){
+for(const [name,step,next] of [['age',8,9],['mood',3,2],['story-mode',12,9]]){
   for(const input of $$(`input[name="${name}"]`))input.addEventListener('click',()=>{
     if(state.step!==step)return;
     clearTimeout(quickAdvanceTimer);
     quickAdvanceTimer=setTimeout(()=>{if(state.step===step&&input.checked)document.querySelector(`.step[data-step="${step}"] [data-next="${next}"]`).click();},160);
   });
 }
-$('#names').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();event.target.blur();}});
+$('#names').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();if(state.step===1)$('.step[data-step="1"] [data-next="8"]').click();else event.target.blur();}});
+// The hardback on the first screen: their name sets on the opening page as they type.
+function paintHardback(){
+ const el=$('#hb-name');if(!el)return;
+ const name=niceName($('#names').value.trim());
+ el.textContent=name||'Their name';el.classList.toggle('empty',!name);
+ const first=name.split(/\s+/)[0]||'';
+ $('#step-8-title').textContent=first?`How old is ${first}?`:'How old are they?';
+ $('#step-9-title').textContent=first?`What does ${first} love?`:'What do they love?';
+ el.style.fontSize='';const box=el.parentElement;let size=parseFloat(getComputedStyle(el).fontSize);
+ while(size>12&&(el.scrollWidth>el.clientWidth+1||el.offsetHeight>box.clientHeight*.44)){size-=1;el.style.fontSize=size+'px';}
+}
+$('#names').addEventListener('input',()=>{paintHardback();const el=$('#hb-name');el.classList.remove('set');void el.offsetWidth;el.classList.add('set');});
+$('#names').addEventListener('focus',()=>{document.body.classList.add('naming');if(state.step===1&&matchMedia('(max-width:780px)').matches)setTimeout(()=>$('.step-panel').scrollTo({top:0,behavior:'smooth'}),350);});
+$('#names').addEventListener('blur',()=>document.body.classList.remove('naming'));
+new ResizeObserver(paintHardback).observe($('#hardback'));
+document.fonts.ready.then(paintHardback);
 $('#story-maker').addEventListener('submit',event=>event.preventDefault());
 showStep(1);
 
