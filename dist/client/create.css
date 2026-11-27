@@ -1358,3 +1358,19 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 .email-book.done{text-decoration:none;color:#2f6b45}
 .email-book:disabled{cursor:default}
 .step[data-step="5"]{padding-bottom:180px}
+
+/* 28 Nov: words under the book can be edited in place */
+.words-card{margin:14px auto 0;max-width:36ch;padding:10px 14px 14px;border-radius:14px;background:#fbf6ea;border:1px solid #eadfc6;transition:border-color .2s,box-shadow .2s}
+.words-card[hidden]{display:none}
+.words-card.editing{border-color:var(--ink);box-shadow:0 0 0 3px rgba(23,51,44,.12);background:#fffdf7}
+.words-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:.8rem;color:var(--muted)}
+.words-edit{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:6px 12px;border-radius:999px;border:1px solid var(--ink);background:#fff;color:var(--ink);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}
+.words-card.editing .words-edit{background:var(--ink);color:#fff}
+.words-edit svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.words-card .pbook-words{margin:0;max-width:none;padding:0;border:0;background:none;cursor:text}
+.pbook-words-edit{display:block;width:100%;box-sizing:border-box;margin:0;padding:8px;border:0;border-radius:8px;background:transparent;resize:none;field-sizing:content;min-height:4.5em;font-family:var(--story,'Story Serif',Georgia,serif);font-size:1.12rem;line-height:1.5;color:var(--ink);text-align:center;outline:none}
+.pbook-words-edit[hidden]{display:none}
+.words-saved{margin:6px 0 0;min-height:0;font-size:.8rem;color:#2f6b45;text-align:center}
+.words-saved:empty{display:none}
+body.words-editing .step[data-step="5"] .step-actions{display:none!important}
+.words-card .pbook-words-edit{background:transparent!important;border:0!important;box-shadow:none!important}

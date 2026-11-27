@@ -1047,13 +1047,41 @@ function stopAutoFlip(){autoFlipStopped=true;clearTimeout(autoFlip);autoFlip=nul
 ['pointerdown','touchstart','wheel','keydown'].forEach(type=>$('#preview-book').addEventListener(type,stopAutoFlip,{passive:true}));
 // The words on the little book are too small to read on a phone, so the page they are on is shown big underneath.
 function showBookWords(){
- const box=$('#pbook-words');if(!box)return;
- const leaf=$$('#pbook-track .pb3-leaf')[previewBookPage];
- const i=previewBookPage>0&&!leaf?.querySelector('.pb3-more')?previewBookPage-1:-1;
- const text=i>=0?state.storyDraft?.spreads?.[i]?.text:'';
- box.hidden=!text;
- if(text&&box.textContent!==text){box.textContent=text;box.classList.toggle('fresh',false);void box.offsetWidth;box.classList.add('fresh');}
+ const card=$('#words-card'),box=$('#pbook-words');if(!card)return;
+ if(wordsEditing!==null&&wordsEditing!==currentWordsPage())saveBookWords();
+ const i=currentWordsPage(),text=i>=0?state.storyDraft?.spreads?.[i]?.text:'';
+ card.hidden=!text;if(!text)return;
+ $('#words-page').textContent=`Page ${i+1} of ${state.storyDraft.spreads.length}`;
+ if(wordsEditing===null&&box.textContent!==text){box.textContent=text;box.classList.toggle('fresh',false);void box.offsetWidth;box.classList.add('fresh');}
 }
+// 28 Nov (Luke): shoppers can change the words right here. Tap the words or the pencil, type, tap Done.
+let wordsEditing=null;
+function currentWordsPage(){const leaf=$$('#pbook-track .pb3-leaf')[previewBookPage];return previewBookPage>0&&leaf&&!leaf.querySelector('.pb3-more')?previewBookPage-1:-1;}
+function editBookWords(){
+ const i=currentWordsPage();if(i<0||!state.storyDraft)return;
+ stopAutoFlip();wordsEditing=i;
+ const field=$('#pbook-words-edit');field.value=state.storyDraft.spreads[i].text;
+ $('#pbook-words').hidden=true;field.hidden=false;$('#words-card').classList.add('editing');document.body.classList.add('words-editing');setTimeout(()=>$('#words-card').scrollIntoView({block:'center',behavior:'smooth'}),250);
+ $('#words-edit-label').textContent='Done';$('#words-saved').textContent='';
+ field.focus();field.setSelectionRange(field.value.length,field.value.length);track('book_words_edit_open');
+}
+function saveBookWords(){
+ const i=wordsEditing;if(i===null)return;wordsEditing=null;
+ const field=$('#pbook-words-edit'),text=field.value.replace(/\s+\n/g,'\n').trim().slice(0,1500);
+ $('#pbook-words').hidden=false;field.hidden=true;$('#words-card').classList.remove('editing');document.body.classList.remove('words-editing');$('#words-edit-label').textContent='Edit this page';
+ if(!state.storyDraft?.spreads?.[i])return;
+ if(text&&text!==state.storyDraft.spreads[i].text){
+  state.storyDraft.spreads[i].text=text;
+  const twin=$$('#story-pages textarea')[i];if(twin)twin.value=text;
+  track('story_edited');window.dispatchEvent(new Event('cq-draft-change'));
+  renderPreviewBook();$('#words-saved').textContent='Saved. The book shows your words.';
+ }
+ $('#pbook-words').textContent=state.storyDraft.spreads[i].text;
+}
+$('#words-edit').addEventListener('click',()=>{wordsEditing===null?editBookWords():saveBookWords();});
+$('#pbook-words').addEventListener('click',editBookWords);
+$('#pbook-words-edit').addEventListener('keydown',event=>{if(event.key==='Escape'){$('#pbook-words-edit').value=state.storyDraft.spreads[wordsEditing].text;saveBookWords();}});
+$('#pbook-words-edit').addEventListener('blur',event=>{if(event.relatedTarget?.id!=='words-edit')saveBookWords();});
 function updatePreviewBook(index){
  const leaves=$$('#pbook-track .pb3-leaf');if(!leaves.length)return;
  const n=leaves.length,stage=$('#pbook-track .pb3');
