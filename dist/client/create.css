@@ -1372,5 +1372,18 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 .pbook-words-edit[hidden]{display:none}
 .words-saved{margin:6px 0 0;min-height:0;font-size:.8rem;color:#2f6b45;text-align:center}
 .words-saved:empty{display:none}
-body.words-editing .step[data-step="5"] .step-actions{display:none!important}
+body.words-editing #xmas-strip,body.words-editing #email-book{display:none!important}
 .words-card .pbook-words-edit{background:transparent!important;border:0!important;box-shadow:none!important}
+/* 28 Nov: words box in the first screen on phones: trim the empty space around the book, tuck the arrows under it */
+@media(max-width:780px){
+ .step[data-step="5"] .page-preview-heading{margin-bottom:0}
+ .step[data-step="5"] #pbook-track{margin-top:-44px}
+ .step[data-step="5"] .pbook-nav{margin-top:-52px;position:relative;z-index:2}
+ .step[data-step="5"] .words-card{margin-top:8px}
+}
+@media(max-width:780px) and (max-height:760px){
+ .step[data-step="5"] .pb3{--pw:118px}
+ .step[data-step="5"] #pbook-track{margin-top:-30px}
+ .step[data-step="5"] .pbook-nav{margin-top:-40px}
+}
+@media(max-width:780px) and (max-height:760px){.step[data-step="5"] .pbook-nav{display:none}.step[data-step="5"] .words-card{margin-top:2px}}
