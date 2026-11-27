@@ -1143,3 +1143,7 @@ body.hold-on .top-back{visibility:visible}
 .gift-optional textarea{margin-bottom:14px}
 .step[data-step="11"]:not([data-stage="where"]) .gift-optional{display:none}
 .gift-optional label span{color:var(--muted);font-weight:500;font-size:.85rem;margin-left:4px}
+/* Pay button: padlock instead of the price; first-order 10% line (27 Nov) */
+#join-launch .cta-lock{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.order-discount{color:#2f6b3f;font-weight:600}
+.order-discount small{font-weight:500;opacity:.8;margin-left:4px}

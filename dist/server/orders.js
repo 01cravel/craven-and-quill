@@ -53285,6 +53285,7 @@ async function writeStory(env2, input2) {
 }
 
 // src/orders.js
+var FIRST_ORDER_CODE = "FIRST10";
 var now2 = () => (/* @__PURE__ */ new Date()).toISOString();
 var uid = () => crypto.randomUUID();
 var reply = (body2, status = 200, extra = {}) => new Response(JSON.stringify(body2), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff", ...extra } });
@@ -54337,6 +54338,20 @@ Order desk: ${url.origin}/orders` }), signal: AbortSignal.timeout(1e4) });
     if (action === "apply-offer") {
       requireThat(o.payment_status === "unpaid" && o.status === "saved" && !o.session_id, "This checkout needs owner review before its price can change.", 409);
       const code2 = String(b.code || "").trim().toUpperCase();
+      if (code2 === FIRST_ORDER_CODE) {
+        if (o.data.discount?.code === code2) return reply(publicOrder(o, isAdmin));
+        requireThat(!o.data.discount, "Only one offer can be used on a book.", 409);
+        const bought = await q(env2, "SELECT id FROM customer_orders WHERE lower(email)=lower(?1) AND payment_status='paid' AND id<>?2 LIMIT 1", o.email, id).first();
+        requireThat(!bought, "The 10% welcome code is for a first order.", 409);
+        const discount2 = Math.round(priceOf(o.size, !!o.data.fullPrice) * 0.1);
+        const amount2 = orderTotal(o.size, !!o.data.fullPrice) - discount2;
+        requireThat(amount2 >= PRODUCTS[o.size].estimatedSupplierPence, "This offer cannot be applied to this format.", 409);
+        o.data.discount = { code: code2, amountPence: discount2, firstOrder: true, appliedAt: now2() };
+        const changed2 = await q(env2, "UPDATE customer_orders SET amount=?1,state=?2,revision=revision+1,updated_at=?3 WHERE id=?4 AND revision=?5 AND payment_status='unpaid' AND session_id IS NULL RETURNING id", amount2, JSON.stringify(o.data), now2(), id, o.revision).first();
+        requireThat(changed2, "This order changed. Reload before applying the offer.", 409);
+        await audit(env2, id, "first_order_discount", o.email, { amount: amount2, discount: discount2 });
+        return reply(publicOrder(await get(env2, id), isAdmin));
+      }
       requireThat(/^CQ[A-Z0-9]{10}$/.test(code2), "Enter a valid offer code.");
       if (o.data.discount?.code === code2) return reply(publicOrder(o, isAdmin));
       requireThat(!o.data.discount, "Only one offer can be used on a book.", 409);
@@ -54862,6 +54877,7 @@ Order desk: ${url.origin}/orders` }), signal: AbortSignal.timeout(1e4) });
 export {
   CHARACTER_IDEA,
   CHASE_NOTICE,
+  FIRST_ORDER_CODE,
   characterImage,
   chaseDue,
   chaseMessage,

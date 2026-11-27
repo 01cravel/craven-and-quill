@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="assets/first-book.webp" as="image" fetchpriority="high">
-  <link rel="stylesheet" href="create.css?v=straightpay-1">
+  <link rel="stylesheet" href="create.css?v=first10-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -257,9 +257,9 @@
 <details class="gift-optional" id="gift-optional"><summary>Add a message inside <span>Optional</span></summary><p class="gift-optional-note">Printed on the first page, the moment they open the cover.</p><label for="sender-name">Who is it from? <span>Optional</span></label><input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad"><label for="dedication">Your message <span>Optional</span></label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea></details>
 <div class="error" id="step-11-error" role="alert"></div>
           <p class="hold-clock" data-hold-clock role="timer" hidden></p>
-          <section class="order-total" aria-label="Your order"><div class="order-lines"><span class="order-line"><span id="order-label">A4 hardback</span><span><del id="order-was" hidden></del> <span id="order-book-price">£29.99</span></span></span><span class="order-line order-postage"><span>UK postage</span><span id="order-postage">£3.99</span></span></div><div class="order-sum"><span>Total</span><strong id="order-price">£33.98</strong></div><p class="order-offer" id="order-offer" hidden><span id="order-offer-what">£10 off</span> held for <b id="order-offer-time">60:00</b></p></section>
+          <section class="order-total" aria-label="Your order"><div class="order-lines"><span class="order-line"><span id="order-label">A4 hardback</span><span><del id="order-was" hidden></del> <span id="order-book-price">£29.99</span></span></span><span class="order-line order-discount" id="order-discount-line" hidden><span>First order 10% off</span><span id="order-discount">−£3.00</span></span><span class="order-line order-postage"><span>UK postage</span><span id="order-postage">£3.99</span></span></div><div class="order-sum"><span>Total</span><strong id="order-price">£33.98</strong></div><p class="order-offer" id="order-offer" hidden><span id="order-offer-what">£10 off</span> held for <b id="order-offer-time">60:00</b></p></section>
           <p id="offer-code-note" class="privacy-line" hidden></p>
-          <div class="offer-code-field" id="offer-code-field" hidden><label for="offer-code">Discount code</label><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="CQ…"></div>
+          <div class="offer-code-field" id="offer-code-field" hidden><label for="offer-code">Discount code</label><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="CQ… or FIRST10"></div>
           <div id="launch-form">
             <div class="signup-honeypot" aria-hidden="true"><label for="website">Leave this empty</label><input id="website" tabindex="-1" autocomplete="off"></div>
             <input id="purchase-intent" type="checkbox" checked hidden>
@@ -279,7 +279,7 @@
             </div>
           </div>
           </div>
-          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="back" type="button" id="back-who">Back</button><button class="next" type="button" id="to-address">Continue <span>→</span></button><button class="next checkout-button" id="join-launch" type="button"><span class="cta-text">Pay securely</span> <span class="cta-price" data-cta-price>£29.99</span></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="back" type="button" id="back-who">Back</button><button class="next" type="button" id="to-address">Continue <span>→</span></button><button class="next checkout-button" id="join-launch" type="button"><span class="cta-text">Pay securely</span> <svg class="cta-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></button></div>
           <div hidden><span id="review-art"></span><span id="review-text"></span><span id="review-folio"></span><span id="review-pos"></span><button id="review-prev" type="button"></button><button id="review-next" type="button"></button><span id="review-spread"></span><span id="review-chapter"></span><span class="review-art-page"></span><span class="art-badge"></span><span id="delivery-summary"></span><button id="open-examples" type="button"></button></div>
         </section>
         <dialog class="examples-dialog" id="examples-dialog" aria-labelledby="examples-title">
@@ -298,6 +298,6 @@
   <script src="preview-progress.js?v=magic-2" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=deadtaps-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=first10-1" defer></script><script src="draft-save.js?v=save-preview-1" defer></script>
 </body>
 </html>

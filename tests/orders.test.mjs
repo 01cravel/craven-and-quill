@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {PDFDocument} from 'pdf-lib';
 import {ordersApi,quoteOrder,runArtworkJobs,claimBookSoldAlerts} from '../src/orders.js';
-import {PRODUCTS,OWNER_TEST,sha,checkoutReady,BOOK} from '../src/catalog.js';
+import {PRODUCTS,OWNER_TEST,sha,checkoutReady,BOOK,priceOf} from '../src/catalog.js';
 import {printBook,validatePdf,giver} from '../src/print-book.js';
 import {testDb} from './sqlite-d1.mjs';
 import worker from '../dist/server/index.js';
@@ -576,4 +576,18 @@ test.skip('order desk watermarks unpaid preview phone pages only',async()=>{
  const calls=[];const g=new Proxy({},{get:(t,k)=>k in t?t[k]:(k==='measureText'?()=>({width:400}):(...a)=>calls.push([k,...a])),set:(t,k,v)=>{t[k]=v;return true;}});
  ctx.stampPreview(g,1000,1414);const texts=calls.filter(c=>c[0]==='fillText');assert.ok(texts.length>=15,'repeated across the page');assert.ok(texts.every(c=>c[1]==='Craven & Quill'));assert.equal(g.fillStyle,'rgba(255,255,255,.14)');assert.match(g.strokeStyle,/rgba\(30,24,18/);assert.ok(calls.some(c=>c[0]==='rotate'));
  assert.match(src,/if\(mark\)stampPreview\(/);
+});
+
+test('FIRST10 takes 10% off the book for a first order only, once per book',async()=>{
+ const env=environment();
+ const {id}=await create(env,'a5');let o=await state(env,id);
+ const before=o.amount;const off=Math.round(priceOf('a5',!!o.data.fullPrice)*0.1);
+ let r=await request(env,'/'+id+'/apply-offer',{revision:o.revision,code:'first10'});assert.equal(r.status,200);assert.equal((await r.json()).amount,before-off);
+ o=await state(env,id);assert.equal(o.data.discount.code,'FIRST10');assert.equal(o.data.discount.firstOrder,true);
+ r=await request(env,'/'+id+'/apply-offer',{revision:o.revision,code:'FIRST10'});assert.equal(r.status,200);assert.equal((await r.json()).amount,before-off);
+ // Same email has already paid for a book: no welcome code on the next one.
+ await paid(env,id);
+ const second=(await create(env,'a5')).id;const o2=await state(env,second);
+ r=await request(env,'/'+second+'/apply-offer',{revision:o2.revision,code:'FIRST10'});assert.equal(r.status,409);
+ assert.equal((await state(env,second)).amount,o2.amount);
 });

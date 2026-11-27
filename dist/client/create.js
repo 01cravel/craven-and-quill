@@ -628,7 +628,9 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
 $$('[data-back]').forEach(button=>button.addEventListener('click',()=>{if(state.step===5&&button.dataset.back==='4')$('#story-editor').open=true;showStep(Number(button.dataset.back));}));
 
 let orderCatalog=null,orderRequest=null;
-let offerCode=new URLSearchParams(location.search).get('offer')?.trim().toUpperCase()||'';
+var offerCode=new URLSearchParams(location.search).get('offer')?.trim().toUpperCase()||'';
+// No emailed code? Everyone gets the 10% first-order welcome code, already filled in. The server checks they have not bought before.
+if(!offerCode)offerCode='FIRST10';
 if(/^CQ[A-Z0-9]{10}$/.test(offerCode)){$('#offer-code-note').hidden=false;$('#offer-code-note').textContent=`Offer code ${offerCode} will be checked before payment. No discount is applied until the final total updates.`;}
 const priceElements=$$('.product .current-price');
 let lastQuoteKey='',saveQueue=Promise.resolve();
@@ -669,9 +671,10 @@ if('IntersectionObserver' in window){
 document.addEventListener('visibilitychange',observeBookPrice);
 window.addEventListener('online',observeBookPrice);
 async function loadOrderCatalog(){try{const r=await fetch('/api/orders/catalog');if(!r.ok)return;orderCatalog=await r.json();for(const product of orderCatalog.products){const radio=document.querySelector(`input[name="product"][value="${product.id}"]`);if(radio){radio.dataset.price=String(product.pricePence/100);radio.closest('label').querySelector('.current-price').textContent=`£${(product.pricePence/100).toFixed(2)}`;const was=radio.closest('label').querySelector('del');if(was&&product.regularPricePence)was.textContent=`£${(product.regularPricePence/100).toFixed(2)}`;}}if(Number.isInteger(orderCatalog.shippingPence))state.postage=orderCatalog.shippingPence/100;if(orderCatalog.offerEndsAt)offerEndsAt=Date.parse(orderCatalog.offerEndsAt);endOffer();updateProduct();tickHold();}catch{}}
-function setPayLabel(){$('#join-launch').innerHTML='<span class="cta-text">Pay securely</span> <span class="cta-price" data-cta-price></span>';updateCtaPrices();}
+function setPayLabel(){$('#join-launch').innerHTML='<span class="cta-text">Pay securely</span> <svg class="cta-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>';updateCtaPrices();}
 // The book screen shows the book price. Postage is added only on the pay screen.
-function orderTotal(){return Math.round((state.price+state.postage)*100)/100;}
+function firstOff(){return offerCode==='FIRST10'?Math.round(state.price*10)/100:0;}
+function orderTotal(){return Math.round((state.price+state.postage-firstOff())*100)/100;}
 function updateCtaPrices(){$$('[data-cta-price]').forEach(el=>el.textContent=`£${(el.closest('#join-launch')?orderTotal():state.price).toFixed(2)}`);}
 // The £10-off line and struck price disappear once the offer date passes.
 let offerEndsAt=Date.parse('2026-12-01T23:59:59Z');
@@ -716,6 +719,7 @@ function updateProduct(){
   $('#order-label').textContent=state.product==='a4'?'A4 hardback':'A5 hardback';
   $('#order-book-price').textContent=`£${state.price.toFixed(2)}`;
   $('#order-postage').textContent=`£${state.postage.toFixed(2)}`;
+  const off=firstOff();$('#order-discount-line').hidden=!off;$('#order-discount').textContent=`−£${off.toFixed(2)}`;
   $('#order-price').textContent=`£${orderTotal().toFixed(2)}`;
   updateCtaPrices();if($("#size-toggle"))showSizeChoice();
 }
@@ -726,7 +730,7 @@ $('#size-toggle').addEventListener('click',()=>{const next=$(`input[name="produc
 $$('input[name="product"]').forEach(input=>input.addEventListener('change',showSizeChoice));showSizeChoice();
 $('#join-launch').addEventListener('click',async()=>{
  const error=$('#step-7-error'),button=$('#join-launch');if(button.disabled)return;
- const typedCode=$('#offer-code').value.replace(/\s/g,'').toUpperCase();if(typedCode){if(!/^CQ[A-Z0-9]{10}$/.test(typedCode)){error.textContent='Check the discount code. It starts with CQ and has 12 characters.';$('#offer-code').focus();return;}offerCode=typedCode;}
+ const typedCode=$('#offer-code').value.replace(/\s/g,'').toUpperCase();if(typedCode){if(!/^(CQ[A-Z0-9]{10}|FIRST10)$/.test(typedCode)){error.textContent='Check the discount code. It starts with CQ and has 12 characters.';$('#offer-code').focus();return;}offerCode=typedCode;updateProduct();}
  if(!validPreviewEmail()){$('#step-10-error').textContent='Enter your email so we can send your receipt and proof.';$('#email').focus();$('#email').scrollIntoView({block:'center'});return;}
  if(!await saveEmailOnce())return;
  if(!$('#purchase-intent').checked||!$('#photo-permission').checked){showStep(2);$('#step-2-error').textContent='Tick to confirm you have permission to use the photo.';return;}
@@ -736,7 +740,7 @@ $('#join-launch').addEventListener('click',async()=>{
  updateProduct();button.disabled=true;button.textContent='Saving your book…';error.textContent='';
  orderRequest=orderRequest||{id:crypto.randomUUID(),key:crypto.randomUUID()+crypto.randomUUID()};
  try{await window.cqSaveDraft?.();const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({measurement:window.cqMeasurement?.context(),requestId:orderRequest.id,accessToken:orderRequest.key,email:$('#email').value.trim().toLowerCase(),size:state.product,story:state.storyDraft,names:fullNames(),age:state.age,previewId:state.previewId,characters:state.characterImages,approvedStory:true,photoPermission:true,dedication:$('#dedication').value.trim(),senderName:$('#sender-name').value.trim(),wishes:{details:state.details||'',ownIdea:state.ownIdea||'',mood:state.mood||'',storyMode:state.storyMode||'',idea:state.ideas?.[state.selected]?.[0]||''},recipient:{name:$('#recipient-name').value.trim(),address:{line1:$('#address-line1').value.trim(),line2:$('#address-line2').value.trim(),townOrCity:$('#town').value.trim(),postalOrZipCode:$('#postcode').value.trim(),countryCode:'GB'}}}),signal:AbortSignal.timeout(45000)});const data=await response.json();if(!response.ok)throw new Error(data.error||'Your book could not be saved. Please retry.');track('book_saved');const privateUrl=`/order.html?id=${data.order.id}#key=${orderRequest.key}`;
- if(offerCode){const applied=await fetch(`/api/orders/${data.order.id}/apply-offer`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+orderRequest.key},body:JSON.stringify({revision:data.order.revision,code:offerCode})});const result=await applied.json();if(!applied.ok)throw new Error(result.error||'Your offer could not be applied. Your book is saved and no payment started.');data.order=result;$('#order-price').textContent=`£${(result.amount/100).toFixed(2)}`;$('#offer-code-note').textContent=`Offer ${offerCode} applied. Your total is £${(result.amount/100).toFixed(2)}.`;}
+ if(offerCode){const applied=await fetch(`/api/orders/${data.order.id}/apply-offer`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+orderRequest.key},body:JSON.stringify({revision:data.order.revision,code:offerCode})});const result=await applied.json();if(!applied.ok&&offerCode==='FIRST10'){offerCode='';updateProduct();}else{if(!applied.ok)throw new Error(result.error||'Your offer could not be applied. Your book is saved and no payment started.');data.order=result;$('#order-price').textContent=`£${(result.amount/100).toFixed(2)}`;$('#offer-code-note').textContent=`Offer ${offerCode} applied. Your total is £${(result.amount/100).toFixed(2)}.`;}}
  if(orderCatalog?.checkoutEnabled){
  const headers={'Content-Type':'application/json',Authorization:'Bearer '+orderRequest.key};
  const session=await fetch(`/api/orders/${data.order.id}/session`,{method:'POST',headers,body:JSON.stringify({token:orderRequest.key})});if(!session.ok)throw Error('Your book is saved. Please retry to open secure payment.');
