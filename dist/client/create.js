@@ -114,8 +114,8 @@ function scrollToStepTop(number){
 // Names typed in lower case ("luke craven") show and print as "Luke Craven". Capitals already typed are kept.
 function niceName(v){return v.replace(/(^|[\s\-'’])(\p{Ll})/gu,(m,a,b)=>a+b.toUpperCase());}
 function showStep(number){
-  const order=[1,8,9,2,5,11];
-  number={3:9,13:11,12:9,6:5,7:11,10:5}[number]||number;
+  const order=[1,8,9,2,5,6,11];
+  number={3:9,13:11,12:9,7:11,10:5}[number]||number;
   if(!order.includes(number)&&number!==4)number=1;
   const previous=state.step;
   if(number===2)syncEarlyEmail();
@@ -126,19 +126,19 @@ function showStep(number){
   if(number===9)configureBrief();
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);const at=order.indexOf(number===4?5:number);item.classList.toggle('active',order.indexOf(n)===at);item.classList.toggle('done',order.indexOf(n)<at);});
-  const names={1:'Their name',8:'Their age',2:'Their photo',9:'What they love',4:'Their story',5:'Their book',13:'Your message',11:'Delivery & pay'};
+  const names={1:'Their name',8:'Their age',2:'Their photo',9:'What they love',4:'Their story',5:'Their book',6:'Book size',13:'Your message',11:'Delivery & pay'};
   const visibleStep=order.indexOf(number===4?5:number)+1;$('#progress-num').textContent=visibleStep;$('#progress-name').textContent=names[number];$('#progress-fill').style.width=`${visibleStep/order.length*100}%`;
   $('.journey').setAttribute('aria-label',`Step ${visibleStep} of ${order.length}: ${names[number]}`);
   if(number===11)queueMicrotask(()=>void prepareAddressStep());
   document.body.dataset.step=number;
   if(number===4&&state.storyDraft)requestAnimationFrame(()=>turnStoryPage(state.storyPage,'instant'));
-  if(number===5||number===11)void refreshHold();else document.body.classList.remove('hold-on');
+  if(number===5||number===6||number===11)void refreshHold();else document.body.classList.remove('hold-on');
   if(number===5){ensurePreview();updateReveal();updateXmas();if(state.characterImages[0]){renderPreviewBook();startAutoFlip();}}
   if(number===13)renderGiftBook();
   renderSideBook();
   if([4,5,11].includes(number))void drawPages();
   scrollToStepTop(number);
-  if(number===5)requestAnimationFrame(observeBookPrice);
+  if(number===6){const f=(state.names||'').trim().split(/\s+/)[0];$('#size-name').textContent=f?f+'\u2019s':'their';requestAnimationFrame(observeBookPrice);}
   onFirstScreen=number===1;
   track('story_step_view',{step:number});
   window.dispatchEvent(new Event('cq-draft-change'));
@@ -549,7 +549,6 @@ function ensurePreview(){
 function updateReveal(){
   const ready=previewReady();
   $('#making-state').hidden=ready;$('#result-state').hidden=!ready;$('#choose-book').disabled=!ready;
-  if(ready&&state.step===5)window.cqMeasurement?.record('price_visible');
   if(state.storyError){$('#generation-error-copy').textContent=state.storyError;$('#generation-error').hidden=false;$('#retry-generation').hidden=false;}
   if(!ready&&!generationBusy&&!state.characterImages[0]&&!photosReady()&&$('#generation-error').hidden&&state.step===5){$('#generation-error-copy').textContent='Add their photo again to see the book. Everything else is saved.';$('#generation-error').hidden=false;$('#retry-generation').hidden=true;$('#blocked-actions').hidden=false;}
 }
@@ -641,7 +640,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   }
   if(state.step===4&&state.characterImages.length){$('#story-copy').textContent=previewText(selectedStory());}
   if(state.step===5&&!previewReady()){$('#step-5-error').textContent='Their book is nearly ready.';return;}
-  if(state.step===5)updateProduct();
+  if(state.step===5||state.step===6)updateProduct();
   showStep(next);
 }));
 

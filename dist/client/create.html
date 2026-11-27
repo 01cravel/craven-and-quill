@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=book-7">
+  <link rel="stylesheet" href="create.css?v=size-1">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -25,7 +25,8 @@
       <span class="journey-step" data-progress="9"><b>3</b><em>Loves</em></span>
       <span class="journey-step" data-progress="2"><b>4</b><em>Photo</em></span>
       <span class="journey-step" data-progress="5"><b>5</b><em>Their book</em></span>
-      <span class="journey-step" data-progress="11"><b>6</b><em>Delivery &amp; pay</em></span>
+      <span class="journey-step" data-progress="6"><b>6</b><em>Size</em></span>
+      <span class="journey-step" data-progress="11"><b>7</b><em>Delivery &amp; pay</em></span>
     </nav>
     <div class="top-flip">
       <div class="top-face top-front"><div class="progress-mini" aria-hidden="true"><span class="progress-label"><b id="progress-num" hidden>1</b><em id="progress-name">Their name</em></span><span class="progress-bar"><i id="progress-fill"></i></span></div></div>
@@ -198,33 +199,40 @@
                 <article class="preview-copy"><p class="chapter" id="preview-chapter">The adventure begins</p><p id="story-copy"></p></article>
               </div>
               <button type="button" class="text-link" id="edit-words">Read and change the whole story</button>
-              <ul class="arrives" aria-label="What arrives">
-                <li><b>A proper hardback</b><span>Matte cover on rigid board, made to keep</span></li>
-                <li><b>24 full-colour pages</b><span>Thick 200gsm gloss paper, a picture on every spread</span></li>
-                <li><b>You approve it first</b><span>We change anything you don’t love before we print</span></li>
-              </ul>
-              <fieldset class="size-pick" id="size-pick">
+              <p class="hold-clock" data-hold-clock role="timer" hidden></p>
+              <p class="see-first">You see the whole finished book before we print it.</p>
+              <p class="sent-line" id="sent-line" role="status" hidden></p>
+              <div id="locked-dots" hidden></div>
+            </section>
+<div class="error" id="step-5-error" role="alert"></div>
+            <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="choose-book" type="button" data-next="6" disabled>Next</button><button type="button" class="email-book" id="email-book"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v12H3zM3 7l9 6 9-6"/></svg><span id="email-book-text">Not ready? Email me my book</span></button></div>
+            </div>
+        </section>
+
+        
+
+<section class="step size-step" data-step="6" aria-labelledby="step-6-title" hidden>
+          <h1 id="step-6-title" tabindex="-1">Pick <span id="size-name">their</span> book</h1>
+          <p class="intro">Both are proper hardbacks with the same 24 pages.</p>
+          <fieldset class="size-pick" id="size-pick">
             <legend class="visually-hidden">Book format</legend>
             <div class="product-options size-options">
               <label class="product"><input type="radio" name="product" value="a4" data-price="29.99" checked><span><b>A4 hardback</b><small>21 × 29.7 cm</small><strong><del data-offer>£39.99</del><span class="current-price">£29.99</span></strong><small class="offer-label" data-offer>£10 off</small></span></label>
               <label class="product"><input type="radio" name="product" value="a5" data-price="24.99"><span><b>A5 hardback</b><small>14.8 × 21 cm</small><strong><del data-offer>£34.99</del><span class="current-price">£24.99</span></strong><small class="offer-label" data-offer>£10 off</small></span></label>
             </div>
             </fieldset>
-              <p class="hold-clock" data-hold-clock role="timer" hidden></p>
-              <p class="see-first">You see the whole finished book before we print it.</p>
-              <p class="urgency" id="xmas-line" hidden></p>
-              <p class="sent-line" id="sent-line" role="status" hidden></p>
-              <div id="locked-dots" hidden></div>
-            </section>
-<div class="error" id="step-5-error" role="alert"></div>
-            <div class="step-actions"><button class="back" type="button" data-back="2">Back</button><button class="next" id="choose-book" type="button" data-next="11" disabled>Next</button><button type="button" class="email-book" id="email-book"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v12H3zM3 7l9 6 9-6"/></svg><span id="email-book-text">Not ready? Email me my book</span></button></div>
-            <p class="size-switch"><span id="size-now">A4 is 21 × 29.7 cm.</span> <button type="button" class="text-link" id="size-toggle">Prefer the smaller A5?</button></p>
-          </div>
+          <ul class="arrives" aria-label="What arrives">
+                <li><b>A proper hardback</b><span>Matte cover on rigid board, made to keep</span></li>
+                <li><b>24 full-colour pages</b><span>Thick 200gsm gloss paper, a picture on every spread</span></li>
+                <li><b>You approve it first</b><span>We change anything you don’t love before we print</span></li>
+              </ul>
+          <p class="urgency" id="xmas-line" hidden></p>
+          <p class="size-switch"><span id="size-now">A4 is 21 × 29.7 cm.</span> <button type="button" class="text-link" id="size-toggle">Prefer the smaller A5?</button></p>
+          <div class="error" id="step-6-error" role="alert"></div>
+          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" id="choose-size" type="button" data-next="11">Next</button></div>
         </section>
 
-        
-
-<section class="step gift-step" data-step="13" data-clarity-mask="true" aria-labelledby="step-13-title" hidden><h1 id="step-13-title">Add a message inside</h1>
+        <section class="step gift-step" data-step="13" data-clarity-mask="true" aria-labelledby="step-13-title" hidden><h1 id="step-13-title">Add a message inside</h1>
           <p class="intro">It goes on the first page, the moment they open the cover.</p>
           <div class="gift-book" id="gift-book" aria-hidden="true"></div>
           <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="next" type="button" data-next="11">Continue <span>→</span></button></div></section>
@@ -285,7 +293,7 @@
             </div>
           </div>
           </div>
-          <div class="step-actions"><button class="back" type="button" data-back="5">Back</button><button class="back" type="button" id="back-who">Back</button><button class="next" type="button" id="to-address">Continue <span>→</span></button><button class="next checkout-button" id="join-launch" type="button"><span class="cta-text">Pay securely</span> <svg class="cta-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></button></div>
+          <div class="step-actions"><button class="back" type="button" data-back="6">Back</button><button class="back" type="button" id="back-who">Back</button><button class="next" type="button" id="to-address">Continue <span>→</span></button><button class="next checkout-button" id="join-launch" type="button"><span class="cta-text">Pay securely</span> <svg class="cta-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></button></div>
           <div hidden><span id="review-art"></span><span id="review-text"></span><span id="review-folio"></span><span id="review-pos"></span><button id="review-prev" type="button"></button><button id="review-next" type="button"></button><span id="review-spread"></span><span id="review-chapter"></span><span class="review-art-page"></span><span class="art-badge"></span><span id="delivery-summary"></span><button id="open-examples" type="button"></button></div>
         </section>
         <dialog class="examples-dialog" id="examples-dialog" aria-labelledby="examples-title">
@@ -304,6 +312,6 @@
   <script src="preview-progress.js?v=magic-2" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=book-7" defer></script><script src="draft-save.js?v=save-preview-2" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=size-1" defer></script><script src="draft-save.js?v=save-preview-2" defer></script>
 </body>
 </html>

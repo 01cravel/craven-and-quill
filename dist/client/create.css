@@ -1387,3 +1387,9 @@ body.words-editing #xmas-strip,body.words-editing #email-book{display:none!impor
  .step[data-step="5"] .pbook-nav{margin-top:-40px}
 }
 @media(max-width:780px) and (max-height:760px){.step[data-step="5"] .pbook-nav{display:none}.step[data-step="5"] .words-card{margin-top:2px}}
+
+/* 28 Nov: size choice on its own page after the book */
+.size-step .product-options{margin-top:14px}
+.size-step .arrives{margin-top:16px}
+.size-step .size-switch{display:none}
+.size-step .urgency{background:#f3ead2}
