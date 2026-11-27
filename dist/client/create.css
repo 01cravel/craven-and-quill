@@ -1249,3 +1249,14 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 .hardback .hb-for{font-size:4.1cqw}
 .hardback .hb-name{font-size:9.4cqw}
 .hardback .hb-hero{font-size:3.1cqw}
+/* Hardback v5: taller pages seen from slightly above, page block along the bottom, ribbon bookmark. */
+.hardback{aspect-ratio:400/380}
+.hardback .hb-left,.hardback .hb-right{top:12%;bottom:18%}
+.hardback .hb-left{left:9%;right:53%}
+.hardback .hb-right{left:53%;right:9%;padding:0 2%}
+.hardback .hb-for{font-size:4.4cqw}
+.hardback .hb-name{font-size:9cqw}
+.hardback .hb-hero{font-size:3.3cqw;white-space:normal;text-wrap:balance}
+.hardback .hb-plate{width:70%}
+@media(min-width:781px){.hardback{width:min(100%,380px)}}
+@media(max-width:780px){.step[data-step="1"] .hardback{width:clamp(200px,calc((var(--app-height,100dvh) - 400px)*1.05),330px)}}
