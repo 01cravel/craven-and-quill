@@ -1214,3 +1214,10 @@ body.naming .hb-name:not(.empty)::after{content:'';display:inline-block;width:2p
 .step[data-step="9"] .field-head{justify-content:flex-start}
 .hb-name{overflow-wrap:normal;word-break:normal;hyphens:manual}
 .hb-hero{white-space:nowrap;font-size:clamp(.56rem,2.4vw,.8rem)}
+/* Flat, front-on open hardback (no tilt): cloth boards show round the pages, pages bow gently into the spine. */
+.hb-cover,.hb-spread{transform:none}
+.hardback{aspect-ratio:1.46}
+.hb-cover{inset:-3.4% -2.8% -4.6%;border-radius:5px}
+.hb-left{border-radius:2px 0 0 2px;box-shadow:inset -22px 0 26px -14px rgba(40,30,10,.36),-1px 1px 0 var(--page-edge),-2px 2px 0 var(--page),-3px 3px 0 var(--page-edge),-4px 4px 0 #d9ceb5}
+.hb-right{border-radius:0 2px 2px 0;box-shadow:1px 1px 0 var(--page-edge),2px 2px 0 var(--page),3px 3px 0 var(--page-edge),4px 4px 0 #d9ceb5}
+.hb-spread::after{content:'';position:absolute;left:50%;top:-1%;bottom:-1%;width:2px;transform:translateX(-50%);background:linear-gradient(rgba(30,22,8,.25),rgba(30,22,8,.4),rgba(30,22,8,.25))}
