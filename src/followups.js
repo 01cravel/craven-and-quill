@@ -216,14 +216,18 @@ export async function followupStatus(env){
     chase.enrolled=(await db(env,'SELECT COUNT(*) n FROM followup_sequences WHERE consent_text=?1 AND consent_at IS NOT NULL',CHASE_NOTICE).first())?.n||0;
     for(const r of (await env.DB.prepare("SELECT step,COUNT(*) n FROM chase_steps WHERE status='accepted' GROUP BY step").all()).results||[])chase.sent[r.step-1]=r.n;
   }catch{}
-  return {enabled:env.FOLLOWUP_EMAILS_ENABLED==='true',enrolled:(row.enrolled||0)+chase.enrolled,firstSent:row.first_sent||0,secondSent:row.second_sent||0,needsReview:row.needs_review||0,chase,season:await seasonStatus(env)};
+  return {enabled:env.FOLLOWUP_EMAILS_ENABLED==='true',enrolled:(row.enrolled||0)+chase.enrolled,firstSent:row.first_sent||0,secondSent:row.second_sent||0,needsReview:row.needs_review||0,chase,season:await seasonStatus(env),stopped:FOLLOWUPS_STOPPED,v2:await v2Status(env).catch(()=>null)};
 }
 
-// 28 Nov 2026 (Luke): ALL automatic follow-up emails stopped (old 2-email reminders, 5-email chase, Christmas
-// emails) while the follow-up process is rebuilt. Order emails, owner alerts and emails a shopper asks for still send.
+// 28 Nov 2026 (Luke): the old automatic follow-ups (2-email reminders, 5-email chase, Christmas emails) are
+// stopped for good. The new process is runFollowupsV2 at the bottom of this file. Order emails, owner alerts and emails a shopper asks for still send.
 export const FOLLOWUPS_STOPPED=true;
-export async function runFollowups(env){
-  if(FOLLOWUPS_STOPPED&&env.FOLLOWUPS_UNSTOP!=='true')return {paused:true};
+export async function runFollowups(env,opts={}){
+  // The old flows stay off. The new process (v2) runs instead.
+  if(FOLLOWUPS_STOPPED&&env.FOLLOWUPS_UNSTOP!=='true'){
+    if(env.FOLLOWUP_EMAILS_ENABLED!=='true'||!env.DB||!env.RESEND_API_KEY||!env.ORDER_EMAIL_FROM)return {paused:true};
+    return {paused:true,v2:await runFollowupsV2(env,opts)};
+  }
   if(env.FOLLOWUP_EMAILS_ENABLED!=='true')return {paused:true};
   if(!env.DB||!env.RESEND_API_KEY||!env.ORDER_EMAIL_FROM)return {error:'Email or storage is not configured.'};
   await ensureFollowupTable(env);
@@ -510,4 +514,170 @@ export async function seasonStatus(env){
   const sent={};
   try{for(const r of (await env.DB.prepare("SELECT key,COUNT(*) n FROM season_sends WHERE status='accepted' GROUP BY key").all()).results||[])sent[r.key]=r.n;}catch{}
   return {next:SEASONS.find(s=>Date.now()<=Date.parse(s.to))?.from||null,sent};
+}
+
+
+// ===================================================================================================
+// Follow-up v2 (OWNER-APPROVED plan, Luke, 28 Nov 2026). Replaces the reminders, the five-email chase and the
+// Christmas emails. One requested "your book is saved" link (sent when they give their email, elsewhere), then
+// at most three follow-ups per shopper, counted by email so a new draft never restarts anything:
+//   1. Stalled checkout: about an hour after reaching the pay page without paying. "Pick up where you left off."
+//   2. The whole book: drawn, checked for likeness and sent personally by Luke from the order desk.
+//   3. Two to three days after the whole book: "Anything you'd like changed?" if they opened it, or the link once
+//      more if they never did. Carries the real Christmas date while it applies.
+// Paid, unsubscribed and test addresses are rechecked right before every send. An open alone never sends anything.
+export const V2_MAX=3;
+const V2_TABLE=`CREATE TABLE IF NOT EXISTS followup_v2 (email TEXT PRIMARY KEY, size_at TEXT, pay_at TEXT,
+  stall_status TEXT, stall_at TEXT, nudge_status TEXT, nudge_kind TEXT, nudge_at TEXT, nudge_order TEXT, created_at TEXT NOT NULL)`;
+async function ensureV2(env){await env.DB.prepare(V2_TABLE).run();}
+const V2_SKIP=/(@example\.|@mailinator\.|breeztechnologies|amna_al_aqeeli|^cravenluke@|\.test$)/i;
+const HOUR=3600000;
+export const XMAS_LAST_ORDER=Date.parse('2026-12-14T23:59:00Z');
+
+// The shopper reached the size page or the pay page. Only counts for an email that owns a finished preview.
+export async function recordFollowupStage(env,email,previewId,stage){
+  email=String(email||'').trim().toLowerCase();
+  if(!['size','pay'].includes(stage)||!/^[a-f0-9-]{36}$/.test(String(previewId||'')))return false;
+  const receipt=await db(env,"SELECT email FROM preview_receipts WHERE id=?1 AND status='succeeded'",previewId).first();
+  if(!receipt||String(receipt.email||'').toLowerCase()!==email)return false;
+  await ensureV2(env);const stamp=now();
+  if(stage==='pay')await db(env,'INSERT INTO followup_v2 (email,pay_at,size_at,created_at) VALUES (?1,?2,?2,?2) ON CONFLICT(email) DO UPDATE SET pay_at=excluded.pay_at,size_at=COALESCE(followup_v2.size_at,excluded.size_at)',email,stamp).run();
+  else await db(env,'INSERT INTO followup_v2 (email,size_at,created_at) VALUES (?1,?2,?2) ON CONFLICT(email) DO UPDATE SET size_at=excluded.size_at',email,stamp).run();
+  return true;
+}
+
+// Allowed to email this person at all: agreed to follow-ups, never unsubscribed, never paid, not a test address.
+async function v2Allowed(env,email){
+  if(!email||V2_SKIP.test(email))return null;
+  await ensureFollowupTable(env);
+  return db(env,`SELECT f.episode_id FROM followup_sequences f WHERE f.email=?1 AND f.consent_at IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM customer_quotes q WHERE q.email=f.email AND q.offer_unsubscribed_at IS NOT NULL)
+    AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE lower(o.email)=f.email AND o.payment_status='paid')`,email).first();
+}
+// Whole-book emails Luke has sent this person (the desk's book email and the win-back email both count).
+async function wholeBookEmails(env,email){
+  const rows=(await db(env,"SELECT id,state FROM customer_orders WHERE lower(email)=?1 AND payment_status='unpaid'",email).all()).results||[];
+  const out=[];
+  for(const r of rows){try{const e=JSON.parse(r.state).emails||{};for(const k of ['preview','rescue'])if(e[k]?.sent&&e[k].at)out.push({order:r.id,kind:k,at:e[k].at});}catch{}}
+  return out.sort((a,b)=>a.at.localeCompare(b.at));
+}
+async function v2Count(env,email){
+  const r=await db(env,'SELECT stall_status,nudge_status FROM followup_v2 WHERE email=?1',email).first();
+  return (r?.stall_status?1:0)+(r?.nudge_status?1:0)+(await wholeBookEmails(env,email)).length;
+}
+
+export function v2Message(kind,{names='',title='',link,unsub,today=Date.now()}){
+  const name=String(names).trim().split(/\s+/)[0].slice(0,40),t=String(title).trim().slice(0,120);
+  const Np=name?poss(name):'their',e=escapeHtml,book=t?`“${t}”`:`${Np} book`;
+  const xmas=today<XMAS_LAST_ORDER?'Order by 14 December and it arrives in time for Christmas.':'';
+  const c={
+    stall:{subject:name?`Pick up where you left off with ${Np} book`:'Pick up where you left off with your book',
+      lines:[`You got right to the end with ${e(book)}. It’s saved exactly as you left it, with your 10% first-order discount still on.`],
+      button:'Pick up where you left off',
+      after:[xmas,'If anything stopped you, just reply to this email and I’ll help.'].filter(Boolean)},
+    read:{subject:name?`Anything you’d like changed in ${Np} book?`:'Anything you’d like changed in the book?',
+      lines:[`I hope you enjoyed reading ${e(book)}.`,`Is there anything you’d like me to change before it’s printed? A word, a page, how ${e(name||'they')} look${name?'s':''}. Just reply and I’ll do it.`],
+      button:name?`Order ${Np} book`:'Order the book',
+      after:[xmas].filter(Boolean)},
+    unopened:{subject:name?`${Np[0].toUpperCase()+Np.slice(1)} whole book is ready to read`:'Your whole book is ready to read',
+      lines:[`We drew every page of ${e(book)}, and it’s waiting for you. It takes a minute to flip through.`],
+      button:name?`Read ${Np} book`:'Read the book',
+      after:[xmas,'Want anything changed? Just reply.'].filter(Boolean)}
+  }[kind];
+  const p=x=>`<p style="margin:0 0 16px">${x}</p>`;
+  const html=`<!doctype html><html><body style="margin:0;background:#ffffff"><div style="max-width:520px;margin:0 auto;padding:24px 20px;font:17px/1.6 Georgia,'Times New Roman',serif;color:#1f2a26">
+<p style="margin:0 0 16px">Hi,</p>${c.lines.map(p).join('')}
+<p style="margin:24px 0"><a href="${e(link)}" style="display:inline-block;background:#17332c;color:#ffffff;padding:14px 26px;border-radius:999px;text-decoration:none;font:bold 16px Arial,sans-serif">${e(c.button)}</a></p>
+${c.after.map(p).join('')}<p style="margin:0 0 28px">Luke<br>Craven &amp; Quill</p>
+<p style="margin:0;font:12px/1.5 Arial,sans-serif;color:#7a817e">You asked us to save your book and agreed to a few emails about it. <a href="${e(unsub)}" style="color:#7a817e">Unsubscribe</a></p></div></body></html>`;
+  const strip=x=>x.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&');
+  const text=['Hi,',...c.lines.map(strip),`${c.button}: ${link}`,...c.after.map(strip),'Luke\nCraven & Quill',`Unsubscribe: ${unsub}`].join('\n\n');
+  return {subject:c.subject,html,text};
+}
+
+async function v2Send(env,{email,token,mail,key}){
+  const address=String(env.ORDER_EMAIL_FROM||'').replace(/^.*<([^>]+)>\s*$/,'$1').trim();
+  const oneClick=`https://cravenandquill.com/api/orders/offer-one-click?token=${encodeURIComponent(token)}`;
+  try{
+    const response=await (env.fetch||fetch)('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`,'Content-Type':'application/json','Idempotency-Key':`cq-v2-${key}`},
+      body:JSON.stringify({from:`Luke at Craven & Quill <${address}>`,reply_to:env.ORDER_EMAIL_REPLY_TO||'cravenluke@gmail.com',to:[email],subject:mail.subject,html:mail.html,text:mail.text,
+        headers:{'List-Unsubscribe':`<${oneClick}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}}),signal:AbortSignal.timeout(15000)});
+    const data=await response.json().catch(()=>({}));return {accepted:!!(response.ok&&data.id),providerId:data.id||null};
+  }catch{return {accepted:false,providerId:null};}/* An uncertain send is never retried. */
+}
+const unsubFor=token=>`https://cravenandquill.com/offer-unsubscribe.html?token=${encodeURIComponent(token)}`;
+async function savedBookLink(env,email,content){
+  const query=`utm_source=email&utm_medium=email&utm_campaign=followup_v2&utm_content=${content}`;
+  const link=await openChaseLink(env,email);
+  return link?`https://cravenandquill.com/create?${query}#draft=${link.draftId}&key=${link.token}`:`https://cravenandquill.com/create?${query}`;
+}
+
+// 1. Stalled checkout: reached the pay page 1 to 48 hours ago and hasn't paid. Once per person, ever.
+async function runStall(env){
+  await ensureV2(env);const out={accepted:0,unknown:0,skipped:0};const t=Date.now();
+  const rows=(await db(env,'SELECT email FROM followup_v2 WHERE pay_at IS NOT NULL AND stall_status IS NULL AND pay_at<=?1 AND pay_at>?2 ORDER BY pay_at LIMIT 20',
+    new Date(t-HOUR).toISOString(),new Date(t-48*HOUR).toISOString()).all()).results||[];
+  for(const {email} of rows){
+    const ok=await v2Allowed(env,email);
+    if(!ok||await v2Count(env,email)>=V2_MAX){out.skipped++;continue;}
+    const claimed=await db(env,"UPDATE followup_v2 SET stall_status='sending' WHERE email=?1 AND stall_status IS NULL RETURNING email",email).first();if(!claimed)continue;
+    const d=await detailsFor(env,email);
+    const mail=v2Message('stall',{names:d?.names,title:d?.title,link:await savedBookLink(env,email,'stall'),unsub:unsubFor(ok.episode_id)});
+    const r=await v2Send(env,{email,token:ok.episode_id,mail,key:`stall-${ok.episode_id}`});
+    await db(env,'UPDATE followup_v2 SET stall_status=?1,stall_at=?2 WHERE email=?3',r.accepted?'accepted':'unknown',now(),email).run();
+    out[r.accepted?'accepted':'unknown']++;await new Promise(x=>setTimeout(x,600));
+  }
+  return out;
+}
+
+// 3. Two to three days after Luke's whole-book email (the latest one), once per person.
+async function runNudge(env,bookLink){
+  await ensureV2(env);const out={read:0,unopened:0,unknown:0,skipped:0};const t=Date.now();
+  const rows=(await db(env,"SELECT DISTINCT lower(email) AS email FROM customer_orders WHERE payment_status='unpaid' AND updated_at>?1",new Date(t-12*86400000).toISOString()).all()).results||[];
+  for(const {email} of rows){
+    const sent=await wholeBookEmails(env,email);const last=sent[sent.length-1];if(!last)continue;
+    const age=t-Date.parse(last.at);if(age<60*HOUR||age>7*86400000)continue;
+    const done=await db(env,'SELECT nudge_status FROM followup_v2 WHERE email=?1',email).first();if(done?.nudge_status)continue;
+    const ok=await v2Allowed(env,email);
+    if(!ok||await v2Count(env,email)>=V2_MAX){out.skipped++;continue;}
+    await db(env,'INSERT INTO followup_v2 (email,created_at) VALUES (?1,?2) ON CONFLICT(email) DO NOTHING',email,now()).run();
+    const claimed=await db(env,"UPDATE followup_v2 SET nudge_status='sending' WHERE email=?1 AND nudge_status IS NULL RETURNING email",email).first();if(!claimed)continue;
+    const opened=await db(env,"SELECT 1 FROM order_audit WHERE order_id=?1 AND kind IN ('customer_opened_book','customer_tapped_buy') AND created_at>=?2 LIMIT 1",last.order,last.at).first();
+    const kind=opened?'read':'unopened';
+    const o=await db(env,'SELECT id,state FROM customer_orders WHERE id=?1',last.order).first();
+    let link;try{link=await bookLink({id:o.id,data:JSON.parse(o.state)},`utm_source=email&utm_medium=email&utm_campaign=followup_v2&utm_content=${kind}`);}catch{link=null;}
+    if(!link){await db(env,"UPDATE followup_v2 SET nudge_status='no_link' WHERE email=?1",email).run();out.skipped++;continue;}
+    const d={names:JSON.parse(o.state).names,title:JSON.parse(o.state).story?.title};
+    const mail=v2Message(kind,{names:d.names,title:d.title,link,unsub:unsubFor(ok.episode_id)});
+    const r=await v2Send(env,{email,token:ok.episode_id,mail,key:`nudge-${ok.episode_id}`});
+    await db(env,'UPDATE followup_v2 SET nudge_status=?1,nudge_kind=?2,nudge_at=?3,nudge_order=?4 WHERE email=?5',r.accepted?'accepted':'unknown',kind,now(),last.order,email).run();
+    if(r.accepted)out[kind]++;else out.unknown++;await new Promise(x=>setTimeout(x,600));
+  }
+  return out;
+}
+
+export async function runFollowupsV2(env,{bookLink}={}){
+  if(env.FOLLOWUP_EMAILS_ENABLED!=='true')return {paused:true};
+  if(!env.DB||!env.RESEND_API_KEY||!env.ORDER_EMAIL_FROM)return {error:'Email or storage is not configured.'};
+  const out={};
+  try{out.stall=await runStall(env);}catch{console.error('Stall emails failed');out.stall={error:true};}
+  if(bookLink){try{out.nudge=await runNudge(env,bookLink);}catch{console.error('Nudge emails failed');out.nudge={error:true};}}
+  return out;
+}
+
+// Dashboard: what v2 has sent, sales after it, and who is waiting for Luke's whole-book email.
+export async function v2Status(env){
+  await ensureV2(env);const t=Date.now();
+  const c=await db(env,`SELECT SUM(stall_status='accepted') AS stall, SUM(nudge_status='accepted' AND nudge_kind='read') AS read_, SUM(nudge_status='accepted' AND nudge_kind='unopened') AS unopened,
+    SUM((stall_status='accepted' OR nudge_status='accepted') AND EXISTS (SELECT 1 FROM customer_orders o WHERE lower(o.email)=followup_v2.email AND o.payment_status='paid')) AS paid FROM followup_v2`).first()||{};
+  const rows=(await db(env,'SELECT email,size_at,pay_at FROM followup_v2 WHERE COALESCE(pay_at,size_at)>?1 ORDER BY COALESCE(pay_at,size_at) DESC LIMIT 60',new Date(t-14*86400000).toISOString()).all()).results||[];
+  const queue=[];
+  for(const r of rows){
+    if(queue.length>=25)break;
+    if(!await v2Allowed(env,r.email)||(await wholeBookEmails(env,r.email)).length)continue;
+    const d=await detailsFor(env,r.email);
+    queue.push({email:r.email,names:d?.names||'',title:d?.title||'',reached:r.pay_at?'pay page':'size page',at:r.pay_at||r.size_at});
+  }
+  queue.sort((a,b)=>(a.reached===b.reached?0:a.reached==='pay page'?-1:1)||b.at.localeCompare(a.at));
+  return {sent:{stall:c.stall||0,read:c.read_||0,unopened:c.unopened||0},paidAfter:c.paid||0,queue};
 }

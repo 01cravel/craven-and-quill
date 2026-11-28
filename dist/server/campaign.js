@@ -151,7 +151,7 @@ export async function campaignApi(request,env){
         await env.DB.prepare("UPDATE preview_receipts SET email=?1 WHERE id=?2 AND email IS NULL AND status='succeeded'").bind(email,input.previewId).run();
         if(input.reminderNotice==='preview-chase-v1'){
           // The photo page now says "a few reminders": these shoppers get the five-email chase.
-          reminderActive=await recordPreviewChoice(env,email,input.previewId,false,CHASE_NOTICE);
+          reminderActive=await recordPreviewChoice(env,email,input.previewId,input.noReminders===true,CHASE_NOTICE);// 28 Nov: 'Just the link, please' tick box
         }else if(input.reminderNotice==='preview-price-v2'||(input.reminderNotice==='preview-price-v1'&&typeof input.noReminders==='boolean')){
           reminderActive=await recordPreviewChoice(env,email,input.previewId,input.noReminders===true);
         }

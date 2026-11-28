@@ -1425,3 +1425,7 @@ body.words-editing #xmas-strip,body.words-editing #email-book{display:none!impor
 /* 28 Nov: search results open under the Address box */
 .address-line-box{position:relative}
 .address-line-box .address-results{position:absolute;left:0;right:0;top:100%;z-index:20;margin-top:4px}
+
+/* 28 Nov: opt out of follow-up emails */
+.no-followups{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+.no-followups input{width:18px;height:18px;margin:0;accent-color:var(--ink)}

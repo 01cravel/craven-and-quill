@@ -52907,11 +52907,14 @@ async function followupStatus(env2) {
     for (const r of (await env2.DB.prepare("SELECT step,COUNT(*) n FROM chase_steps WHERE status='accepted' GROUP BY step").all()).results || []) chase.sent[r.step - 1] = r.n;
   } catch {
   }
-  return { enabled: env2.FOLLOWUP_EMAILS_ENABLED === "true", enrolled: (row.enrolled || 0) + chase.enrolled, firstSent: row.first_sent || 0, secondSent: row.second_sent || 0, needsReview: row.needs_review || 0, chase, season: await seasonStatus(env2) };
+  return { enabled: env2.FOLLOWUP_EMAILS_ENABLED === "true", enrolled: (row.enrolled || 0) + chase.enrolled, firstSent: row.first_sent || 0, secondSent: row.second_sent || 0, needsReview: row.needs_review || 0, chase, season: await seasonStatus(env2), stopped: FOLLOWUPS_STOPPED, v2: await v2Status(env2).catch(() => null) };
 }
 var FOLLOWUPS_STOPPED = true;
-async function runFollowups(env2) {
-  if (FOLLOWUPS_STOPPED && env2.FOLLOWUPS_UNSTOP !== "true") return { paused: true };
+async function runFollowups(env2, opts = {}) {
+  if (FOLLOWUPS_STOPPED && env2.FOLLOWUPS_UNSTOP !== "true") {
+    if (env2.FOLLOWUP_EMAILS_ENABLED !== "true" || !env2.DB || !env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { paused: true };
+    return { paused: true, v2: await runFollowupsV2(env2, opts) };
+  }
   if (env2.FOLLOWUP_EMAILS_ENABLED !== "true") return { paused: true };
   if (!env2.DB || !env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { error: "Email or storage is not configured." };
   await ensureFollowupTable(env2);
@@ -53242,6 +53245,221 @@ async function seasonStatus(env2) {
   }
   return { next: SEASONS.find((s) => Date.now() <= Date.parse(s.to))?.from || null, sent };
 }
+var V2_MAX = 3;
+var V2_TABLE = `CREATE TABLE IF NOT EXISTS followup_v2 (email TEXT PRIMARY KEY, size_at TEXT, pay_at TEXT,
+  stall_status TEXT, stall_at TEXT, nudge_status TEXT, nudge_kind TEXT, nudge_at TEXT, nudge_order TEXT, created_at TEXT NOT NULL)`;
+async function ensureV2(env2) {
+  await env2.DB.prepare(V2_TABLE).run();
+}
+var V2_SKIP = /(@example\.|@mailinator\.|breeztechnologies|amna_al_aqeeli|^cravenluke@|\.test$)/i;
+var HOUR = 36e5;
+var XMAS_LAST_ORDER = Date.parse("2026-12-14T23:59:00Z");
+async function recordFollowupStage(env2, email, previewId, stage) {
+  email = String(email || "").trim().toLowerCase();
+  if (!["size", "pay"].includes(stage) || !/^[a-f0-9-]{36}$/.test(String(previewId || ""))) return false;
+  const receipt = await db(env2, "SELECT email FROM preview_receipts WHERE id=?1 AND status='succeeded'", previewId).first();
+  if (!receipt || String(receipt.email || "").toLowerCase() !== email) return false;
+  await ensureV2(env2);
+  const stamp = now();
+  if (stage === "pay") await db(env2, "INSERT INTO followup_v2 (email,pay_at,size_at,created_at) VALUES (?1,?2,?2,?2) ON CONFLICT(email) DO UPDATE SET pay_at=excluded.pay_at,size_at=COALESCE(followup_v2.size_at,excluded.size_at)", email, stamp).run();
+  else await db(env2, "INSERT INTO followup_v2 (email,size_at,created_at) VALUES (?1,?2,?2) ON CONFLICT(email) DO UPDATE SET size_at=excluded.size_at", email, stamp).run();
+  return true;
+}
+async function v2Allowed(env2, email) {
+  if (!email || V2_SKIP.test(email)) return null;
+  await ensureFollowupTable(env2);
+  return db(env2, `SELECT f.episode_id FROM followup_sequences f WHERE f.email=?1 AND f.consent_at IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM customer_quotes q WHERE q.email=f.email AND q.offer_unsubscribed_at IS NOT NULL)
+    AND NOT EXISTS (SELECT 1 FROM customer_orders o WHERE lower(o.email)=f.email AND o.payment_status='paid')`, email).first();
+}
+async function wholeBookEmails(env2, email) {
+  const rows = (await db(env2, "SELECT id,state FROM customer_orders WHERE lower(email)=?1 AND payment_status='unpaid'", email).all()).results || [];
+  const out = [];
+  for (const r of rows) {
+    try {
+      const e = JSON.parse(r.state).emails || {};
+      for (const k of ["preview", "rescue"]) if (e[k]?.sent && e[k].at) out.push({ order: r.id, kind: k, at: e[k].at });
+    } catch {
+    }
+  }
+  return out.sort((a, b) => a.at.localeCompare(b.at));
+}
+async function v2Count(env2, email) {
+  const r = await db(env2, "SELECT stall_status,nudge_status FROM followup_v2 WHERE email=?1", email).first();
+  return (r?.stall_status ? 1 : 0) + (r?.nudge_status ? 1 : 0) + (await wholeBookEmails(env2, email)).length;
+}
+function v2Message(kind, { names = "", title: title2 = "", link, unsub, today = Date.now() }) {
+  const name5 = String(names).trim().split(/\s+/)[0].slice(0, 40), t2 = String(title2).trim().slice(0, 120);
+  const Np = name5 ? poss(name5) : "their", e = escapeHtml, book = t2 ? `\u201C${t2}\u201D` : `${Np} book`;
+  const xmas = today < XMAS_LAST_ORDER ? "Order by 14 December and it arrives in time for Christmas." : "";
+  const c = {
+    stall: {
+      subject: name5 ? `Pick up where you left off with ${Np} book` : "Pick up where you left off with your book",
+      lines: [`You got right to the end with ${e(book)}. It\u2019s saved exactly as you left it, with your 10% first-order discount still on.`],
+      button: "Pick up where you left off",
+      after: [xmas, "If anything stopped you, just reply to this email and I\u2019ll help."].filter(Boolean)
+    },
+    read: {
+      subject: name5 ? `Anything you\u2019d like changed in ${Np} book?` : "Anything you\u2019d like changed in the book?",
+      lines: [`I hope you enjoyed reading ${e(book)}.`, `Is there anything you\u2019d like me to change before it\u2019s printed? A word, a page, how ${e(name5 || "they")} look${name5 ? "s" : ""}. Just reply and I\u2019ll do it.`],
+      button: name5 ? `Order ${Np} book` : "Order the book",
+      after: [xmas].filter(Boolean)
+    },
+    unopened: {
+      subject: name5 ? `${Np[0].toUpperCase() + Np.slice(1)} whole book is ready to read` : "Your whole book is ready to read",
+      lines: [`We drew every page of ${e(book)}, and it\u2019s waiting for you. It takes a minute to flip through.`],
+      button: name5 ? `Read ${Np} book` : "Read the book",
+      after: [xmas, "Want anything changed? Just reply."].filter(Boolean)
+    }
+  }[kind];
+  const p = (x) => `<p style="margin:0 0 16px">${x}</p>`;
+  const html2 = `<!doctype html><html><body style="margin:0;background:#ffffff"><div style="max-width:520px;margin:0 auto;padding:24px 20px;font:17px/1.6 Georgia,'Times New Roman',serif;color:#1f2a26">
+<p style="margin:0 0 16px">Hi,</p>${c.lines.map(p).join("")}
+<p style="margin:24px 0"><a href="${e(link)}" style="display:inline-block;background:#17332c;color:#ffffff;padding:14px 26px;border-radius:999px;text-decoration:none;font:bold 16px Arial,sans-serif">${e(c.button)}</a></p>
+${c.after.map(p).join("")}<p style="margin:0 0 28px">Luke<br>Craven &amp; Quill</p>
+<p style="margin:0;font:12px/1.5 Arial,sans-serif;color:#7a817e">You asked us to save your book and agreed to a few emails about it. <a href="${e(unsub)}" style="color:#7a817e">Unsubscribe</a></p></div></body></html>`;
+  const strip = (x) => x.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&");
+  const text = ["Hi,", ...c.lines.map(strip), `${c.button}: ${link}`, ...c.after.map(strip), "Luke\nCraven & Quill", `Unsubscribe: ${unsub}`].join("\n\n");
+  return { subject: c.subject, html: html2, text };
+}
+async function v2Send(env2, { email, token, mail, key: key2 }) {
+  const address = String(env2.ORDER_EMAIL_FROM || "").replace(/^.*<([^>]+)>\s*$/, "$1").trim();
+  const oneClick = `https://cravenandquill.com/api/orders/offer-one-click?token=${encodeURIComponent(token)}`;
+  try {
+    const response = await (env2.fetch || fetch)("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${env2.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": `cq-v2-${key2}` },
+      body: JSON.stringify({
+        from: `Luke at Craven & Quill <${address}>`,
+        reply_to: env2.ORDER_EMAIL_REPLY_TO || "cravenluke@gmail.com",
+        to: [email],
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+        headers: { "List-Unsubscribe": `<${oneClick}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" }
+      }),
+      signal: AbortSignal.timeout(15e3)
+    });
+    const data2 = await response.json().catch(() => ({}));
+    return { accepted: !!(response.ok && data2.id), providerId: data2.id || null };
+  } catch {
+    return { accepted: false, providerId: null };
+  }
+}
+var unsubFor = (token) => `https://cravenandquill.com/offer-unsubscribe.html?token=${encodeURIComponent(token)}`;
+async function savedBookLink(env2, email, content) {
+  const query = `utm_source=email&utm_medium=email&utm_campaign=followup_v2&utm_content=${content}`;
+  const link = await openChaseLink(env2, email);
+  return link ? `https://cravenandquill.com/create?${query}#draft=${link.draftId}&key=${link.token}` : `https://cravenandquill.com/create?${query}`;
+}
+async function runStall(env2) {
+  await ensureV2(env2);
+  const out = { accepted: 0, unknown: 0, skipped: 0 };
+  const t2 = Date.now();
+  const rows = (await db(
+    env2,
+    "SELECT email FROM followup_v2 WHERE pay_at IS NOT NULL AND stall_status IS NULL AND pay_at<=?1 AND pay_at>?2 ORDER BY pay_at LIMIT 20",
+    new Date(t2 - HOUR).toISOString(),
+    new Date(t2 - 48 * HOUR).toISOString()
+  ).all()).results || [];
+  for (const { email } of rows) {
+    const ok = await v2Allowed(env2, email);
+    if (!ok || await v2Count(env2, email) >= V2_MAX) {
+      out.skipped++;
+      continue;
+    }
+    const claimed = await db(env2, "UPDATE followup_v2 SET stall_status='sending' WHERE email=?1 AND stall_status IS NULL RETURNING email", email).first();
+    if (!claimed) continue;
+    const d = await detailsFor(env2, email);
+    const mail = v2Message("stall", { names: d?.names, title: d?.title, link: await savedBookLink(env2, email, "stall"), unsub: unsubFor(ok.episode_id) });
+    const r = await v2Send(env2, { email, token: ok.episode_id, mail, key: `stall-${ok.episode_id}` });
+    await db(env2, "UPDATE followup_v2 SET stall_status=?1,stall_at=?2 WHERE email=?3", r.accepted ? "accepted" : "unknown", now(), email).run();
+    out[r.accepted ? "accepted" : "unknown"]++;
+    await new Promise((x) => setTimeout(x, 600));
+  }
+  return out;
+}
+async function runNudge(env2, bookLink) {
+  await ensureV2(env2);
+  const out = { read: 0, unopened: 0, unknown: 0, skipped: 0 };
+  const t2 = Date.now();
+  const rows = (await db(env2, "SELECT DISTINCT lower(email) AS email FROM customer_orders WHERE payment_status='unpaid' AND updated_at>?1", new Date(t2 - 12 * 864e5).toISOString()).all()).results || [];
+  for (const { email } of rows) {
+    const sent = await wholeBookEmails(env2, email);
+    const last2 = sent[sent.length - 1];
+    if (!last2) continue;
+    const age = t2 - Date.parse(last2.at);
+    if (age < 60 * HOUR || age > 7 * 864e5) continue;
+    const done2 = await db(env2, "SELECT nudge_status FROM followup_v2 WHERE email=?1", email).first();
+    if (done2?.nudge_status) continue;
+    const ok = await v2Allowed(env2, email);
+    if (!ok || await v2Count(env2, email) >= V2_MAX) {
+      out.skipped++;
+      continue;
+    }
+    await db(env2, "INSERT INTO followup_v2 (email,created_at) VALUES (?1,?2) ON CONFLICT(email) DO NOTHING", email, now()).run();
+    const claimed = await db(env2, "UPDATE followup_v2 SET nudge_status='sending' WHERE email=?1 AND nudge_status IS NULL RETURNING email", email).first();
+    if (!claimed) continue;
+    const opened = await db(env2, "SELECT 1 FROM order_audit WHERE order_id=?1 AND kind IN ('customer_opened_book','customer_tapped_buy') AND created_at>=?2 LIMIT 1", last2.order, last2.at).first();
+    const kind = opened ? "read" : "unopened";
+    const o = await db(env2, "SELECT id,state FROM customer_orders WHERE id=?1", last2.order).first();
+    let link;
+    try {
+      link = await bookLink({ id: o.id, data: JSON.parse(o.state) }, `utm_source=email&utm_medium=email&utm_campaign=followup_v2&utm_content=${kind}`);
+    } catch {
+      link = null;
+    }
+    if (!link) {
+      await db(env2, "UPDATE followup_v2 SET nudge_status='no_link' WHERE email=?1", email).run();
+      out.skipped++;
+      continue;
+    }
+    const d = { names: JSON.parse(o.state).names, title: JSON.parse(o.state).story?.title };
+    const mail = v2Message(kind, { names: d.names, title: d.title, link, unsub: unsubFor(ok.episode_id) });
+    const r = await v2Send(env2, { email, token: ok.episode_id, mail, key: `nudge-${ok.episode_id}` });
+    await db(env2, "UPDATE followup_v2 SET nudge_status=?1,nudge_kind=?2,nudge_at=?3,nudge_order=?4 WHERE email=?5", r.accepted ? "accepted" : "unknown", kind, now(), last2.order, email).run();
+    if (r.accepted) out[kind]++;
+    else out.unknown++;
+    await new Promise((x) => setTimeout(x, 600));
+  }
+  return out;
+}
+async function runFollowupsV2(env2, { bookLink } = {}) {
+  if (env2.FOLLOWUP_EMAILS_ENABLED !== "true") return { paused: true };
+  if (!env2.DB || !env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { error: "Email or storage is not configured." };
+  const out = {};
+  try {
+    out.stall = await runStall(env2);
+  } catch {
+    console.error("Stall emails failed");
+    out.stall = { error: true };
+  }
+  if (bookLink) {
+    try {
+      out.nudge = await runNudge(env2, bookLink);
+    } catch {
+      console.error("Nudge emails failed");
+      out.nudge = { error: true };
+    }
+  }
+  return out;
+}
+async function v2Status(env2) {
+  await ensureV2(env2);
+  const t2 = Date.now();
+  const c = await db(env2, `SELECT SUM(stall_status='accepted') AS stall, SUM(nudge_status='accepted' AND nudge_kind='read') AS read_, SUM(nudge_status='accepted' AND nudge_kind='unopened') AS unopened,
+    SUM((stall_status='accepted' OR nudge_status='accepted') AND EXISTS (SELECT 1 FROM customer_orders o WHERE lower(o.email)=followup_v2.email AND o.payment_status='paid')) AS paid FROM followup_v2`).first() || {};
+  const rows = (await db(env2, "SELECT email,size_at,pay_at FROM followup_v2 WHERE COALESCE(pay_at,size_at)>?1 ORDER BY COALESCE(pay_at,size_at) DESC LIMIT 60", new Date(t2 - 14 * 864e5).toISOString()).all()).results || [];
+  const queue2 = [];
+  for (const r of rows) {
+    if (queue2.length >= 25) break;
+    if (!await v2Allowed(env2, r.email) || (await wholeBookEmails(env2, r.email)).length) continue;
+    const d = await detailsFor(env2, r.email);
+    queue2.push({ email: r.email, names: d?.names || "", title: d?.title || "", reached: r.pay_at ? "pay page" : "size page", at: r.pay_at || r.size_at });
+  }
+  queue2.sort((a, b) => (a.reached === b.reached ? 0 : a.reached === "pay page" ? -1 : 1) || b.at.localeCompare(a.at));
+  return { sent: { stall: c.stall || 0, read: c.read_ || 0, unopened: c.unopened || 0 }, paidAfter: c.paid || 0, queue: queue2 };
+}
 
 // dist/server/story.js
 var TEXT_LIMIT = 1500;
@@ -53289,6 +53507,13 @@ async function writeStory(env2, input2) {
 
 // src/orders.js
 var FIRST_ORDER_CODE = "FIRST10";
+async function runFollowups2(env2) {
+  return runFollowups(env2, { bookLink: async (o, query) => {
+    const token = await privateKey(env2, o.data.privateKey, true);
+    const page = o.data.preview && o.data.proofWeb?.hash === o.data.preview.hash ? "book.html" : "order.html";
+    return `https://cravenandquill.com/${page}?id=${o.id}&${query}#key=${token}`;
+  } });
+}
 var now2 = () => (/* @__PURE__ */ new Date()).toISOString();
 var uid = () => crypto.randomUUID();
 var reply = (body2, status = 200, extra = {}) => new Response(JSON.stringify(body2), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff", ...extra } });
@@ -53986,6 +54211,11 @@ async function ordersApi(req, env2) {
     if (!["GET", "HEAD"].includes(req.method)) {
       requireThat(req.headers.get("origin") === url.origin, "Reload this page before saving.", 403);
       requireThat(req.headers.get("sec-fetch-site") !== "cross-site", "Cross-site request refused.", 403);
+    }
+    if (path === "/api/orders/followup-stage" && req.method === "POST") {
+      const b2 = await input(req, 4e3);
+      await recordFollowupStage(env2, b2.email, b2.previewId, b2.stage);
+      return reply({ ok: true });
     }
     if (path === "/api/orders/followup-character" && req.method === "POST") {
       const b2 = await input(req, 6e6), email = String(b2.email || "").trim().toLowerCase(), m2 = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(typeof b2.image === "string" && b2.image.length < 55e5 ? b2.image : "");
@@ -54892,14 +55122,18 @@ export {
   previewImageUrl,
   quoteOrder,
   recordFollowupConsent,
+  recordFollowupStage,
   recordPreviewChoice,
   runArtworkJobs,
-  runFollowups,
+  runFollowups2 as runFollowups,
+  runFollowupsV2,
   runMetaPurchaseJobs,
   saveChaseLink,
   seasonDue,
   seasonMessage,
   unsubscribeFollowup,
+  v2Message,
+  v2Status,
   verifyPayment,
   ziina,
   ziinaWebhook

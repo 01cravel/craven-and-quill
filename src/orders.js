@@ -6,9 +6,12 @@ import {PRODUCTS,OWNER_TEST,BOOK,CATALOG_VERSION,catalogue,recipient,safeText,sh
 // Everyone gets 10% off the book on their first paid order (Luke, 27 Nov). Shown pre-filled at checkout.
 export const FIRST_ORDER_CODE='FIRST10';
 import {printBook,validatePdf,makeSpine} from './print-book.js';
-import {recordFollowupConsent,unsubscribeFollowup,ensureFollowupTable,runFollowups,followupStatus,saveFollowupDetails,recordPreviewChoice,enrolPastContacts,saveChaseLink,openChaseLink,recentChaseLinks,ensureDetailsTable,CHASE_NOTICE,chaseMessage,chaseDue,seasonMessage,seasonDue} from './followups.js';
+import {runFollowupsV2,v2Message,v2Status,recordFollowupStage,recordFollowupConsent,unsubscribeFollowup,ensureFollowupTable,runFollowups as runFollowupsCore,followupStatus,saveFollowupDetails,recordPreviewChoice,enrolPastContacts,saveChaseLink,openChaseLink,recentChaseLinks,ensureDetailsTable,CHASE_NOTICE,chaseMessage,chaseDue,seasonMessage,seasonDue} from './followups.js';
 import {validStory,writeStory} from '../dist/server/story.js';
-export {recordFollowupConsent,unsubscribeFollowup,runFollowups,followupStatus,recordPreviewChoice,enrolPastContacts,CHASE_NOTICE,chaseMessage,chaseDue,saveChaseLink,seasonMessage,seasonDue};
+// Follow-ups get a way to build the private link to a shopper's whole-book page (28 Nov 2026).
+async function runFollowups(env){return runFollowupsCore(env,{bookLink:async(o,query)=>{const token=await privateKey(env,o.data.privateKey,true);const page=o.data.preview&&o.data.proofWeb?.hash===o.data.preview.hash?'book.html':'order.html';return `https://cravenandquill.com/${page}?id=${o.id}&${query}#key=${token}`;}});}
+export {runFollowups};
+export {runFollowupsV2,recordFollowupStage,v2Message,v2Status,recordFollowupConsent,unsubscribeFollowup,followupStatus,recordPreviewChoice,enrolPastContacts,CHASE_NOTICE,chaseMessage,chaseDue,saveChaseLink,seasonMessage,seasonDue};
 const now=()=>new Date().toISOString(),uid=()=>crypto.randomUUID();
 const reply=(body,status=200,extra={})=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',...extra}});
 const q=(env,sql,...v)=>env.DB.prepare(sql).bind(...v);
@@ -187,6 +190,8 @@ export async function ordersApi(req,env){const url=new URL(req.url),path=url.pat
  if(path==='/api/orders/ziina-webhook'&&req.method==='POST')return reply(await ziinaWebhook(req,env));
  if(path==='/api/orders/payment-webhook'&&req.method==='POST')return reply(await verifyPayment(req,env));
  if(!['GET','HEAD'].includes(req.method)){requireThat(req.headers.get('origin')===url.origin,'Reload this page before saving.',403);requireThat(req.headers.get('sec-fetch-site')!=='cross-site','Cross-site request refused.',403);}
+ // 28 Nov 2026: the shopper reached the size page or the pay page (for the stalled-checkout email and Luke's whole-book list).
+ if(path==='/api/orders/followup-stage'&&req.method==='POST'){const b=await input(req,4000);await recordFollowupStage(env,b.email,b.previewId,b.stage);return reply({ok:true});}
  if(path==='/api/orders/followup-character'&&req.method==='POST'){
   const b=await input(req,6000000),email=String(b.email||'').trim().toLowerCase(),m=/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(typeof b.image==='string'&&b.image.length<5500000?b.image:'');
   requireThat(m&&/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(email)&&/^[a-f0-9-]{36}$/.test(b.previewId||''),'Complete your preview first.');

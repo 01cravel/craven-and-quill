@@ -138,6 +138,7 @@ function showStep(number){
   renderSideBook();
   if([4,5,11].includes(number))void drawPages();
   scrollToStepTop(number);
+  if(number===6)followupStage('size');
   if(number===6){const f=(state.names||'').trim().split(/\s+/)[0];$('#size-name').textContent=f?f+'\u2019s':'their';requestAnimationFrame(observeBookPrice);}
   onFirstScreen=number===1;
   track('story_step_view',{step:number});
@@ -282,7 +283,10 @@ function updateSendTo(entering){const to=$('input[name="send-to"]:checked')?.val
   else if(to==='me'&&!entering&&field.dataset.autofill==='them'){set('');field.dataset.autofill='me';field.focus();}
   else if(entering&&!field.value.trim()&&to==='them'&&child){set(child);field.dataset.autofill='them';}}
 // The delivery page is two short screens: first who it goes to, then the address and payment.
+// 28 Nov 2026: tell the server they reached the size or pay page (stalled-checkout email, Luke's whole-book list).
+function followupStage(stage){const email=$('#email').value.trim().toLowerCase();if(!state.previewId||!validPreviewEmail())return;fetch('/api/orders/followup-stage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,previewId:state.previewId,stage}),keepalive:true}).catch(()=>{});}
 function payStage(stage){
+ if(stage==='where')followupStage('pay');
  const page=$('.step[data-step="11"]');if(page.dataset.stage===stage)return;page.dataset.stage=stage;
  const to=$('input[name="send-to"]:checked')?.value;
  $('#step-11-title').textContent=stage==='where'?(to==='them'?'Their address':'Your address'):'Where should it go?';
@@ -525,7 +529,7 @@ async function renderStoryArt(){
 
 async function capturePreviewEmail(relink=false){
   state.emailNeedsLink=!state.previewId;
-  const response=await fetch('/api/preview-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#email').value.trim().toLowerCase(),website:$('#website').value,previewId:state.previewId,reminderNotice:'preview-chase-v1',...window.cqMeasurement?.context()}),signal:AbortSignal.timeout(15000)});
+  const response=await fetch('/api/preview-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#email').value.trim().toLowerCase(),website:$('#website').value,previewId:state.previewId,reminderNotice:'preview-chase-v1',noReminders:!!$('#no-followups')?.checked,...window.cqMeasurement?.context()}),signal:AbortSignal.timeout(15000)});
   const result=await response.json().catch(()=>({}));
   if(!response.ok||result.ok!==true)throw new Error(result.error||'We could not save your email. Please try again.');
   if(result.reminderActive&&state.characterImages[0]){
