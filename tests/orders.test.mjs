@@ -583,3 +583,11 @@ test('FIRST10 takes 10% off the book for a first order only, once per book',asyn
  r=await request(env,'/'+second+'/apply-offer',{revision:o2.revision,code:'FIRST10'});assert.equal(r.status,409);
  assert.equal((await state(env,second)).amount,o2.amount);
 });
+
+test('28 Nov: FIRST10 survives checkout, so Ziina is asked for the discounted price',async()=>{
+ const env=environment(),{id}=await create(env);ziinaConnected(env);let o=await state(env,id);
+ const off=Math.round(priceOf(o.size,!!JSON.parse(o.state).fullPrice)*0.1),want=o.amount-off;
+ let r=await request(env,'/'+id+'/apply-offer',{revision:o.revision,code:'FIRST10'});assert.equal(r.status,200);o=await state(env,id);assert.equal(o.amount,want);
+ let asked=null;env.fetch=async(url,opts)=>{env.calls.push({url,opts});if(opts.method==='POST'){asked=JSON.parse(opts.body).amount;return Response.json(intent(env,asked));}return Response.json(intent(env,asked,'requires_payment_instrument'));};
+ r=await request(env,'/'+id+'/checkout',{revision:o.revision});assert.equal(r.status,200);assert.equal(asked,want);assert.equal((await state(env,id)).amount,want);
+});

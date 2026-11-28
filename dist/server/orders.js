@@ -54413,7 +54413,7 @@ Order desk: ${url.origin}/orders` }), signal: AbortSignal.timeout(1e4) });
     if (action === "checkout") {
       requireThat(checkoutReady(env2), "Payments are not open yet. Your book is saved and nothing has been charged.", 503);
       requireThat(o.payment_status === "unpaid" && ["saved", "awaiting_payment"].includes(o.status), "This book is already paid or on hold.", 409);
-      if (o.data.discount && !o.data.discount.ownerTest && !o.data.discount.ownerGift && !o.session_id) {
+      if (o.data.discount && !o.data.discount.ownerTest && !o.data.discount.ownerGift && !o.data.discount.firstOrder && !o.session_id) {
         const table9 = o.data.discount.previewReminder ? "reminder_offers" : "customer_quotes";
         const offer = await q(env2, `SELECT code_expires_at,redeemed_order_id FROM ${table9} WHERE discount_code=?1 AND email=?2`, o.data.discount.code, o.email).first();
         if (!offer || offer.redeemed_order_id !== id || Date.parse(offer.code_expires_at) <= Date.now()) {
