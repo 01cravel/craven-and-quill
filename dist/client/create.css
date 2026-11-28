@@ -1393,3 +1393,30 @@ body.words-editing #xmas-strip,body.words-editing #email-book{display:none!impor
 .size-step .arrives{margin-top:16px}
 .size-step .size-switch{display:none}
 .size-step .urgency{background:#f3ead2}
+
+/* 28 Nov: their character and the full saving in the pay page price box */
+.order-total .order-book{display:flex;align-items:center;gap:12px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid rgba(0,0,0,.12)}
+.order-total .order-book[hidden]{display:none}
+.order-total .order-book img{width:56px;height:56px;flex:none;border-radius:12px;object-fit:cover;object-position:top;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.order-total .order-book b{display:block;font:400 1.15rem/1.2 Story,Georgia,serif;color:var(--ink)}
+.order-total .order-book small{display:block;margin-top:2px;font-size:.8rem;color:var(--muted)}
+#order-was{text-decoration:line-through}
+
+/* 28 Nov: pay page fits on one phone screen: address, their book, total and Pay together */
+.order-total .order-book{align-items:center;padding-bottom:8px;margin-bottom:8px}
+.order-total .order-book img{width:44px;height:44px;border-radius:10px}
+.order-total .order-book img[hidden]{display:none}
+.order-total .order-book-name{flex:1;min-width:0}
+.order-total .order-book small{font-size:.85rem}
+.gift-optional{margin-top:12px}
+@media (max-width:780px){
+ [data-step="11"][data-stage="where"] #step-11-title{font-size:1.7rem;margin-bottom:6px}
+ .pay-where label{margin-bottom:4px;font-size:.88rem}
+ .pay-where input{min-height:0;height:46px;padding:10px 12px}
+ .pay-where .address-pair{margin-top:6px}
+ .pay-where .address-add-line{margin:2px 0 0;padding:4px 0}
+ .pay-step .order-total,[data-step="11"] .order-total{padding:12px 14px;margin-top:12px}
+ .order-total .order-lines{font-size:.88rem;gap:2px}
+ .order-total .order-sum{margin-top:6px;padding-top:6px}
+}
+.order-total .order-book b{font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

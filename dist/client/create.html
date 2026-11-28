@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
   <link rel="preload" href="assets/story-serif.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="create.css?v=size-1">
+  <link rel="stylesheet" href="create.css?v=pay-2">
 </head>
 <body>
   <a class="skip" href="#maker">Skip to story maker</a>
@@ -268,10 +268,11 @@
             </div>
             <button type="button" class="address-mode" id="address-mode" hidden>Enter the address myself</button>
 
-<details class="gift-optional" id="gift-optional"><summary>Add a message inside <span>Optional</span></summary><p class="gift-optional-note">Printed on the first page, the moment they open the cover.</p><label for="sender-name">Who is it from? <span>Optional</span></label><input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad"><label for="dedication">Your message <span>Optional</span></label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea></details>
+
 <div class="error" id="step-11-error" role="alert"></div>
           <p class="hold-clock" data-hold-clock role="timer" hidden></p>
-          <section class="order-total" aria-label="Your order"><div class="order-lines"><span class="order-line"><span id="order-label">A4 hardback</span><span><del id="order-was" hidden></del> <span id="order-book-price">£29.99</span></span></span><span class="order-line order-discount" id="order-discount-line" hidden><span>First order 10% off</span><span id="order-discount">−£3.00</span></span><span class="order-line order-postage"><span>UK postage</span><span id="order-postage">£3.99</span></span></div><div class="order-sum"><span>Total</span><strong id="order-price">£33.98</strong></div><p class="order-offer" id="order-offer" hidden><span id="order-offer-what">£10 off</span> held for <b id="order-offer-time">60:00</b></p></section>
+          <section class="order-total" aria-label="Your order"><div class="order-book order-line" id="order-book"><img id="order-art" alt="" width="44" height="44" hidden><span class="order-book-name"><b id="order-for">Their book</b><small id="order-label">A4 hardback</small></span><span><del id="order-was" hidden></del> <span id="order-book-price">£29.99</span></span></div><div class="order-lines"><span class="order-line order-discount" id="order-discount-line" hidden><span>First order 10% off</span><span id="order-discount">−£3.00</span></span><span class="order-line order-postage"><span>UK postage</span><span id="order-postage">£3.99</span></span></div><div class="order-sum"><span>Total</span><strong id="order-price">£33.98</strong></div><p class="order-offer" id="order-offer" hidden><span id="order-offer-what">£10 off</span> held for <b id="order-offer-time">60:00</b></p></section>
+          <details class="gift-optional" id="gift-optional"><summary>Add a message inside <span>Optional</span></summary><p class="gift-optional-note">Printed on the first page, the moment they open the cover.</p><label for="sender-name">Who is it from? <span>Optional</span></label><input id="sender-name" name="sender-name" maxlength="80" autocomplete="off" placeholder="For example, Mum and Dad"><label for="dedication">Your message <span>Optional</span></label><textarea id="dedication" maxlength="300" rows="3" placeholder="For all the adventures still to come."></textarea></details>
           <p id="offer-code-note" class="privacy-line" hidden></p>
           <div class="offer-code-field" id="offer-code-field" hidden><label for="offer-code">Discount code</label><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="CQ… or FIRST10"></div>
           <div id="launch-form">
@@ -312,6 +313,6 @@
   <script src="preview-progress.js?v=magic-2" defer></script>
   <script src="keyboard-layout.js?v=54" defer></script>
   <dialog id="choose-saved-book" aria-labelledby="saved-book-heading"><h2 id="saved-book-heading">You have a saved book</h2><p>Continue your saved book, or replace this device’s draft with the new story idea.</p><form method="dialog"><button value="saved" autofocus>Continue saved book</button> <button value="new">Start the new idea</button></form></dialog>
-  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=size-1" defer></script><script src="draft-save.js?v=save-preview-2" defer></script>
+  <script src="story-starts.js?v=1" defer></script><script src="create.js?v=pay-2" defer></script><script src="draft-save.js?v=save-preview-2" defer></script>
 </body>
 </html>

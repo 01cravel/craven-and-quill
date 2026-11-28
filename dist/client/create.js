@@ -122,7 +122,7 @@ function showStep(number){
   document.documentElement.style.setProperty('--step-direction',order.indexOf(number)<order.indexOf(previous)?'-1':'1');
   state.step=number;keepStepFields();
   if(number===2){updatePhotoGate();renderPhotoThumbnails(state.photos);}
-  if(number===11){defaultSendTo();updateSendTo(true);showKnownEmail();if(previous!==11)payStage('who');}
+  if(number===11){updateProduct();defaultSendTo();updateSendTo(true);showKnownEmail();if(previous!==11)payStage('who');}
   if(number===9)configureBrief();
   $$('.step').forEach(step=>{const active=Number(step.dataset.step)===number;step.hidden=!active;step.classList.toggle('active',active);});
   $$('.journey-step').forEach(item=>{const n=Number(item.dataset.progress);const at=order.indexOf(number===4?5:number);item.classList.toggle('active',order.indexOf(n)===at);item.classList.toggle('done',order.indexOf(n)<at);});
@@ -737,6 +737,12 @@ function updateProduct(){
   const chosen=$('input[name="product"]:checked');state.product=chosen.value;state.price=Number(chosen.dataset.price);
   $('#order-label').textContent=state.product==='a4'?'A4 hardback':'A5 hardback';
   $('#order-book-price').textContent=`£${state.price.toFixed(2)}`;
+  // 28 Nov (Luke): the pay page shows the full saving from the size page (the struck price on the chosen card),
+  // and a small picture of their character so the order still feels like their book.
+  const wasPrice=chosen.closest('label')?.querySelector('del')?.textContent.trim()||'';
+  const showWas=!!wasPrice&&wasPrice!==`£${state.price.toFixed(2)}`;$('#order-was').hidden=!showWas;if(showWas)$('#order-was').textContent=wasPrice;
+  const art=state.characterImages?.[0],first=(state.names||'').trim().split(/\s+/)[0];
+  $('#order-art').hidden=!art;if(art&&$('#order-art').getAttribute('src')!==art)$('#order-art').src=art;$('#order-for').textContent=first?`${first}\u2019s book`:'Their book';
   $('#order-postage').textContent=`£${state.postage.toFixed(2)}`;
   const off=firstOff();$('#order-discount-line').hidden=!off;$('#order-discount').textContent=`−£${off.toFixed(2)}`;
   $('#order-price').textContent=`£${orderTotal().toFixed(2)}`;
