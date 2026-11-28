@@ -52909,7 +52909,9 @@ async function followupStatus(env2) {
   }
   return { enabled: env2.FOLLOWUP_EMAILS_ENABLED === "true", enrolled: (row.enrolled || 0) + chase.enrolled, firstSent: row.first_sent || 0, secondSent: row.second_sent || 0, needsReview: row.needs_review || 0, chase, season: await seasonStatus(env2) };
 }
+var FOLLOWUPS_STOPPED = true;
 async function runFollowups(env2) {
+  if (FOLLOWUPS_STOPPED && env2.FOLLOWUPS_UNSTOP !== "true") return { paused: true };
   if (env2.FOLLOWUP_EMAILS_ENABLED !== "true") return { paused: true };
   if (!env2.DB || !env2.RESEND_API_KEY || !env2.ORDER_EMAIL_FROM) return { error: "Email or storage is not configured." };
   await ensureFollowupTable(env2);

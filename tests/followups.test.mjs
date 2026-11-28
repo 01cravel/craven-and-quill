@@ -18,7 +18,7 @@ test('new consent sends one reminder and then a single 10% email after three day
   await recordFollowupConsent(env,email,'yes');
   assert.deepEqual(await runFollowups(env),{paused:true});
   assert.equal(sent.length,0);
-  env.FOLLOWUP_EMAILS_ENABLED='true';
+  env.FOLLOWUP_EMAILS_ENABLED='true';env.FOLLOWUPS_UNSTOP='true';
   let result=await runFollowups(env);
   assert.equal(result.first.accepted,1);
   assert.equal(sent.length,1);
@@ -39,7 +39,7 @@ test('new consent sends one reminder and then a single 10% email after three day
 
 test('unsubscribe and paid orders suppress follow-ups',async()=>{
   const {env,DB,sent,email,token}=fixture();
-  await recordFollowupConsent(env,email,'yes');env.FOLLOWUP_EMAILS_ENABLED='true';
+  await recordFollowupConsent(env,email,'yes');env.FOLLOWUP_EMAILS_ENABLED='true';env.FOLLOWUPS_UNSTOP='true';
   await unsubscribeFollowup(env,token);
   await runFollowups(env);
   assert.equal(sent.length,0);
@@ -55,7 +55,7 @@ test('unsubscribe and paid orders suppress follow-ups',async()=>{
 test('neither reminder can use assumed permission or an unverified price',async()=>{
  for(const problem of ['legacy consent','legacy quote']){
   const {env,DB,sent,email}=fixture();
-  env.FOLLOWUP_EMAILS_ENABLED='true';
+  env.FOLLOWUP_EMAILS_ENABLED='true';env.FOLLOWUPS_UNSTOP='true';
   await recordFollowupConsent(env,email,'yes');
   if(problem==='legacy consent')DB.sqlite.exec("UPDATE followup_sequences SET consent_text='soft opt-in'");
   else DB.sqlite.exec('UPDATE customer_quotes SET confirmed_view_at=NULL');
@@ -67,7 +67,7 @@ test('neither reminder can use assumed permission or an unverified price',async(
 });
 
 test('only a new disclosed preview receives the sequence, without creating a quote',async()=>{
-  const DB=testDb(),sent=[],env={DB,NOW:'2026-11-23T12:00:00Z',FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
+  const DB=testDb(),sent=[],env={DB,NOW:'2026-11-23T12:00:00Z',FOLLOWUP_EMAILS_ENABLED:'true',FOLLOWUPS_UNSTOP:'true',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
     async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'sent'+sent.length});}};
   const email='reader@somewhere.invalid',no='declined@somewhere.invalid';
   for(const address of [email,no]){
@@ -92,7 +92,7 @@ test('reminder shows the child\'s character when one is saved',async()=>{
   const {env,sent,email}=fixture();
   const store=new Map();env.BOOK_ASSETS={async head(k){return store.has(k)?{}:null;},async get(k){return store.get(k)||null;},async put(k,v){store.set(k,v);}};
   const {sha}=await import('../src/catalog.js');store.set('followup/'+await sha(email),new Uint8Array([255,216]));
-  await recordFollowupConsent(env,email,'yes');env.FOLLOWUP_EMAILS_ENABLED='true';
+  await recordFollowupConsent(env,email,'yes');env.FOLLOWUP_EMAILS_ENABLED='true';env.FOLLOWUPS_UNSTOP='true';
   await runFollowups(env);
   assert.match(sent[0].body.html,/api\/orders\/followup-character\?t=/);
   assert.match(sent[0].body.html,/as we drew them/);
@@ -102,7 +102,7 @@ test('unsubscribing from the first preview reminder stops the discount email and
   const {env,DB,sent,email}=fixture();
   const preview=crypto.randomUUID();
   DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,email,created_at) VALUES (?,'succeeded',?,?)").run(preview,email,new Date().toISOString());
-  env.FOLLOWUP_EMAILS_ENABLED='true';
+  env.FOLLOWUP_EMAILS_ENABLED='true';env.FOLLOWUPS_UNSTOP='true';
   assert.equal(await recordPreviewChoice(env,email,preview,false),true);
   DB.sqlite.exec("UPDATE followup_sequences SET consent_at='2020-01-01'");
   assert.equal((await runFollowups(env)).first.accepted,1);
@@ -118,7 +118,7 @@ test('unsubscribing from the first preview reminder stops the discount email and
 test('owner-approved one-off: past preview contacts get both reminders, opt-outs and owner skipped',async()=>{
   const {enrolPastContacts}=await import('../dist/server/orders.js');
   const DB=testDb(),sent=[];
-  const env={DB,NOW:'2026-11-23T12:00:00Z',FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'k',ORDER_EMAIL_FROM:'books@example.test',
+  const env={DB,NOW:'2026-11-23T12:00:00Z',FOLLOWUP_EMAILS_ENABLED:'true',FOLLOWUPS_UNSTOP:'true',RESEND_API_KEY:'k',ORDER_EMAIL_FROM:'books@example.test',
     async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'e'+sent.length});}};
   const old='2026-10-01T00:00:00.000Z';
   const cols=DB.sqlite.prepare("PRAGMA table_info(preview_contacts)").all().map(c=>c.name);
@@ -144,7 +144,7 @@ test('owner-approved one-off: past preview contacts get both reminders, opt-outs
 test('five-email chase: right email at the right time, saved-book link, one 10% code from email 3, never two close together',async()=>{
   const {CHASE_NOTICE,chaseDue,saveChaseLink}=await import('../dist/server/orders.js');
   const DB=testDb(),sent=[],email='chaser@somewhere.invalid',id=crypto.randomUUID();
-  const env={DB,FOLLOWUP_EMAILS_ENABLED:'true',CHASE_MAX_STEP:'5',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',ORDER_LINK_SECRET:'s'.repeat(40),
+  const env={DB,FOLLOWUP_EMAILS_ENABLED:'true',FOLLOWUPS_UNSTOP:'true',CHASE_MAX_STEP:'5',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',ORDER_LINK_SECRET:'s'.repeat(40),
     async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'sent'+sent.length});}};
   DB.sqlite.prepare("INSERT INTO preview_receipts(id,status,email,created_at) VALUES (?,'succeeded',?,?)").run(id,email,new Date().toISOString());
   assert.equal(await recordPreviewChoice(env,email,id,false,CHASE_NOTICE),true);
@@ -177,7 +177,7 @@ test('five-email chase: right email at the right time, saved-book link, one 10% 
 
 test('chase stops for buyers and unsubscribers, and falls back to the plain link without a saved book',async()=>{
   const {CHASE_NOTICE}=await import('../dist/server/orders.js');
-  const DB=testDb(),sent=[],env={DB,FOLLOWUP_EMAILS_ENABLED:'true',CHASE_MAX_STEP:'5',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
+  const DB=testDb(),sent=[],env={DB,FOLLOWUP_EMAILS_ENABLED:'true',FOLLOWUPS_UNSTOP:'true',CHASE_MAX_STEP:'5',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
     async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'sent'+sent.length});}};
   const people=['plain@somewhere.invalid','gone@somewhere.invalid'];
   for(const email of people){const id=crypto.randomUUID();
@@ -193,7 +193,7 @@ test('chase stops for buyers and unsubscribers, and falls back to the plain link
 
 test('Christmas emails: everyone we hold an email for, once each, only inside the send window, never unsubscribers or shoppers mid-chase',async()=>{
   const {CHASE_NOTICE,seasonMessage,seasonDue}=await import('../dist/server/orders.js');
-  const DB=testDb(),sent=[],env={DB,FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
+  const DB=testDb(),sent=[],env={DB,FOLLOWUP_EMAILS_ENABLED:'true',FOLLOWUPS_UNSTOP:'true',RESEND_API_KEY:'test',ORDER_EMAIL_FROM:'books@example.test',
     async fetch(url,options){sent.push(JSON.parse(options.body));return Response.json({id:'sent'+sent.length});}};
   const add=email=>DB.sqlite.prepare("INSERT INTO preview_contacts(email,source,medium,campaign,creative,country,created_at,updated_at) VALUES (?,'a','b','c','d','GB',?,?)").run(email,'2026-11-18T00:00:00.000Z','2026-11-18T00:00:00.000Z');
   add('old@somewhere.invalid');add('gone@somewhere.invalid');add('luke@breeztechnologies.com');
@@ -223,4 +223,9 @@ test('by default only the 3-hour chase email goes; later ones are the owner pers
   const {chaseDue}=await import('../dist/server/orders.js');
   const src=await import('node:fs').then(f=>f.readFileSync(new URL('../src/followups.js',import.meta.url),'utf8'));
   assert.ok(src.includes("step>Number(env.CHASE_MAX_STEP||1)"));assert.equal(chaseDue(25,[{step:1,sent_at:'2020-01-01T00:00:00.000Z'}]),2,'step 2 would be due, so the cap is what stops it');
+});
+
+test('28 Nov: all automatic follow-up emails are stopped while the process is rebuilt',async()=>{
+  const sent=[];const env={FOLLOWUP_EMAILS_ENABLED:'true',RESEND_API_KEY:'k',ORDER_EMAIL_FROM:'b@example.test',fetch:async()=>{sent.push(1);return new Response('{}');}};
+  const r=await runFollowups(env);assert.equal(r.paused,true);assert.equal(sent.length,0);
 });

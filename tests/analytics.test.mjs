@@ -285,7 +285,7 @@ test('a preview email links its own drawing without creating a quote or enrollin
  env.NOW='2026-11-23T12:00:00Z';
  const mailRequests=[];
  env.fetch=async (...args)=>{mailRequests.push(args);return Response.json({id:'test-message'});};
- env.FOLLOWUP_EMAILS_ENABLED='true';env.RESEND_API_KEY='test';env.ORDER_EMAIL_FROM='test@cq.test';
+ env.FOLLOWUP_EMAILS_ENABLED='true';env.FOLLOWUPS_UNSTOP='true';env.RESEND_API_KEY='test';env.ORDER_EMAIL_FROM='test@cq.test';
  const stamp=new Date().toISOString();
  env.DB.sqlite.prepare("INSERT INTO preview_receipts (id,status,created_at) VALUES (?,'succeeded',?)").run(id,stamp);
  const capture=address=>campaignApi(new Request(origin+'/api/preview-email',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({email:address,previewId:id})}),env);
@@ -333,7 +333,7 @@ test('returning visitors: a device reference links visits, and the report counts
 });
 
 test('shopper traffic triggers the reminder run, no dashboard needed',async()=>{
-  const env={...environment(),FOLLOWUP_EMAILS_ENABLED:'true'},waits=[];
+  const env={...environment(),FOLLOWUP_EMAILS_ENABLED:'true',FOLLOWUPS_UNSTOP:'true'},waits=[];
   const r=await worker.fetch(post('campaign-event',{event:'maker_start',visitId:crypto.randomUUID(),measurementConsent:true}),env,{waitUntil:p=>waits.push(p)});
   assert.equal(r.status,200);assert.equal(waits.length,1);await Promise.all(waits);
   assert.ok(env.DB.sqlite.prepare("SELECT ran_at FROM owner_jobs WHERE name='followups'").get());

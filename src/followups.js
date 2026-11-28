@@ -219,7 +219,11 @@ export async function followupStatus(env){
   return {enabled:env.FOLLOWUP_EMAILS_ENABLED==='true',enrolled:(row.enrolled||0)+chase.enrolled,firstSent:row.first_sent||0,secondSent:row.second_sent||0,needsReview:row.needs_review||0,chase,season:await seasonStatus(env)};
 }
 
+// 28 Nov 2026 (Luke): ALL automatic follow-up emails stopped (old 2-email reminders, 5-email chase, Christmas
+// emails) while the follow-up process is rebuilt. Order emails, owner alerts and emails a shopper asks for still send.
+export const FOLLOWUPS_STOPPED=true;
 export async function runFollowups(env){
+  if(FOLLOWUPS_STOPPED&&env.FOLLOWUPS_UNSTOP!=='true')return {paused:true};
   if(env.FOLLOWUP_EMAILS_ENABLED!=='true')return {paused:true};
   if(!env.DB||!env.RESEND_API_KEY||!env.ORDER_EMAIL_FROM)return {error:'Email or storage is not configured.'};
   await ensureFollowupTable(env);
