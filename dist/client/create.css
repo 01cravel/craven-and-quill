@@ -1421,3 +1421,7 @@ body.words-editing #xmas-strip,body.words-editing #email-book{display:none!impor
 }
 .order-total .order-book b{font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gift-optional[hidden]{display:none!important}
+
+/* 28 Nov: search results open under the Address box */
+.address-line-box{position:relative}
+.address-line-box .address-results{position:absolute;left:0;right:0;top:100%;z-index:20;margin-top:4px}

@@ -605,7 +605,7 @@ $$('[data-next]').forEach(button=>button.addEventListener('click',()=>{
   if(state.step===9){updateLive();const own=state.storyMode==='plot';const field=own?$('#own-idea'):$('#personal-details');if(!field.value.trim()){$('#step-9-error').textContent=own?'Give us a sentence about what should happen.':'Tap one thing they love, or write a line about them.';field.focus();return;}$('#step-9-error').textContent='';buildIdeas();state.storyError='';if(!storyWriting&&(!draftValid(state.storyDraft)||state.storyBasis!==storyBasis()))void writeStory(false);}
   if(state.step===11){
     const invalid=['recipient-name','address-line1','town','postcode'].find(id=>!$('#'+id).value.trim());
-    if(invalid){if(invalid!=='recipient-name'&&addressFinder.mode==='search'){$('#step-11-error').textContent='Start typing their address and pick it from the list, or enter it yourself.';$('#address-search').focus();return;}$('#step-11-error').textContent='Complete the delivery address to continue.';$('#'+invalid).focus();return;}
+    if(invalid){if(false){$('#step-11-error').textContent='Start typing their address and pick it from the list, or enter it yourself.';$('#address-search').focus();return;}$('#step-11-error').textContent='Complete the delivery address to continue.';$('#'+invalid).focus();return;}
     if(!validUkPostcode($('#postcode').value)){$('#step-11-error').textContent='Check the postcode. It should look like YO1 7AA.';if(addressFinder.mode!=='manual')setAddressMode('manual');$('#postcode').focus();return;}
     $('#step-11-error').textContent='';
   }
@@ -1134,16 +1134,19 @@ function showAddressCard(){
  const lines=[$('#address-line1').value,$('#address-line2').value,$('#town').value,tidyPostcode($('#postcode').value)].map(v=>v.trim()).filter(Boolean);
  $('#address-card-text').replaceChildren(...lines.flatMap((line,i)=>i?[document.createElement('br'),line]:[line]));
 }
+// 28 Nov (Luke): the Address box is both the search and where the phone's one-tap address fill lands, so
+// town and postcode stay visible and a saved address fills everything at once.
+const addrBox=$('#address-line1');
 function setAddressMode(mode){
- addressFinder.mode=mode;
+ if(mode==='search')mode='manual';addressFinder.mode=mode;
  $('#address-finder').hidden=mode!=='search';$('#address-card').hidden=mode!=='card';$('#address-manual').hidden=mode!=='manual';
- $('#address-mode').hidden=!addressFinder.available||mode==='card';
+ $('#address-mode').hidden=true;
  $('#address-mode').textContent=mode==='manual'?'Search for the address instead':'Enter the address myself';
  if(mode==='card')showAddressCard();
  if(mode==='manual'){$('#address-line2-wrap').hidden=!$('#address-line2').value.trim();$('#address-add-line').hidden=!$('#address-line2-wrap').hidden;}
  closeAddressResults();
 }
-function closeAddressResults(){$('#address-results').hidden=true;$('#address-results').replaceChildren();$('#address-search').setAttribute('aria-expanded','false');$('#address-search').removeAttribute('aria-activedescendant');addressFinder.active=-1;}
+function closeAddressResults(){$('#address-results').hidden=true;$('#address-results').replaceChildren();addrBox.setAttribute('aria-expanded','false');addrBox.removeAttribute('aria-activedescendant');addressFinder.active=-1;}
 async function prepareAddressStep(){
  if(addressFinder.available===null){
   try{const r=await fetch('/api/address/status',{signal:AbortSignal.timeout(4000)});addressFinder.available=r.ok&&(await r.json()).available===true;}catch{addressFinder.available=false;}
@@ -1161,12 +1164,12 @@ function renderAddressHits(){
   item.addEventListener('pointerdown',event=>{event.preventDefault();void pickAddress(i);});list.append(item);
  });
  const manual=document.createElement('li');manual.id='address-hit-manual';manual.setAttribute('role','option');manual.className='address-hit-manual';manual.setAttribute('aria-selected',String(addressFinder.active===addressFinder.hits.length));
- manual.textContent=addressFinder.hits.length?'Can’t see it? Enter the address yourself':'No matches yet. Enter the address yourself';
+ manual.textContent=addressFinder.hits.length?'Can’t see it? Type it in yourself':'No match yet. Type it in yourself';
  manual.addEventListener('pointerdown',event=>{event.preventDefault();useManualAddress();});list.append(manual);
- list.hidden=false;$('#address-search').setAttribute('aria-expanded','true');
- if(addressFinder.active>=0)$('#address-search').setAttribute('aria-activedescendant',addressFinder.active===addressFinder.hits.length?'address-hit-manual':`address-hit-${addressFinder.active}`);else $('#address-search').removeAttribute('aria-activedescendant');
+ list.hidden=false;addrBox.setAttribute('aria-expanded','true');
+ if(addressFinder.active>=0)addrBox.setAttribute('aria-activedescendant',addressFinder.active===addressFinder.hits.length?'address-hit-manual':`address-hit-${addressFinder.active}`);else addrBox.removeAttribute('aria-activedescendant');
 }
-function useManualAddress(){const typed=addressFinder.query;setAddressMode('manual');if(typed&&!$('#address-line1').value.trim()&&!/^[A-Z]{1,2}\d/i.test(typed))$('#address-line1').value=typed;else if(typed&&validUkPostcode(typed)&&!$('#postcode').value.trim())$('#postcode').value=tidyPostcode(typed);$('#address-line1').focus();track('address_manual');}
+function useManualAddress(){const typed=addressFinder.query;closeAddressResults();if(typed&&/^[A-Z]{1,2}\d/i.test(typed)&&validUkPostcode(typed)){if(!$('#postcode').value.trim())$('#postcode').value=tidyPostcode(typed);addrBox.value='';}if(addressFinder.mode!=='manual')setAddressMode('manual');addrBox.focus();track('address_manual');}
 async function searchAddresses(query){
  addressFinder.controller?.abort();const controller=new AbortController();addressFinder.controller=controller;
  $('#address-spinner').hidden=false;
@@ -1182,33 +1185,35 @@ async function searchAddresses(query){
 }
 async function pickAddress(index){
  const hit=addressFinder.hits[index];if(!hit)return;
- $('#address-search').value=hit.suggestion;closeAddressResults();$('#address-spinner').hidden=false;$('#address-search-note').textContent='Getting the full address…';
+ closeAddressResults();$('#address-spinner').hidden=false;$('#address-search-note').textContent='Getting the full address…';
  try{
   const r=await fetch('/api/address/resolve?id='+encodeURIComponent(hit.id),{signal:AbortSignal.timeout(8000)});
   const data=await r.json().catch(()=>({}));
   if(!r.ok||!data.address)throw new Error(data.error||'That address could not be loaded. Try again or enter it yourself.');
   const a=data.address;$('#address-line1').value=a.line1;$('#address-line2').value=a.line2||'';$('#town').value=a.townOrCity;$('#postcode').value=tidyPostcode(a.postcode);
   ['address-line1','address-line2','town','postcode'].forEach(id=>$('#'+id).dispatchEvent(new Event('input',{bubbles:true})));
-  $('#step-11-error').textContent='';$('#address-search').value='';$('#address-search-note').textContent='Try a postcode or the first line, like “12 Oak Road”.';
-  setAddressMode('card');$('#address-change').focus({preventScroll:true});track('address_picked');window.dispatchEvent(new Event('cq-draft-change'));
- }catch(error){$('#address-search-note').textContent=error.message;$('#address-search').focus();}
+  $('#step-11-error').textContent='';$('#address-search-note').textContent='Try a postcode or the first line, like “12 Oak Road”.';
+  setAddressMode('card');track('address_picked');window.dispatchEvent(new Event('cq-draft-change'));
+ }catch(error){$('#address-search-note').textContent=error.message;addrBox.focus();}
  finally{$('#address-spinner').hidden=true;}
 }
-$('#address-search').addEventListener('input',()=>{
- const query=$('#address-search').value.trim();addressFinder.query=query;clearTimeout(addressFinder.timer);
+addrBox.addEventListener('input',event=>{
+ if(!addressFinder.available)return;
+ if(!event.inputType||event.inputType==='insertReplacementText'||($('#town').value.trim()&&$('#postcode').value.trim()&&!document.activeElement?.isSameNode(addrBox))){closeAddressResults();return;}
+ const query=addrBox.value.trim();addressFinder.query=query;clearTimeout(addressFinder.timer);
  if(query.length<3){addressFinder.controller?.abort();$('#address-spinner').hidden=true;closeAddressResults();return;}
  addressFinder.timer=setTimeout(()=>void searchAddresses(query),180);
 });
-$('#address-search').addEventListener('keydown',event=>{
+addrBox.addEventListener('keydown',event=>{
  const open=!$('#address-results').hidden,count=addressFinder.hits.length+1;
  if(event.key==='ArrowDown'||event.key==='ArrowUp'){if(!open)return;event.preventDefault();addressFinder.active=(addressFinder.active+(event.key==='ArrowDown'?1:-1)+count)%count;renderAddressHits();$('#address-results [aria-selected="true"]')?.scrollIntoView({block:'nearest'});}
  else if(event.key==='Enter'){if(!open)return;event.preventDefault();const i=addressFinder.active<0?0:addressFinder.active;if(i>=addressFinder.hits.length)useManualAddress();else void pickAddress(i);}
  else if(event.key==='Escape'&&open){event.preventDefault();closeAddressResults();}
 });
-$('#address-search').addEventListener('blur',()=>setTimeout(closeAddressResults,120));
-$('#address-search').addEventListener('focus',()=>{if(innerWidth<780)$('#address-finder').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});if(addressFinder.hits.length&&$('#address-search').value.trim().length>=3)renderAddressHits();});
-$('#address-change').addEventListener('click',()=>{setAddressMode('search');$('#address-search').focus();});
-$('#address-mode').addEventListener('click',()=>{if(addressFinder.mode==='manual'){setAddressMode(addressFilled()?'card':'search');if(addressFinder.mode==='search')$('#address-search').focus();}else useManualAddress();});
+addrBox.addEventListener('blur',()=>setTimeout(closeAddressResults,120));
+addrBox.addEventListener('focus',()=>{if(addressFinder.hits.length&&addrBox.value.trim().length>=3)renderAddressHits();});
+$('#address-change').addEventListener('click',()=>{setAddressMode('manual');addrBox.focus();});
+$('#address-mode').addEventListener('click',()=>{if(addressFinder.mode==='manual'){setAddressMode(addressFilled()?'card':'search');if(addressFinder.mode==='search')addrBox.focus();}else useManualAddress();});
 $('#address-add-line').addEventListener('click',()=>{$('#address-line2-wrap').hidden=false;$('#address-add-line').hidden=true;$('#address-line2').focus();});
 $('#postcode').addEventListener('blur',()=>{const v=$('#postcode').value;if(v.trim())$('#postcode').value=tidyPostcode(v);});
 
