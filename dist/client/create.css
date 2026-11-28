@@ -1420,3 +1420,4 @@ body.words-editing #xmas-strip,body.words-editing #email-book{display:none!impor
  .order-total .order-sum{margin-top:6px;padding-top:6px}
 }
 .order-total .order-book b{font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gift-optional[hidden]{display:none!important}
